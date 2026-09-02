@@ -47,7 +47,6 @@ func finalize() -> void:
 		return
 	_built = true
 	_build_geometry()
-	_decorate()
 	if kind == Kind.NPC:
 		_spawn_npc()
 
@@ -68,7 +67,7 @@ func unlock_doors() -> void:
 
 
 func contains_inner(point: Vector2) -> bool:
-	var inset := Game.WALL + 20.0
+	var inset := Game.WALL + 24.0
 	var r := Rect2(global_position + Vector2(inset, inset), size - Vector2(inset * 2.0, inset * 2.0))
 	return r.has_point(point)
 
@@ -157,7 +156,7 @@ func _build_geometry() -> void:
 
 func _paint_gap(rect: Rect2) -> void:
 	var hole := ColorRect.new()
-		hole.color = Color("160e12")
+	hole.color = Color("160e12")
 	hole.position = rect.position
 	hole.size = rect.size
 	hole.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -246,7 +245,8 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	add_child(body)
 	_door_bodies[dir] = body
 	_door_visuals[dir] = vis
-	_set_door_blocked(dir, not cleared)
+	# Start open so you can walk in; lock_doors() slams them after entry.
+	_set_door_blocked(dir, false)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:
@@ -259,10 +259,6 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 		col.set_deferred("disabled", not blocked)
 	vis.visible = blocked
 	vis.color = Palette.HELL_RED if blocked and not cleared else Palette.EMBER
-
-
-func _decorate() -> void:
-	pass
 
 
 func _spawn_npc() -> void:

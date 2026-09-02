@@ -1,9 +1,9 @@
 class_name Player
 extends CharacterBody2D
 
-const SPEED := 248.0
-const FIRE_CD := 0.16
-const I_FRAMES := 0.95
+const SPEED := 268.0
+const FIRE_CD := 0.15
+const I_FRAMES := 1.05
 const RADIUS := 16.0
 
 var aim := Vector2.RIGHT
@@ -23,10 +23,10 @@ func _ready() -> void:
 	z_index = 8
 	add_to_group("player")
 	var circle := CircleShape2D.new()
-	circle.radius = RADIUS
+	circle.radius = RADIUS - 2.0
 	_col.shape = circle
 	var hurt_shape := CircleShape2D.new()
-	hurt_shape.radius = RADIUS - 1.0
+	hurt_shape.radius = 8.0
 	$Hurtbox/CollisionShape2D.shape = hurt_shape
 	_hurt.collision_layer = 2
 	_hurt.collision_mask = 20  # enemies + enemy bullets

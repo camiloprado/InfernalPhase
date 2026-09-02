@@ -120,7 +120,7 @@ func _fire() -> void:
 			_imp_spread()
 			fire_cd = 1.15
 		Kind.WRETCH:
-			_ring(12, 168.0, ring_off, Palette.BONE, 5.5)
+			_ring(12, 148.0, ring_off, Palette.BONE, 5.5)
 			ring_off += 13.0
 			fire_cd = 1.85
 		Kind.CULTIST:
@@ -133,7 +133,7 @@ func _fire() -> void:
 
 func _imp_spread() -> void:
 	var aim := _aim()
-	_spread(aim, 3, 20.0, 230.0, Palette.EMBER, 5.0)
+	_spread(aim, 3, 20.0, 205.0, Palette.EMBER, 5.0)
 
 
 func _start_wave() -> void:
@@ -154,7 +154,7 @@ func _wave_shots(aim: Vector2, perp: Vector2) -> void:
 			return
 		var lateral := sin(i * 0.55) * 34.0
 		var origin := global_position + aim * (radius + 8.0) + perp * lateral
-		floor_node.spawn_bullet(origin, aim, 195.0, true, Palette.ROBE_LIGHT, 5.0, 0.0)
+		floor_node.spawn_bullet(origin, aim, 175.0, true, Palette.ROBE_LIGHT, 5.0, 0.0)
 		await get_tree().create_timer(0.075).timeout
 	wave_busy = false
 
