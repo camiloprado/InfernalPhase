@@ -29,8 +29,12 @@ func _on_body(body: Node) -> void:
 		return
 	if cooldown > 0.0:
 		return
-	Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 3.6)
-	line_i += 1
+	if not shown:
+		Game.heal(2)
+		Game.say("\"Two hearts. Don't tell payroll. The boss is south of here.\"", 3.6)
+	else:
+		Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 3.6)
+		line_i += 1
 	cooldown = 4.2
 	shown = true
 

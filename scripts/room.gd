@@ -256,7 +256,8 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 	var vis: ColorRect = _door_visuals[dir]
 	var col := body.get_node_or_null("Col") as CollisionShape2D
 	if col:
-		col.set_deferred("disabled", not blocked)
+		col.disabled = not blocked
+	body.collision_layer = 1 if blocked else 0
 	vis.visible = blocked
 	vis.color = Palette.HELL_RED if blocked and not cleared else Palette.EMBER
 
