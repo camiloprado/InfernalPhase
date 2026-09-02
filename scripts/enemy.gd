@@ -10,6 +10,9 @@ const NAMES := {
 	Kind.BOSS: "The Infernal Phase",
 }
 
+const IMP_LOADOUTS := ["vanilla", "sword", "sword_shield", "pitchfork", "pitchfork_shield"]
+const DIR_NAMES := ["down", "up", "right", "left"]
+
 var kind: Kind = Kind.IMP
 var hp: int = 3
 var max_hp: int = 3
@@ -33,10 +36,15 @@ var special_i := 0
 var tele_cd := 2.5
 var tele_wind := 0.0
 var tele_dest := Vector2.ZERO
+var loadout := "vanilla"
+var art := false
+var attack_t := 0.0
+var special_pick := 0
 
 const SPECIAL_AT := [0.8, 0.6, 0.4, 0.2]
 
 @onready var _col: CollisionShape2D = $CollisionShape2D
+@onready var _sprite: AnimatedSprite2D = $Sprite
 
 
 func _ready() -> void:
@@ -89,6 +97,7 @@ func configure(p_kind: Kind, at: Vector2, p_intro: bool = false) -> void:
 	max_hp = hp
 	if _col and _col.shape:
 		(_col.shape as CircleShape2D).radius = radius
+	_setup_art()
 
 
 func _physics_process(delta: float) -> void:
@@ -105,6 +114,7 @@ func _physics_process(delta: float) -> void:
 		fire_cd -= delta
 		if fire_cd <= 0.0:
 			_fire()
+	_tick_art(delta)
 	queue_redraw()
 
 
@@ -160,6 +170,7 @@ func _fire() -> void:
 
 func _imp_spread() -> void:
 	var aim := _aim()
+	attack_t = 0.44
 	_spread(aim, 5, 14.0, 220.0, Palette.EMBER, 6.0)
 
 
@@ -332,6 +343,7 @@ func _begin_special() -> void:
 	tele_wind = 0.0
 	var room := _host_room()
 	var pick := Game.rng.randi() % 5
+	special_pick = pick
 	var origin := global_position
 	if room:
 		match pick:
@@ -464,7 +476,180 @@ func _floor() -> Floor:
 	return get_tree().get_first_node_in_group("floor") as Floor
 
 
+func _setup_art() -> void:
+	art = false
+	if _sprite == null:
+		return
+	_sprite.visible = false
+	_sprite.sprite_frames = null
+	match kind:
+		Kind.IMP:
+			_setup_imp_art()
+		Kind.BOSS:
+			_setup_boss_art()
+		_:
+			pass
+
+
+func _setup_imp_art() -> void:
+	loadout = _pick_loadout()
+	var walk := _tex("res://assets/characters/imp/walk_%s.png" % loadout)
+	var atk := _tex("res://assets/characters/imp/attack_%s.png" % loadout)
+	if walk == null or atk == null:
+		return
+	var frames := SpriteFrames.new()
+	_slice_dirs(frames, walk, "walk", 8.0)
+	_slice_dirs(frames, atk, "attack", 11.0)
+	_sprite.sprite_frames = frames
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var cell := Vector2(float(walk.get_width()) / 4.0, float(walk.get_height()) / 4.0)
+	_fit_sprite(cell, 0.56)
+	_sprite.visible = true
+	art = true
+	_sprite.play("walk_down")
+
+
+func _setup_boss_art() -> void:
+	var idle := _tex("res://assets/characters/boss/idle.png")
+	var move := _tex("res://assets/characters/boss/move.png")
+	var fire := _tex("res://assets/characters/boss/fire.png")
+	var bolt := _tex("res://assets/characters/boss/lightning.png")
+	if idle == null:
+		return
+	var frames := SpriteFrames.new()
+	_slice_grid(frames, idle, "idle", 2, 2, 5.0, true)
+	if move != null:
+		_slice_grid(frames, move, "move", 2, 2, 9.0, true)
+	else:
+		_slice_grid(frames, idle, "move", 2, 2, 9.0, true)
+	if fire != null:
+		_slice_grid(frames, fire, "fire", 2, 2, 8.0, true)
+	else:
+		_slice_grid(frames, idle, "fire", 2, 2, 8.0, true)
+	if bolt != null:
+		_slice_grid(frames, bolt, "lightning", 2, 2, 8.0, true)
+	else:
+		_slice_grid(frames, idle, "lightning", 2, 2, 8.0, true)
+	_sprite.sprite_frames = frames
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var cell := Vector2(float(idle.get_width()) / 2.0, float(idle.get_height()) / 2.0)
+	_fit_sprite(cell, 0.86)
+	_sprite.offset = Vector2(0, 10)
+	_sprite.visible = true
+	art = true
+	_sprite.play("idle")
+
+
+func _pick_loadout() -> String:
+	var ok: Array[String] = []
+	for lo in IMP_LOADOUTS:
+		var walk_p := "res://assets/characters/imp/walk_%s.png" % lo
+		var atk_p := "res://assets/characters/imp/attack_%s.png" % lo
+		if ResourceLoader.exists(walk_p) and ResourceLoader.exists(atk_p):
+			ok.append(lo)
+	if ok.is_empty():
+		return "vanilla"
+	return ok[Game.rng.randi() % ok.size()]
+
+
+func _tex(path: String) -> Texture2D:
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+
+func _slice_dirs(frames: SpriteFrames, tex: Texture2D, prefix: String, fps: float) -> void:
+	var fw := tex.get_width() / 4
+	var fh := tex.get_height() / 4
+	for r in 4:
+		var anim := "%s_%s" % [prefix, DIR_NAMES[r]]
+		if frames.has_animation(anim):
+			frames.remove_animation(anim)
+		frames.add_animation(anim)
+		frames.set_animation_speed(anim, fps)
+		frames.set_animation_loop(anim, true)
+		for c in 4:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex
+			atlas.region = Rect2(c * fw, r * fh, fw, fh)
+			atlas.filter_clip = true
+			frames.add_frame(anim, atlas)
+
+
+func _slice_grid(frames: SpriteFrames, tex: Texture2D, anim: String, cols: int, rows: int, fps: float, loop: bool) -> void:
+	if frames.has_animation(anim):
+		frames.remove_animation(anim)
+	frames.add_animation(anim)
+	frames.set_animation_speed(anim, fps)
+	frames.set_animation_loop(anim, loop)
+	var fw := tex.get_width() / cols
+	var fh := tex.get_height() / rows
+	for r in rows:
+		for c in cols:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex
+			atlas.region = Rect2(c * fw, r * fh, fw, fh)
+			atlas.filter_clip = true
+			frames.add_frame(anim, atlas)
+
+
+func _fit_sprite(cell: Vector2, occupy: float) -> void:
+	var body := minf(cell.x, cell.y) * occupy
+	if body < 1.0:
+		return
+	var target := radius * (2.4 if kind == Kind.IMP else 2.6)
+	var s := target / body
+	_sprite.scale = Vector2(s, s)
+
+
+func _facing() -> String:
+	var v := velocity
+	if v.length() < 16.0:
+		v = _aim()
+	if absf(v.x) >= absf(v.y):
+		return "right" if v.x >= 0.0 else "left"
+	return "down" if v.y >= 0.0 else "up"
+
+
+func _tick_art(delta: float) -> void:
+	if not art or _sprite == null:
+		return
+	attack_t = maxf(attack_t - delta, 0.0)
+	if flash > 0.0:
+		_sprite.modulate = Color.WHITE.lerp(Palette.BONE, flash * 0.8)
+	else:
+		_sprite.modulate = Color.WHITE
+	if kind == Kind.IMP:
+		var anim := ("attack_" if attack_t > 0.0 else "walk_") + _facing()
+		if _sprite.animation != anim or not _sprite.is_playing():
+			_sprite.play(anim)
+	elif kind == Kind.BOSS:
+		var anim := "idle"
+		if special_busy:
+			anim = "fire" if special_pick == 2 or special_pick == 4 else "lightning"
+		elif tele_wind > 0.0:
+			anim = "move"
+		if _sprite.animation != anim or not _sprite.is_playing():
+			_sprite.play(anim)
+
+
+func _draw_art_fx() -> void:
+	if kind == Kind.BOSS and tele_wind > 0.0:
+		var dest := to_local(tele_dest)
+		var pulse := 0.55 + 0.45 * sin(visual_rot * 8.0)
+		draw_arc(dest, 28.0 + pulse * 10.0, 0.0, TAU, 24, Palette.EMBER_HOT, 4.0, true)
+		draw_circle(dest, 7.0, Palette.BONE)
+		draw_arc(Vector2.ZERO, radius + 12.0, 0.0, TAU, 28, Palette.EMBER_HOT, 3.0, true)
+	if kind != Kind.BOSS and hp < max_hp:
+		var w := radius * 2.0
+		draw_rect(Rect2(-w * 0.5, -radius - 14, w, 3), Palette.VOID)
+		draw_rect(Rect2(-w * 0.5, -radius - 14, w * (float(hp) / float(max_hp)), 3), Palette.EMBER)
+
+
 func _draw() -> void:
+	if art and (kind == Kind.IMP or kind == Kind.BOSS):
+		_draw_art_fx()
+		return
 	var col := _color()
 	if flash > 0.0:
 		col = col.lerp(Palette.BONE, flash)
