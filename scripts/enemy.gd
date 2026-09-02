@@ -63,7 +63,7 @@ func configure(p_kind: Kind, at: Vector2, p_intro: bool = false) -> void:
 			if intro:
 				hp = 2
 				radius = 16.0
-				fire_cd = 3.2
+				fire_cd = 4.0
 			else:
 				hp = 5
 				radius = 15.0
@@ -128,13 +128,13 @@ func _fire() -> void:
 			_imp_spread()
 			fire_cd = 1.15
 		Kind.WRETCH:
-			_ring(12, 148.0, ring_off, Palette.BONE, 5.5)
+			_ring(12, 148.0, ring_off, Palette.EMBER, 5.5)
 			ring_off += 13.0
 			fire_cd = 1.85
 		Kind.CULTIST:
 			if not wave_busy:
 				_start_wave()
-			fire_cd = 3.6 if intro else 2.35
+			fire_cd = 4.2 if intro else 2.35
 		Kind.BOSS:
 			_boss_fire()
 
@@ -156,10 +156,10 @@ func _wave_shots(aim: Vector2, perp: Vector2) -> void:
 	if floor_node == null:
 		wave_busy = false
 		return
-	var count := 3 if intro else 10
-	var spd := 95.0 if intro else 175.0
-	var gap := 0.22 if intro else 0.075
-	var amp := 14.0 if intro else 34.0
+	var count := 2 if intro else 10
+	var spd := 78.0 if intro else 175.0
+	var gap := 0.32 if intro else 0.075
+	var amp := 10.0 if intro else 34.0
 	for i in count:
 		if not is_instance_valid(self) or not alive or not is_inside_tree():
 			wave_busy = false
@@ -331,17 +331,19 @@ func _draw() -> void:
 			draw_circle(Vector2(-4, -2), 2.2, Palette.EMBER_HOT)
 			draw_circle(Vector2(4, -2), 2.2, Palette.EMBER_HOT)
 		Kind.WRETCH:
-			draw_circle(Vector2.ZERO, radius + 3.0, Palette.VOID)
-			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 32, Palette.BONE, 7.0, true)
-			draw_arc(Vector2.ZERO, radius - 5.0, 0.0, TAU, 24, Palette.EMBER, 2.5, true)
+			draw_circle(Vector2.ZERO, radius + 10.0, Color(Palette.BONE.r, Palette.BONE.g, Palette.BONE.b, 0.38))
+			draw_circle(Vector2.ZERO, radius + 3.0, Palette.BONE_DIM)
+			draw_circle(Vector2.ZERO, radius - 5.0, Palette.VOID)
+			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 36, Palette.BONE, 9.0, true)
+			draw_arc(Vector2.ZERO, radius - 6.0, 0.0, TAU, 28, Palette.EMBER_HOT, 3.0, true)
 			for i in 6:
 				var a := visual_rot + i * TAU / 6.0
 				var tip := Vector2.RIGHT.rotated(a) * radius
-				draw_line(tip * 0.25, tip, Palette.EMBER_HOT, 2.0)
-				draw_circle(tip, 5.5, Palette.BONE)
-				draw_circle(tip, 2.0, Palette.EMBER)
-			draw_circle(Vector2.ZERO, 7.0, Palette.EMBER)
-			draw_circle(Vector2.ZERO, 3.0, Palette.EMBER_HOT)
+				draw_line(tip * 0.2, tip, Palette.EMBER_HOT, 2.6)
+				draw_circle(tip, 6.5, Palette.BONE)
+				draw_circle(tip, 2.4, Palette.EMBER_HOT)
+			draw_circle(Vector2.ZERO, 8.0, Palette.EMBER)
+			draw_circle(Vector2.ZERO, 3.5, Palette.EMBER_HOT)
 		Kind.CULTIST:
 			var robe := PackedVector2Array([
 				Vector2(0, -radius - 2),

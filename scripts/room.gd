@@ -156,14 +156,14 @@ func _build_geometry() -> void:
 
 
 func _paint_gap(rect: Rect2) -> void:
+	# Floor-colored throat so an open door reads as a hole in the wall, not a brown notch.
 	var hole := ColorRect.new()
-	hole.color = Color("3a2420")
+	hole.color = Palette.ASH
 	hole.position = rect.position
 	hole.size = rect.size
 	hole.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hole.z_index = -6
 	add_child(hole)
-	# Bone jambs so an open door reads as a mouth, not a wall notch.
 	var jamb_a := ColorRect.new()
 	var jamb_b := ColorRect.new()
 	jamb_a.color = Palette.BONE
@@ -172,16 +172,17 @@ func _paint_gap(rect: Rect2) -> void:
 	jamb_b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	jamb_a.z_index = -5
 	jamb_b.z_index = -5
+	const JAMB := 8.0
 	if rect.size.x >= rect.size.y:
-		jamb_a.size = Vector2(6, rect.size.y)
-		jamb_b.size = Vector2(6, rect.size.y)
+		jamb_a.size = Vector2(JAMB, rect.size.y)
+		jamb_b.size = Vector2(JAMB, rect.size.y)
 		jamb_a.position = rect.position
-		jamb_b.position = Vector2(rect.position.x + rect.size.x - 6.0, rect.position.y)
+		jamb_b.position = Vector2(rect.position.x + rect.size.x - JAMB, rect.position.y)
 	else:
-		jamb_a.size = Vector2(rect.size.x, 6)
-		jamb_b.size = Vector2(rect.size.x, 6)
+		jamb_a.size = Vector2(rect.size.x, JAMB)
+		jamb_b.size = Vector2(rect.size.x, JAMB)
 		jamb_a.position = rect.position
-		jamb_b.position = Vector2(rect.position.x, rect.position.y + rect.size.y - 6.0)
+		jamb_b.position = Vector2(rect.position.x, rect.position.y + rect.size.y - JAMB)
 	add_child(jamb_a)
 	add_child(jamb_b)
 
@@ -272,11 +273,11 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	seal.z_index = -4
 	if rect.size.x >= rect.size.y:
-		seal.size = Vector2(rect.size.x - 12.0, 8)
-		seal.position = Vector2(rect.position.x + 6.0, rect.position.y + rect.size.y * 0.5 - 4.0)
+		seal.size = Vector2(rect.size.x - 16.0, 12)
+		seal.position = Vector2(rect.position.x + 8.0, rect.position.y + rect.size.y * 0.5 - 6.0)
 	else:
-		seal.size = Vector2(8, rect.size.y - 12.0)
-		seal.position = Vector2(rect.position.x + rect.size.x * 0.5 - 4.0, rect.position.y + 6.0)
+		seal.size = Vector2(12, rect.size.y - 16.0)
+		seal.position = Vector2(rect.position.x + rect.size.x * 0.5 - 6.0, rect.position.y + 8.0)
 	add_child(seal)
 	_door_bodies[dir] = body
 	_door_visuals[dir] = vis

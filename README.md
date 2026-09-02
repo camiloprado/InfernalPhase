@@ -41,7 +41,7 @@ Nine rooms on a grid:
 | **The Concierge** | NPC room. Walk up. First visit restores two hearts. It talks. No shop. |
 | **The Phase** | Boss. Rings, spreads, waves, spirals. Three tempos as it loses HP |
 
-Reach the boss via the Concierge (east then south) or through the southern combat rooms.
+Reach the boss via the Concierge (east then south) or through the southern combat rooms. The first east room is a slower Ash Cantor intro; later cantors and the boss stay meaner.
 
 ## Layout (scenes / scripts)
 
