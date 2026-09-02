@@ -179,12 +179,19 @@ func on_enemy_died(enemy: Enemy) -> void:
 				left += 1
 	if left <= 0 and not current.cleared:
 		current.unlock_doors()
+		_clear_enemy_bullets()
+		if player:
+			player.i_timer = 0.7
 		Game.room_cleared.emit()
 		if current.kind != Room.Kind.BOSS:
 			Game.say(Flavor.pick(Flavor.CLEAR), 1.8)
 	ui.set_minimap(rooms, current)
-	if enemy:
-		pass
+
+
+func _clear_enemy_bullets() -> void:
+	for b in projectiles.get_children():
+		if b is Bullet and (b as Bullet).from_enemy:
+			b.queue_free()
 
 
 func _on_shake(amount: float) -> void:
