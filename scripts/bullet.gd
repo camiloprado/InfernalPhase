@@ -116,5 +116,7 @@ func _on_area_entered(area: Node) -> void:
 
 
 func _spend() -> void:
+	if spent:
+		return
 	spent = true
 	queue_free()

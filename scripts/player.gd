@@ -104,6 +104,7 @@ func take_hit(_source: Node = null) -> void:
 func _on_hurt_area(area: Area2D) -> void:
 	if area is Bullet and (area as Bullet).from_enemy:
 		take_hit(area)
+		(area as Bullet)._spend()
 
 
 func _on_hurt_body(body: Node) -> void:
