@@ -14,6 +14,13 @@ const BOSS := [
 	"THE INFERNAL PHASE — middle management of the damned.",
 	"It brought a meeting. The agenda is bullets.",
 ]
+const SPECIAL := [
+	"A plus-sign, filed in triplicate.",
+	"X. You are the signature.",
+	"It slams the minutes shut.",
+	"Lanes merge. You do not.",
+	"A hole in the policy. Use it.",
+]
 const WIN := [
 	"The phase ends. You do not get a raise.",
 	"Hell politely applauds. It will still be here tomorrow.",

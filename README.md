@@ -39,7 +39,7 @@ Nine rooms on a grid:
 | **The Threshold** (start) | Open doors, pentagram, no fight |
 | Combat rooms | Ember Imps (aimed spreads), Ring Wretches (bullet rings), Ash Cantors (sine-wave streams) |
 | **The Concierge** | NPC room. Walk up. First visit restores one heart. It talks. No shop. |
-| **The Phase** | Boss. Rings, spreads, waves, spirals. Three tempos as it loses HP |
+| **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP. |
 
 Reach the boss via the Concierge (east then south) or through the southern combat rooms. The first east room is still an intro cantor plus an imp — slower than later rooms, not a free pass.
 

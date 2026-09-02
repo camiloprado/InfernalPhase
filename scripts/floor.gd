@@ -39,6 +39,7 @@ var _bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
 var _player_scene: PackedScene = preload("res://scenes/player.tscn")
 var _enemy_scene: PackedScene = preload("res://scenes/enemy.tscn")
 var _room_scene: PackedScene = preload("res://scenes/room.tscn")
+var _hazard_scene: PackedScene = preload("res://scenes/hazard.tscn")
 
 
 func _ready() -> void:
@@ -169,6 +170,13 @@ func spawn_bullet(
 	projectiles.add_child(b)
 	b.setup(origin, dir, speed, from_enemy, color, radius, sine_amp, sine_freq, sine_phase, angular)
 	return b
+
+
+func spawn_hazard(kind: int, origin: Vector2, room: Room) -> Node2D:
+	var h := _hazard_scene.instantiate()
+	projectiles.add_child(h)
+	h.setup(kind, origin, room)
+	return h
 
 
 func on_enemy_died(enemy: Enemy) -> void:

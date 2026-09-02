@@ -27,6 +27,14 @@ var ring_off := 0.0
 var visual_rot := 0.0
 var home := Vector2.ZERO
 var intro := false
+var special_busy := false
+var special_queue := 0
+var special_i := 0
+var tele_cd := 2.5
+var tele_wind := 0.0
+var tele_dest := Vector2.ZERO
+
+const SPECIAL_AT := [0.8, 0.6, 0.4, 0.2]
 
 @onready var _col: CollisionShape2D = $CollisionShape2D
 
@@ -74,6 +82,10 @@ func configure(p_kind: Kind, at: Vector2, p_intro: bool = false) -> void:
 			radius = 38.0
 			fire_cd = 0.85
 			z_index = 9
+			tele_cd = 2.4
+			special_i = 0
+			special_busy = false
+			special_queue = 0
 	max_hp = hp
 	if _col and _col.shape:
 		(_col.shape as CircleShape2D).radius = radius
@@ -85,11 +97,14 @@ func _physics_process(delta: float) -> void:
 		return
 	flash = maxf(flash - delta * 3.5, 0.0)
 	visual_rot += delta * (0.6 if kind != Kind.BOSS else 0.35)
+	if kind == Kind.BOSS:
+		_boss_clock(delta)
 	_move(delta)
 	move_and_slide()
-	fire_cd -= delta
-	if fire_cd <= 0.0:
-		_fire()
+	if not (kind == Kind.BOSS and (special_busy or tele_wind > 0.0)):
+		fire_cd -= delta
+		if fire_cd <= 0.0:
+			_fire()
 	queue_redraw()
 
 
@@ -116,9 +131,12 @@ func _move(delta: float) -> void:
 			elif to_p.length() > 280.0:
 				velocity += to_p.normalized() * 50.0
 		Kind.BOSS:
-			var center := home
-			var wobble := Vector2(sin(visual_rot) * 36.0, cos(visual_rot * 0.7) * 22.0)
-			velocity = (center + wobble - global_position) * 2.0
+			if special_busy or tele_wind > 0.0:
+				velocity = Vector2.ZERO
+			else:
+				var center := home
+				var wobble := Vector2(sin(visual_rot) * 36.0, cos(visual_rot * 0.7) * 22.0)
+				velocity = (center + wobble - global_position) * 2.0
 	velocity += drift
 	drift = drift.move_toward(Vector2.ZERO, 400.0 * delta)
 
@@ -280,6 +298,8 @@ func take_hit(amount: int = 1) -> void:
 	var p := _player()
 	if p:
 		drift = (global_position - p.global_position).normalized() * 90.0
+	if kind == Kind.BOSS and hp > 0:
+		_check_specials()
 	if hp <= 0:
 		_die()
 	queue_redraw()
@@ -295,6 +315,135 @@ func _die() -> void:
 	var floor_node := _floor()
 	if floor_node:
 		floor_node.on_enemy_died(self)
+
+
+func _check_specials() -> void:
+	while special_i < SPECIAL_AT.size() and hp <= int(ceil(float(max_hp) * SPECIAL_AT[special_i])):
+		special_i += 1
+		if special_busy:
+			special_queue += 1
+		else:
+			special_busy = true
+			_begin_special()
+
+
+func _begin_special() -> void:
+	special_busy = true
+	tele_wind = 0.0
+	var room := _host_room()
+	var pick := Game.rng.randi() % 5
+	var origin := global_position
+	if room:
+		match pick:
+			3:
+				origin = room.center_global()
+			4:
+				origin = _ring_hole(room)
+	if pick < Flavor.SPECIAL.size():
+		Game.say(Flavor.SPECIAL[pick], 1.7)
+	var floor_node := _floor()
+	if floor_node and room:
+		floor_node.spawn_hazard(pick, origin, room)
+	var dur := 1.4
+	match pick:
+		0, 1:
+			dur = 1.38
+		2:
+			dur = 1.58
+		3:
+			dur = 1.55
+		4:
+			dur = 1.62
+	get_tree().create_timer(dur).timeout.connect(_end_special, CONNECT_ONE_SHOT)
+
+
+func _end_special() -> void:
+	if not is_instance_valid(self) or not alive:
+		return
+	special_busy = false
+	fire_cd = 0.28
+	if special_queue > 0:
+		special_queue -= 1
+		special_busy = true
+		_begin_special()
+
+
+func _boss_clock(delta: float) -> void:
+	if special_busy:
+		return
+	if tele_wind > 0.0:
+		tele_wind -= delta
+		if tele_wind <= 0.0:
+			_finish_teleport()
+		return
+	tele_cd -= delta
+	if tele_cd <= 0.0:
+		_start_teleport()
+
+
+func _start_teleport() -> void:
+	var dest := _teleport_point()
+	if dest == Vector2.ZERO:
+		tele_cd = 1.2
+		return
+	tele_dest = dest
+	tele_wind = 0.48
+	tele_cd = Game.rng.randf_range(3.1, 3.9)
+
+
+func _finish_teleport() -> void:
+	global_position = tele_dest
+	home = tele_dest
+	flash = 1.0
+	Game.shake.emit(8.0)
+
+
+func _teleport_point() -> Vector2:
+	var room := _host_room()
+	if room == null:
+		return Vector2.ZERO
+	var inset := Game.WALL + 86.0
+	var rect := Rect2(room.global_position + Vector2(inset, inset), room.size - Vector2(inset * 2.0, inset * 2.0))
+	var player := _player()
+	for _i in 16:
+		var p := Vector2(
+			Game.rng.randf_range(rect.position.x, rect.end.x),
+			Game.rng.randf_range(rect.position.y, rect.end.y)
+		)
+		if player and p.distance_to(player.global_position) < 160.0:
+			continue
+		if p.distance_to(global_position) < 90.0:
+			continue
+		return p
+	return room.center_global()
+
+
+func _ring_hole(room: Room) -> Vector2:
+	var inset := Game.WALL + 120.0
+	var rect := Rect2(room.global_position + Vector2(inset, inset), room.size - Vector2(inset * 2.0, inset * 2.0))
+	var player := _player()
+	for _i in 14:
+		var p := Vector2(
+			Game.rng.randf_range(rect.position.x, rect.end.x),
+			Game.rng.randf_range(rect.position.y, rect.end.y)
+		)
+		if player and p.distance_to(player.global_position) < 170.0:
+			continue
+		return p
+	return room.center_global()
+
+
+func _host_room() -> Room:
+	var floor_node := _floor()
+	if floor_node == null:
+		return null
+	if floor_node.current and floor_node.current.kind == Room.Kind.BOSS:
+		return floor_node.current
+	var rid := String(get_meta("room", ""))
+	for r in floor_node.rooms.values():
+		if (r as Room).room_id == rid:
+			return r
+	return floor_node.current
 
 
 func _aim() -> Vector2:
@@ -369,6 +518,12 @@ func _draw() -> void:
 				draw_circle(Vector2.RIGHT.rotated(a) * (radius * 0.55), 5.5, Palette.EMBER_HOT)
 			draw_circle(Vector2.ZERO, 8.0, Palette.HELL_RED)
 			draw_circle(Vector2.ZERO, 3.0, Palette.EMBER_HOT)
+			if tele_wind > 0.0:
+				var dest := to_local(tele_dest)
+				var pulse := 0.55 + 0.45 * sin(visual_rot * 8.0)
+				draw_arc(dest, 28.0 + pulse * 10.0, 0.0, TAU, 24, Palette.EMBER_HOT, 4.0, true)
+				draw_circle(dest, 7.0, Palette.BONE)
+				draw_arc(Vector2.ZERO, radius + 12.0, 0.0, TAU, 28, Palette.EMBER_HOT, 3.0, true)
 	# hp pip
 	if kind != Kind.BOSS and hp < max_hp:
 		var w := radius * 2.0
