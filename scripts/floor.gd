@@ -5,7 +5,7 @@ const LAYOUT := [
 	{ "id": "start", "grid": Vector2i(0, 0), "kind": Room.Kind.START, "pack": [] },
 	{ "id": "north", "grid": Vector2i(0, -1), "kind": Room.Kind.COMBAT, "pack": ["imp", "imp"] },
 	{ "id": "west", "grid": Vector2i(-1, 0), "kind": Room.Kind.COMBAT, "pack": ["wretch"] },
-	{ "id": "east", "grid": Vector2i(1, 0), "kind": Room.Kind.COMBAT, "pack": ["cultist"] },
+	{ "id": "east", "grid": Vector2i(1, 0), "kind": Room.Kind.COMBAT, "pack": ["cantor"] },
 	{ "id": "npc", "grid": Vector2i(2, 0), "kind": Room.Kind.NPC, "pack": [] },
 	{ "id": "south", "grid": Vector2i(0, 1), "kind": Room.Kind.COMBAT, "pack": ["cultist", "cultist"] },
 	{ "id": "se", "grid": Vector2i(1, 1), "kind": Room.Kind.COMBAT, "pack": ["wretch", "imp"] },
@@ -17,6 +17,7 @@ const KIND_MAP := {
 	"imp": Enemy.Kind.IMP,
 	"wretch": Enemy.Kind.WRETCH,
 	"cultist": Enemy.Kind.CULTIST,
+	"cantor": Enemy.Kind.CULTIST,
 	"boss": Enemy.Kind.BOSS,
 }
 
@@ -145,7 +146,7 @@ func _spawn_pack(room: Room) -> void:
 		var enemy: Enemy = _enemy_scene.instantiate()
 		actors.add_child(enemy)
 		var at := room.spawn_offset(i, total)
-		enemy.configure(KIND_MAP[key], at)
+		enemy.configure(KIND_MAP[key], at, key == "cantor")
 		enemy.set_meta("room", room.room_id)
 	room.set_meta("alive", total)
 

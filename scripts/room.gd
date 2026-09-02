@@ -23,6 +23,7 @@ var size := Vector2.ZERO
 
 var _door_bodies: Dictionary = {}
 var _door_visuals: Dictionary = {}
+var _door_seals: Dictionary = {}
 var _built := false
 
 
@@ -156,12 +157,33 @@ func _build_geometry() -> void:
 
 func _paint_gap(rect: Rect2) -> void:
 	var hole := ColorRect.new()
-	hole.color = Color("160e12")
+	hole.color = Color("3a2420")
 	hole.position = rect.position
 	hole.size = rect.size
 	hole.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hole.z_index = -6
 	add_child(hole)
+	# Bone jambs so an open door reads as a mouth, not a wall notch.
+	var jamb_a := ColorRect.new()
+	var jamb_b := ColorRect.new()
+	jamb_a.color = Palette.BONE
+	jamb_b.color = Palette.BONE
+	jamb_a.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	jamb_b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	jamb_a.z_index = -5
+	jamb_b.z_index = -5
+	if rect.size.x >= rect.size.y:
+		jamb_a.size = Vector2(6, rect.size.y)
+		jamb_b.size = Vector2(6, rect.size.y)
+		jamb_a.position = rect.position
+		jamb_b.position = Vector2(rect.position.x + rect.size.x - 6.0, rect.position.y)
+	else:
+		jamb_a.size = Vector2(rect.size.x, 6)
+		jamb_b.size = Vector2(rect.size.x, 6)
+		jamb_a.position = rect.position
+		jamb_b.position = Vector2(rect.position.x, rect.position.y + rect.size.y - 6.0)
+	add_child(jamb_a)
+	add_child(jamb_b)
 
 
 func _draw_floor(node: Node2D) -> void:
@@ -242,9 +264,21 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	vis.position = -rect.size * 0.5
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(vis)
+	var seal := ColorRect.new()
+	seal.name = "Seal"
+	seal.color = Palette.EMBER_HOT
+	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if rect.size.x >= rect.size.y:
+		seal.size = Vector2(rect.size.x, 8)
+		seal.position = Vector2(-rect.size.x * 0.5, -4.0)
+	else:
+		seal.size = Vector2(8, rect.size.y)
+		seal.position = Vector2(-4.0, -rect.size.y * 0.5)
+	body.add_child(seal)
 	add_child(body)
 	_door_bodies[dir] = body
 	_door_visuals[dir] = vis
+	_door_seals[dir] = seal
 	# Start open so you can walk in; lock_doors() slams them after entry.
 	_set_door_blocked(dir, false)
 
@@ -260,6 +294,10 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 	body.collision_layer = 1 if blocked else 0
 	vis.visible = blocked
 	vis.color = Palette.HELL_RED if blocked and not cleared else Palette.EMBER
+	if _door_seals.has(dir):
+		var seal: ColorRect = _door_seals[dir]
+		seal.visible = not blocked
+		seal.color = Palette.EMBER_HOT
 
 
 func _spawn_npc() -> void:

@@ -26,6 +26,7 @@ var wave_busy := false
 var ring_off := 0.0
 var visual_rot := 0.0
 var home := Vector2.ZERO
+var intro := false
 
 @onready var _col: CollisionShape2D = $CollisionShape2D
 
@@ -43,24 +44,30 @@ func _ready() -> void:
 	_col.shape = circle
 
 
-func configure(p_kind: Kind, at: Vector2) -> void:
+func configure(p_kind: Kind, at: Vector2, p_intro: bool = false) -> void:
 	kind = p_kind
+	intro = p_intro
 	global_position = at
 	home = at
 	spawn_pos = at
 	match kind:
 		Kind.IMP:
 			hp = 3
-			radius = 12.0
+			radius = 13.0
 			fire_cd = Game.rng.randf_range(0.7, 1.2)
 		Kind.WRETCH:
 			hp = 8
-			radius = 18.0
+			radius = 22.0
 			fire_cd = Game.rng.randf_range(0.9, 1.4)
 		Kind.CULTIST:
-			hp = 5
-			radius = 14.0
-			fire_cd = Game.rng.randf_range(0.8, 1.3)
+			if intro:
+				hp = 3
+				radius = 16.0
+				fire_cd = Game.rng.randf_range(1.5, 1.9)
+			else:
+				hp = 5
+				radius = 15.0
+				fire_cd = Game.rng.randf_range(0.8, 1.3)
 		Kind.BOSS:
 			hp = 56
 			radius = 38.0
@@ -101,7 +108,8 @@ func _move(delta: float) -> void:
 			velocity = ((home + orbit * 42.0) - global_position) * 1.4
 		Kind.CULTIST:
 			var perp := to_p.orthogonal().normalized() if to_p.length() > 1.0 else Vector2.RIGHT
-			velocity = perp * 90.0 * sin(visual_rot * 2.0)
+			var strafe := 50.0 if intro else 90.0
+			velocity = perp * strafe * sin(visual_rot * 2.0)
 			if to_p.length() < 140.0:
 				velocity += -to_p.normalized() * 40.0
 			elif to_p.length() > 280.0:
@@ -126,7 +134,7 @@ func _fire() -> void:
 		Kind.CULTIST:
 			if not wave_busy:
 				_start_wave()
-			fire_cd = 2.35
+			fire_cd = 3.1 if intro else 2.35
 		Kind.BOSS:
 			_boss_fire()
 
@@ -148,14 +156,18 @@ func _wave_shots(aim: Vector2, perp: Vector2) -> void:
 	if floor_node == null:
 		wave_busy = false
 		return
-	for i in 10:
+	var count := 5 if intro else 10
+	var spd := 118.0 if intro else 175.0
+	var gap := 0.14 if intro else 0.075
+	var amp := 20.0 if intro else 34.0
+	for i in count:
 		if not is_instance_valid(self) or not alive or not is_inside_tree():
 			wave_busy = false
 			return
-		var lateral := sin(i * 0.55) * 34.0
+		var lateral := sin(i * 0.55) * amp
 		var origin := global_position + aim * (radius + 8.0) + perp * lateral
-		floor_node.spawn_bullet(origin, aim, 175.0, true, Palette.ROBE_LIGHT, 5.0, 0.0)
-		await get_tree().create_timer(0.075).timeout
+		floor_node.spawn_bullet(origin, aim, spd, true, Palette.ROBE_LIGHT, 5.0, 0.0)
+		await get_tree().create_timer(gap).timeout
 	wave_busy = false
 
 
@@ -319,11 +331,17 @@ func _draw() -> void:
 			draw_circle(Vector2(-4, -2), 2.2, Palette.EMBER_HOT)
 			draw_circle(Vector2(4, -2), 2.2, Palette.EMBER_HOT)
 		Kind.WRETCH:
-			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 28, col, 5.0, true)
+			draw_circle(Vector2.ZERO, radius + 3.0, Palette.VOID)
+			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 32, Palette.BONE, 7.0, true)
+			draw_arc(Vector2.ZERO, radius - 5.0, 0.0, TAU, 24, Palette.EMBER, 2.5, true)
 			for i in 6:
 				var a := visual_rot + i * TAU / 6.0
-				draw_circle(Vector2.RIGHT.rotated(a) * radius, 4.0, Palette.BONE)
-			draw_circle(Vector2.ZERO, 5.0, Palette.VOID)
+				var tip := Vector2.RIGHT.rotated(a) * radius
+				draw_line(tip * 0.25, tip, Palette.EMBER_HOT, 2.0)
+				draw_circle(tip, 5.5, Palette.BONE)
+				draw_circle(tip, 2.0, Palette.EMBER)
+			draw_circle(Vector2.ZERO, 7.0, Palette.EMBER)
+			draw_circle(Vector2.ZERO, 3.0, Palette.EMBER_HOT)
 		Kind.CULTIST:
 			var robe := PackedVector2Array([
 				Vector2(0, -radius - 2),
@@ -331,10 +349,14 @@ func _draw() -> void:
 				Vector2(0, radius * 0.7),
 				Vector2(-radius * 0.85, radius),
 			])
-			draw_colored_polygon(robe, col)
-			draw_circle(Vector2(0, -radius * 0.35), 6.5, Palette.BONE_DIM)
-			draw_circle(Vector2(-2.5, -radius * 0.4), 1.5, Palette.VOID)
-			draw_circle(Vector2(2.5, -radius * 0.4), 1.5, Palette.VOID)
+			draw_colored_polygon(robe, Palette.ROBE_LIGHT if intro else col)
+			var outline := robe.duplicate()
+			outline.append(robe[0])
+			draw_polyline(outline, Palette.BONE, 2.0, true)
+			draw_circle(Vector2(0, -radius * 0.35), 7.0, Palette.BONE)
+			draw_circle(Vector2(-2.5, -radius * 0.4), 1.6, Palette.VOID)
+			draw_circle(Vector2(2.5, -radius * 0.4), 1.6, Palette.VOID)
+			draw_circle(Vector2(0, -radius - 6.0), 3.0, Palette.EMBER_HOT)
 		Kind.BOSS:
 			draw_circle(Vector2.ZERO, radius, Palette.VOID)
 			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 40, col, 6.0, true)
@@ -356,7 +378,7 @@ func _color() -> Color:
 		Kind.IMP:
 			return Palette.EMBER
 		Kind.WRETCH:
-			return Palette.BONE_DIM
+			return Palette.BONE
 		Kind.CULTIST:
 			return Palette.ROBE
 		Kind.BOSS:

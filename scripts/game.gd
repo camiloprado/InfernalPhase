@@ -12,7 +12,7 @@ signal shake(amount: float)
 const MAX_HEARTS := 5
 const ROOM_SIZE := Vector2(1280, 720)
 const WALL := 64.0
-const DOOR_WIDTH := 104.0
+const DOOR_WIDTH := 168.0
 
 var hearts: int = MAX_HEARTS
 var floor_seed: int = 0
