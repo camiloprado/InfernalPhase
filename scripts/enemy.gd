@@ -149,7 +149,7 @@ func _wave_shots(aim: Vector2, perp: Vector2) -> void:
 		wave_busy = false
 		return
 	for i in 10:
-		if not alive or not is_inside_tree():
+		if not is_instance_valid(self) or not alive or not is_inside_tree():
 			wave_busy = false
 			return
 		var lateral := sin(i * 0.55) * 34.0
@@ -202,7 +202,7 @@ func _boss_wave(aim: Vector2, perp: Vector2) -> void:
 	if floor_node == null:
 		return
 	for i in 8:
-		if not alive or not is_inside_tree():
+		if not is_instance_valid(self) or not alive or not is_inside_tree():
 			return
 		floor_node.spawn_bullet(
 			global_position + aim * (radius + 10.0),

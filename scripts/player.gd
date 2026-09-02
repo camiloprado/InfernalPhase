@@ -4,7 +4,7 @@ extends CharacterBody2D
 const SPEED := 248.0
 const FIRE_CD := 0.16
 const I_FRAMES := 0.95
-const RADIUS := 13.0
+const RADIUS := 16.0
 
 var aim := Vector2.RIGHT
 var fire_left := 0.0

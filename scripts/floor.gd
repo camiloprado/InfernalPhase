@@ -5,7 +5,7 @@ const LAYOUT := [
 	{ "id": "start", "grid": Vector2i(0, 0), "kind": Room.Kind.START, "pack": [] },
 	{ "id": "north", "grid": Vector2i(0, -1), "kind": Room.Kind.COMBAT, "pack": ["imp", "imp"] },
 	{ "id": "west", "grid": Vector2i(-1, 0), "kind": Room.Kind.COMBAT, "pack": ["wretch"] },
-	{ "id": "east", "grid": Vector2i(1, 0), "kind": Room.Kind.COMBAT, "pack": ["cultist", "imp"] },
+	{ "id": "east", "grid": Vector2i(1, 0), "kind": Room.Kind.COMBAT, "pack": ["cultist"] },
 	{ "id": "npc", "grid": Vector2i(2, 0), "kind": Room.Kind.NPC, "pack": [] },
 	{ "id": "south", "grid": Vector2i(0, 1), "kind": Room.Kind.COMBAT, "pack": ["cultist", "cultist"] },
 	{ "id": "se", "grid": Vector2i(1, 1), "kind": Room.Kind.COMBAT, "pack": ["wretch", "imp"] },
@@ -87,9 +87,8 @@ func _spawn_player() -> void:
 
 func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("restart"):
-		if Game.is_dead or Game.is_won:
-			Game.restart_floor()
-			return
+		Game.restart_floor()
+		return
 	if Game.is_dead or Game.is_won:
 		return
 	if player == null:

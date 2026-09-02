@@ -1,4 +1,3 @@
-class_name Minimap
 extends Control
 
 var rooms: Dictionary = {}

@@ -157,7 +157,7 @@ func _build_geometry() -> void:
 
 func _paint_gap(rect: Rect2) -> void:
 	var hole := ColorRect.new()
-	hole.color = Palette.VOID_DEEP
+		hole.color = Color("160e12")
 	hole.position = rect.position
 	hole.size = rect.size
 	hole.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -262,12 +262,7 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 
 
 func _decorate() -> void:
-	var label := Label.new()
-	label.position = Vector2(Game.WALL + 16, Game.WALL + 10)
-	label.add_theme_font_size_override("font_size", 18)
-	label.add_theme_color_override("font_color", Palette.BONE_DIM)
-	label.text = title()
-	add_child(label)
+	pass
 
 
 func _spawn_npc() -> void:
