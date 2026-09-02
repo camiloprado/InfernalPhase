@@ -264,18 +264,20 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	vis.position = -rect.size * 0.5
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(vis)
+	add_child(body)
+	# Seal lives on the room, not the physics body, so it cannot block.
 	var seal := ColorRect.new()
-	seal.name = "Seal"
+	seal.name = "Seal_%d" % dir
 	seal.color = Palette.EMBER_HOT
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	seal.z_index = -4
 	if rect.size.x >= rect.size.y:
-		seal.size = Vector2(rect.size.x, 8)
-		seal.position = Vector2(-rect.size.x * 0.5, -4.0)
+		seal.size = Vector2(rect.size.x - 12.0, 8)
+		seal.position = Vector2(rect.position.x + 6.0, rect.position.y + rect.size.y * 0.5 - 4.0)
 	else:
-		seal.size = Vector2(8, rect.size.y)
-		seal.position = Vector2(-4.0, -rect.size.y * 0.5)
-	body.add_child(seal)
-	add_child(body)
+		seal.size = Vector2(8, rect.size.y - 12.0)
+		seal.position = Vector2(rect.position.x + rect.size.x * 0.5 - 4.0, rect.position.y + 6.0)
+	add_child(seal)
 	_door_bodies[dir] = body
 	_door_visuals[dir] = vis
 	_door_seals[dir] = seal
@@ -291,7 +293,11 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 	var col := body.get_node_or_null("Col") as CollisionShape2D
 	if col:
 		col.disabled = not blocked
+		if col.shape is RectangleShape2D:
+			var full: Vector2 = vis.size
+			(col.shape as RectangleShape2D).size = full if blocked else Vector2(0.1, 0.1)
 	body.collision_layer = 1 if blocked else 0
+	body.collision_mask = 0
 	vis.visible = blocked
 	vis.color = Palette.HELL_RED if blocked and not cleared else Palette.EMBER
 	if _door_seals.has(dir):

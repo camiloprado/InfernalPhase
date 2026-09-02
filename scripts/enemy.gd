@@ -63,7 +63,7 @@ func configure(p_kind: Kind, at: Vector2, p_intro: bool = false) -> void:
 			if intro:
 				hp = 3
 				radius = 16.0
-				fire_cd = Game.rng.randf_range(1.5, 1.9)
+				fire_cd = Game.rng.randf_range(2.5, 2.9)
 			else:
 				hp = 5
 				radius = 15.0
@@ -134,7 +134,7 @@ func _fire() -> void:
 		Kind.CULTIST:
 			if not wave_busy:
 				_start_wave()
-			fire_cd = 3.1 if intro else 2.35
+			fire_cd = 3.6 if intro else 2.35
 		Kind.BOSS:
 			_boss_fire()
 
@@ -156,10 +156,10 @@ func _wave_shots(aim: Vector2, perp: Vector2) -> void:
 	if floor_node == null:
 		wave_busy = false
 		return
-	var count := 5 if intro else 10
-	var spd := 118.0 if intro else 175.0
-	var gap := 0.14 if intro else 0.075
-	var amp := 20.0 if intro else 34.0
+	var count := 4 if intro else 10
+	var spd := 100.0 if intro else 175.0
+	var gap := 0.18 if intro else 0.075
+	var amp := 16.0 if intro else 34.0
 	for i in count:
 		if not is_instance_valid(self) or not alive or not is_inside_tree():
 			wave_busy = false
