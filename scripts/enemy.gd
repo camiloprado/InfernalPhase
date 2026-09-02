@@ -14,7 +14,7 @@ var kind: Kind = Kind.IMP
 var hp: int = 3
 var max_hp: int = 3
 var radius := 12.0
-var fire_cd := 0.0
+var fire_cd := 99.0
 var pattern_i := 0
 var alive := true
 var flash := 0.0
@@ -37,6 +37,7 @@ func _ready() -> void:
 	collision_mask = 1
 	z_index = 7
 	add_to_group("enemies")
+	set_physics_process(true)
 	home = global_position
 	spawn_pos = global_position
 	var circle := CircleShape2D.new()

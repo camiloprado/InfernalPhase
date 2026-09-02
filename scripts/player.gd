@@ -11,6 +11,7 @@ var fire_left := 0.0
 var i_timer := 0.0
 var blink := false
 var knockback := Vector2.ZERO
+var _hit_stamp_ms := -99999
 
 @onready var _hurt: Area2D = $Hurtbox
 @onready var _col: CollisionShape2D = $CollisionShape2D
@@ -85,8 +86,12 @@ func _shoot() -> void:
 
 
 func take_hit(_source: Node = null) -> void:
-	if i_timer > 0.0 or Game.is_dead or Game.is_won:
+	if Game.is_dead or Game.is_won:
 		return
+	var now := Time.get_ticks_msec()
+	if i_timer > 0.0 or now - _hit_stamp_ms < int(I_FRAMES * 1000.0):
+		return
+	_hit_stamp_ms = now
 	i_timer = I_FRAMES
 	var from := Vector2.RIGHT.rotated(Game.rng.randf() * TAU)
 	if _source is Node2D:

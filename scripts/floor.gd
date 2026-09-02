@@ -144,10 +144,12 @@ func _spawn_pack(room: Room) -> void:
 		if not KIND_MAP.has(key):
 			continue
 		var enemy: Enemy = _enemy_scene.instantiate()
+		enemy.set_physics_process(false)
 		actors.add_child(enemy)
 		var at := room.spawn_offset(i, total)
 		enemy.configure(KIND_MAP[key], at, key == "cantor")
 		enemy.set_meta("room", room.room_id)
+		enemy.set_physics_process(true)
 	room.set_meta("alive", total)
 
 
