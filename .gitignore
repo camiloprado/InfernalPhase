@@ -1,0 +1,5 @@
+.godot/
+*.uid
+export/
+*.apk
+*.ipa

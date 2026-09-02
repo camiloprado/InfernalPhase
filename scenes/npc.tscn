@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cnpc000infernal"]
+
+[ext_resource type="Script" path="res://scripts/npc.gd" id="1_npc"]
+
+[node name="NPC" type="Area2D"]
+script = ExtResource("1_npc")
