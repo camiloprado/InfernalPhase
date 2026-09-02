@@ -53,26 +53,26 @@ func configure(p_kind: Kind, at: Vector2, p_intro: bool = false) -> void:
 	spawn_pos = at
 	match kind:
 		Kind.IMP:
-			hp = 3
+			hp = 6
 			radius = 13.0
-			fire_cd = Game.rng.randf_range(0.7, 1.2)
+			fire_cd = Game.rng.randf_range(0.35, 0.7)
 		Kind.WRETCH:
-			hp = 8
+			hp = 14
 			radius = 22.0
-			fire_cd = Game.rng.randf_range(0.9, 1.4)
+			fire_cd = Game.rng.randf_range(0.45, 0.8)
 		Kind.CULTIST:
 			if intro:
-				hp = 2
+				hp = 6
 				radius = 16.0
-				fire_cd = 4.0
+				fire_cd = 0.95
 			else:
-				hp = 5
+				hp = 9
 				radius = 15.0
-				fire_cd = Game.rng.randf_range(0.8, 1.3)
+				fire_cd = Game.rng.randf_range(0.45, 0.85)
 		Kind.BOSS:
-			hp = 56
+			hp = 80
 			radius = 38.0
-			fire_cd = 1.35
+			fire_cd = 0.85
 			z_index = 9
 	max_hp = hp
 	if _col and _col.shape:
@@ -109,7 +109,7 @@ func _move(delta: float) -> void:
 			velocity = ((home + orbit * 42.0) - global_position) * 1.4
 		Kind.CULTIST:
 			var perp := to_p.orthogonal().normalized() if to_p.length() > 1.0 else Vector2.RIGHT
-			var strafe := 50.0 if intro else 90.0
+			var strafe := 70.0 if intro else 95.0
 			velocity = perp * strafe * sin(visual_rot * 2.0)
 			if to_p.length() < 140.0:
 				velocity += -to_p.normalized() * 40.0
@@ -127,22 +127,22 @@ func _fire() -> void:
 	match kind:
 		Kind.IMP:
 			_imp_spread()
-			fire_cd = 1.15
+			fire_cd = 0.88
 		Kind.WRETCH:
-			_ring(12, 148.0, ring_off, Palette.EMBER, 5.5)
-			ring_off += 13.0
-			fire_cd = 1.85
+			_ring(16, 168.0, ring_off, Palette.EMBER, 6.0)
+			ring_off += 11.0
+			fire_cd = 1.28
 		Kind.CULTIST:
 			if not wave_busy:
 				_start_wave()
-			fire_cd = 4.2 if intro else 2.35
+			fire_cd = 1.75 if intro else 1.55
 		Kind.BOSS:
 			_boss_fire()
 
 
 func _imp_spread() -> void:
 	var aim := _aim()
-	_spread(aim, 3, 20.0, 205.0, Palette.EMBER, 5.0)
+	_spread(aim, 5, 14.0, 220.0, Palette.EMBER, 6.0)
 
 
 func _start_wave() -> void:
@@ -157,17 +157,17 @@ func _wave_shots(aim: Vector2, perp: Vector2) -> void:
 	if floor_node == null:
 		wave_busy = false
 		return
-	var count := 2 if intro else 10
-	var spd := 78.0 if intro else 175.0
-	var gap := 0.32 if intro else 0.075
-	var amp := 10.0 if intro else 34.0
+	var count := 6 if intro else 12
+	var spd := 128.0 if intro else 188.0
+	var gap := 0.11 if intro else 0.06
+	var amp := 22.0 if intro else 36.0
 	for i in count:
 		if not is_instance_valid(self) or not alive or not is_inside_tree():
 			wave_busy = false
 			return
 		var lateral := sin(i * 0.55) * amp
 		var origin := global_position + aim * (radius + 8.0) + perp * lateral
-		floor_node.spawn_bullet(origin, aim, spd, true, Palette.ROBE_LIGHT, 5.0, 0.0)
+		floor_node.spawn_bullet(origin, aim, spd, true, Palette.ROBE_LIGHT, 6.0, 0.0)
 		await get_tree().create_timer(gap).timeout
 	wave_busy = false
 
@@ -182,22 +182,22 @@ func _boss_fire() -> void:
 		phase = 1
 	match pattern_i % (4 if phase == 1 else 5):
 		0:
-			_ring(14 if phase == 1 else 18, 150.0 + phase * 16.0, ring_off, Palette.HELL_RED, 6.0)
+			_ring(16 if phase == 1 else 20, 155.0 + phase * 14.0, ring_off, Palette.HELL_RED, 6.5)
 			ring_off += 8.0
-			fire_cd = 1.55 if phase < 3 else 1.1
+			fire_cd = 1.2 if phase < 3 else 0.9
 		1:
-			_spread(_aim(), 5 + phase, 14.0, 210.0 + phase * 20.0, Palette.EMBER, 5.5)
-			fire_cd = 1.05
+			_spread(_aim(), 6 + phase, 12.0, 205.0 + phase * 16.0, Palette.EMBER, 6.0)
+			fire_cd = 0.85
 		2:
-			_ring(10, 130.0, ring_off + 18.0, Palette.EMBER_HOT, 5.0)
+			_ring(12, 140.0, ring_off + 18.0, Palette.EMBER_HOT, 6.0)
 			_start_boss_wave()
-			fire_cd = 1.9 if phase < 3 else 1.35
+			fire_cd = 1.55 if phase < 3 else 1.15
 		3:
-			_spiral(16, 155.0, 1.1 if phase < 3 else 1.6)
-			fire_cd = 1.4
+			_spiral(18, 160.0, 1.15 if phase < 3 else 1.65)
+			fire_cd = 1.15
 		4:
 			_cross()
-			fire_cd = 1.2
+			fire_cd = 0.95
 	pattern_i += 1
 
 
@@ -223,12 +223,12 @@ func _boss_wave(aim: Vector2, perp: Vector2) -> void:
 			180.0,
 			true,
 			Palette.ROBE_LIGHT,
-			5.5,
-			42.0,
+			5.8,
+			38.0,
 			7.0,
 			i * 0.4
 		)
-		await get_tree().create_timer(0.06).timeout
+		await get_tree().create_timer(0.055).timeout
 
 
 func _spread(aim: Vector2, count: int, arc_deg: float, spd: float, col: Color, rad: float) -> void:
@@ -258,7 +258,7 @@ func _spiral(count: int, spd: float, ang: float) -> void:
 	for i in count:
 		var a := TAU * float(i) / float(count) + ring_off * 0.04
 		var d := Vector2.RIGHT.rotated(a)
-		floor_node.spawn_bullet(global_position + d * (radius + 8.0), d, spd, true, Palette.EMBER, 5.0, 0.0, 8.0, 0.0, ang * (1.0 if i % 2 == 0 else -1.0))
+		floor_node.spawn_bullet(global_position + d * (radius + 8.0), d, spd, true, Palette.EMBER, 6.0, 0.0, 8.0, 0.0, ang * (1.0 if i % 2 == 0 else -1.0))
 
 
 func _cross() -> void:
@@ -269,7 +269,7 @@ func _cross() -> void:
 	for d in [base, base.orthogonal(), -base, -base.orthogonal()]:
 		for k in 3:
 			var spread := deg_to_rad((k - 1) * 8.0)
-			floor_node.spawn_bullet(global_position + d.rotated(spread) * (radius + 8.0), d.rotated(spread), 200.0, true, Palette.BONE, 5.5)
+			floor_node.spawn_bullet(global_position + d.rotated(spread) * (radius + 8.0), d.rotated(spread), 195.0, true, Palette.BONE, 6.0)
 
 
 func take_hit(amount: int = 1) -> void:

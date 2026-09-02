@@ -3,12 +3,12 @@ extends Node2D
 
 const LAYOUT := [
 	{ "id": "start", "grid": Vector2i(0, 0), "kind": Room.Kind.START, "pack": [] },
-	{ "id": "north", "grid": Vector2i(0, -1), "kind": Room.Kind.COMBAT, "pack": ["imp", "imp"] },
-	{ "id": "west", "grid": Vector2i(-1, 0), "kind": Room.Kind.COMBAT, "pack": ["wretch"] },
-	{ "id": "east", "grid": Vector2i(1, 0), "kind": Room.Kind.COMBAT, "pack": ["cantor"] },
+	{ "id": "north", "grid": Vector2i(0, -1), "kind": Room.Kind.COMBAT, "pack": ["imp", "imp", "imp"] },
+	{ "id": "west", "grid": Vector2i(-1, 0), "kind": Room.Kind.COMBAT, "pack": ["wretch", "imp"] },
+	{ "id": "east", "grid": Vector2i(1, 0), "kind": Room.Kind.COMBAT, "pack": ["cantor", "imp"] },
 	{ "id": "npc", "grid": Vector2i(2, 0), "kind": Room.Kind.NPC, "pack": [] },
-	{ "id": "south", "grid": Vector2i(0, 1), "kind": Room.Kind.COMBAT, "pack": ["cultist", "cultist"] },
-	{ "id": "se", "grid": Vector2i(1, 1), "kind": Room.Kind.COMBAT, "pack": ["wretch", "imp"] },
+	{ "id": "south", "grid": Vector2i(0, 1), "kind": Room.Kind.COMBAT, "pack": ["cultist", "cultist", "imp"] },
+	{ "id": "se", "grid": Vector2i(1, 1), "kind": Room.Kind.COMBAT, "pack": ["wretch", "imp", "imp"] },
 	{ "id": "boss", "grid": Vector2i(2, 1), "kind": Room.Kind.BOSS, "pack": ["boss"] },
 	{ "id": "deep", "grid": Vector2i(0, 2), "kind": Room.Kind.COMBAT, "pack": ["imp", "wretch", "cultist"] },
 ]
@@ -184,7 +184,7 @@ func on_enemy_died(enemy: Enemy) -> void:
 		current.unlock_doors()
 		_clear_enemy_bullets()
 		if player:
-			player.i_timer = 0.7
+			player.i_timer = 0.28
 		Game.room_cleared.emit()
 		if current.kind != Room.Kind.BOSS:
 			Game.say(Flavor.pick(Flavor.CLEAR), 1.8)

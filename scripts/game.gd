@@ -9,7 +9,8 @@ signal room_cleared
 signal boss_intro
 signal shake(amount: float)
 
-const MAX_HEARTS := 5
+const MAX_HEARTS := 4
+const IFRAME_MS := 550
 const ROOM_SIZE := Vector2(1280, 720)
 const WALL := 64.0
 const DOOR_WIDTH := 200.0
@@ -41,7 +42,7 @@ func hurt(amount: int = 1) -> bool:
 	if is_dead or is_won:
 		return false
 	var now := Time.get_ticks_msec()
-	if now - _hurt_stamp_ms < 1050:
+	if now - _hurt_stamp_ms < IFRAME_MS:
 		return false
 	_hurt_stamp_ms = now
 	hearts = max(hearts - amount, 0)

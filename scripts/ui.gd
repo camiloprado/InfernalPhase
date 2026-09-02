@@ -12,7 +12,7 @@ extends CanvasLayer
 @onready var boss_bar: ProgressBar = $Margin/VBox/BossBar
 
 var _flavor_left := 0.0
-var _heart_max := 5
+var _heart_max := 4
 
 
 func _ready() -> void:

@@ -1,9 +1,8 @@
 class_name Player
 extends CharacterBody2D
 
-const SPEED := 268.0
-const FIRE_CD := 0.15
-const I_FRAMES := 1.05
+const SPEED := 258.0
+const FIRE_CD := 0.2
 const RADIUS := 16.0
 
 var aim := Vector2.RIGHT
@@ -27,7 +26,7 @@ func _ready() -> void:
 	circle.radius = RADIUS - 2.0
 	_col.shape = circle
 	var hurt_shape := CircleShape2D.new()
-	hurt_shape.radius = 8.0
+	hurt_shape.radius = 11.0
 	$Hurtbox/CollisionShape2D.shape = hurt_shape
 	_hurt.collision_layer = 2
 	_hurt.collision_mask = 20  # enemies + enemy bullets
@@ -89,10 +88,10 @@ func take_hit(_source: Node = null) -> void:
 	if Game.is_dead or Game.is_won:
 		return
 	var now := Time.get_ticks_msec()
-	if i_timer > 0.0 or now - _hit_stamp_ms < int(I_FRAMES * 1000.0):
+	if i_timer > 0.0 or now - _hit_stamp_ms < Game.IFRAME_MS:
 		return
 	_hit_stamp_ms = now
-	i_timer = I_FRAMES
+	i_timer = float(Game.IFRAME_MS) / 1000.0
 	var from := Vector2.RIGHT.rotated(Game.rng.randf() * TAU)
 	if _source is Node2D:
 		from = (global_position - (_source as Node2D).global_position).normalized()
@@ -109,8 +108,6 @@ func _on_hurt_area(area: Area2D) -> void:
 
 func _on_hurt_body(body: Node) -> void:
 	if body is Enemy:
-		if (body as Enemy).intro:
-			return
 		take_hit(body)
 
 
