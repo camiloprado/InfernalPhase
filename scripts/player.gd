@@ -109,6 +109,8 @@ func _on_hurt_area(area: Area2D) -> void:
 
 func _on_hurt_body(body: Node) -> void:
 	if body is Enemy:
+		if (body as Enemy).intro:
+			return
 		take_hit(body)
 
 

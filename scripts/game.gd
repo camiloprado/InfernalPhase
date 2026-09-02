@@ -19,6 +19,7 @@ var floor_seed: int = 0
 var is_dead: bool = false
 var is_won: bool = false
 var rng := RandomNumberGenerator.new()
+var _hurt_stamp_ms := -99999
 
 
 func _ready() -> void:
@@ -32,12 +33,17 @@ func reset_run() -> void:
 	hearts = MAX_HEARTS
 	is_dead = false
 	is_won = false
+	_hurt_stamp_ms = -99999
 	hearts_changed.emit(hearts, MAX_HEARTS)
 
 
 func hurt(amount: int = 1) -> bool:
 	if is_dead or is_won:
 		return false
+	var now := Time.get_ticks_msec()
+	if now - _hurt_stamp_ms < 1050:
+		return false
+	_hurt_stamp_ms = now
 	hearts = max(hearts - amount, 0)
 	hearts_changed.emit(hearts, MAX_HEARTS)
 	shake.emit(10.0)
