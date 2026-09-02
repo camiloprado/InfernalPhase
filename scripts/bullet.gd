@@ -53,9 +53,10 @@ func setup(
 	angular = p_angular
 	parametric = is_zero_approx(p_angular)
 	collision_layer = 16 if from_enemy else 8
-	collision_mask = 2 if from_enemy else 5  # player, or world+enemies
+	# Enemy shots hit walls as bodies; the player's 8px hurtbox detects them as areas.
+	# Do not also collide with the 14px CharacterBody2D or one pellet can eat two hearts.
 	if from_enemy:
-		collision_mask = 3  # world + player
+		collision_mask = 1
 	else:
 		collision_mask = 5  # world + enemies
 	monitorable = true
