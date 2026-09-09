@@ -125,7 +125,7 @@ func _diff_card(pos: Vector2, caption: String, blurb: String, which: Game.Diffic
 
 func _style(btn: Button) -> void:
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Palette.VOID
+	normal.bg_color = Color("1c1418")
 	normal.set_border_width_all(2)
 	normal.border_color = Palette.ASH_LIGHT
 	var hover := StyleBoxFlat.new()
@@ -222,7 +222,7 @@ func _refresh() -> void:
 
 func _paint(btn: Button, on: bool) -> void:
 	var box := StyleBoxFlat.new()
-	box.bg_color = Palette.ASH if on else Palette.VOID
+	box.bg_color = Color("3a2418") if on else Color("1c1418")
 	box.set_border_width_all(3 if on else 2)
 	box.border_color = Palette.EMBER_HOT if on else Palette.ASH_LIGHT
 	btn.add_theme_stylebox_override("normal", box)

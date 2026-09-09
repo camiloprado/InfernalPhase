@@ -208,7 +208,7 @@ func spawn_pickup(kind: Pickup.Kind, at: Vector2) -> void:
 func drop_from(kind: Enemy.Kind, at: Vector2) -> void:
 	if kind == Enemy.Kind.BOSS:
 		return
-	if Game.rng.randf() < 0.22:
+	if Game.rng.randf() < 0.35:
 		spawn_pickup(Pickup.Kind.HEART, at)
 
 
