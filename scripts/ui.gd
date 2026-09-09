@@ -59,8 +59,12 @@ func set_room_title(text: String) -> void:
 	room_label.text = text
 
 
-func set_walker(who: String, diff: String) -> void:
-	if _walker:
+func set_walker(who: String, diff: String = "") -> void:
+	if _walker == null:
+		return
+	if diff.is_empty():
+		_walker.text = who
+	else:
 		_walker.text = "%s  ·  %s" % [who, diff]
 
 

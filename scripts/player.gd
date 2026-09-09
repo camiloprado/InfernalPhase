@@ -4,6 +4,7 @@ extends CharacterBody2D
 const SPEED := 258.0
 const FIRE_CD := 0.2
 const RADIUS := 16.0
+const BABY_SHEET := "res://assets/sprites/baby.png"
 
 var aim := Vector2.RIGHT
 var fire_left := 0.0
@@ -11,6 +12,7 @@ var i_timer := 0.0
 var blink := false
 var knockback := Vector2.ZERO
 var _hit_stamp_ms := -99999
+var _baby: Sprite2D
 
 @onready var _hurt: Area2D = $Hurtbox
 @onready var _col: CollisionShape2D = $CollisionShape2D
@@ -32,6 +34,33 @@ func _ready() -> void:
 	_hurt.collision_mask = 20  # enemies + enemy bullets
 	_hurt.area_entered.connect(_on_hurt_area)
 	_hurt.body_entered.connect(_on_hurt_body)
+	_baby = Sprite2D.new()
+	_baby.centered = true
+	_baby.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_baby.visible = false
+	_baby.z_index = 1
+	add_child(_baby)
+	rebind_visual()
+	Game.loadout_changed.connect(rebind_visual)
+
+
+func rebind_visual() -> void:
+	if _baby == null:
+		return
+	_baby.visible = false
+	if not Game.is_baby():
+		queue_redraw()
+		return
+	if not ResourceLoader.exists(BABY_SHEET):
+		queue_redraw()
+		return
+	var loaded: Variant = ResourceLoader.load(BABY_SHEET)
+	if loaded is Texture2D:
+		_baby.texture = loaded
+		var h := float((loaded as Texture2D).get_height())
+		_baby.scale = Vector2.ONE * (48.0 / maxf(h, 1.0))
+		_baby.visible = true
+	queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
@@ -119,6 +148,13 @@ func _on_hurt_body(body: Node) -> void:
 
 func _draw() -> void:
 	if blink:
+		if _baby:
+			_baby.modulate.a = 0.0
+		return
+	if _baby:
+		_baby.modulate.a = 1.0
+		_baby.flip_h = aim.x < -0.15
+	if Game.is_baby() and _baby and _baby.visible:
 		return
 	var body_col := Palette.PLAYER if Game.body == Game.Body.CAIM else Palette.ROBE_LIGHT
 	if i_timer > 0.0:

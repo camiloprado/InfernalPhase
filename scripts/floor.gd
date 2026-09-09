@@ -59,8 +59,10 @@ func _ready() -> void:
 	add_child(pick)
 	await pick.chosen
 	if player:
+		player.rebind_visual()
 		player.set_physics_process(true)
-	ui.set_walker(Game.body_name(), Game.difficulty_name())
+	ui.set_walker(Game.walker_label(), "")
+	Game.bgm("play_for_run")
 	_enter_room(rooms[Vector2i.ZERO], true)
 	await get_tree().create_timer(0.15).timeout
 	Game.say(Flavor.START[0], 2.8)

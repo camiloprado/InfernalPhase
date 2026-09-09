@@ -9,12 +9,14 @@ var _body: Game.Body = Game.Body.CAIM
 var _diff: Game.Difficulty = Game.Difficulty.NORMAL
 var _caim_btn: Button
 var _lilith_btn: Button
+var _bebe_card: Button
 var _baby_btn: Button
 var _normal_btn: Button
 var _hint: Label
 var _click_ms := -99999
 var _body_clicks := 0
 var _diff_clicks := 0
+const BABY_SHEET := "res://assets/sprites/baby.png"
 
 
 func _ready() -> void:
@@ -31,11 +33,16 @@ func _ready() -> void:
 	_label(Vector2(0, 96), Vector2(1280, 24), "Click a name to select  ·  Click again or Space / E to swear in", Palette.UI_DIM, 15)
 	_caim_btn = _card(Vector2(340, 140), "Caim", Game.Body.CAIM, true)
 	_lilith_btn = _card(Vector2(740, 140), "Lilith", Game.Body.LILITH, false)
+	_bebe_card = _bebe_portrait(Vector2(540, 140))
 	_label(Vector2(0, 440), Vector2(1280, 28), "DIFFICULTY", Palette.BONE, 20)
 	_baby_btn = _diff_card(Vector2(300, 480), "Bebê Chorão", "Enemy shots bounce off you.", Game.Difficulty.BABY)
 	_normal_btn = _diff_card(Vector2(680, 480), "Normal", "The floor as written.", Game.Difficulty.NORMAL)
 	_hint = _label(Vector2(0, 640), Vector2(1280, 28), "", Palette.EMBER_HOT, 14)
 	_refresh()
+	if _diff == Game.Difficulty.BABY:
+		Game.bgm("play_cry")
+	else:
+		Game.bgm("play_floor")
 
 
 func _label(pos: Vector2, size: Vector2, text: String, col: Color, px: int) -> Label:
@@ -88,6 +95,66 @@ func _card(pos: Vector2, caption: String, which: Game.Body, male: bool) -> Butto
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(sub)
 	return btn
+
+
+func _bebe_portrait(pos: Vector2) -> Button:
+	var btn := Button.new()
+	btn.position = pos
+	btn.size = Vector2(200, 260)
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.flat = true
+	btn.visible = false
+	_style(btn)
+	add_child(btn)
+	var tr := TextureRect.new()
+	tr.position = Vector2(20, 16)
+	tr.size = Vector2(160, 160)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists(BABY_SHEET):
+		var loaded: Variant = ResourceLoader.load(BABY_SHEET)
+		if loaded is Texture2D:
+			tr.texture = loaded
+	btn.add_child(tr)
+	if tr.texture == null:
+		var art := Control.new()
+		art.position = Vector2(40, 28)
+		art.size = Vector2(120, 140)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.draw.connect(func () -> void: _draw_bebe(art))
+		btn.add_child(art)
+	var name := Label.new()
+	name.text = "Bebê"
+	name.position = Vector2(0, 184)
+	name.size = Vector2(200, 36)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name.add_theme_font_size_override("font_size", 26)
+	name.add_theme_color_override("font_color", Palette.BONE)
+	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(name)
+	var sub := Label.new()
+	sub.text = "shots bounce · choro on"
+	sub.position = Vector2(8, 216)
+	sub.size = Vector2(184, 28)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 12)
+	sub.add_theme_color_override("font_color", Palette.UI_DIM)
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(sub)
+	return btn
+
+
+func _draw_bebe(node: Control) -> void:
+	var c := node.size * 0.5
+	node.draw_circle(c + Vector2(0, 10), 28.0, Palette.BONE)
+	node.draw_circle(c + Vector2(0, -18), 22.0, Palette.PLAYER)
+	node.draw_circle(c + Vector2(-8, -20), 2.2, Palette.VOID)
+	node.draw_circle(c + Vector2(8, -20), 2.2, Palette.VOID)
+	node.draw_circle(c + Vector2(0, -10), 5.0, Palette.HELL_RED)
+	node.draw_circle(c + Vector2(-14, -8), 2.0, Palette.EMBER)
 
 
 func _diff_card(pos: Vector2, caption: String, blurb: String, which: Game.Difficulty) -> Button:
@@ -183,6 +250,10 @@ func _on_diff(which: Game.Difficulty) -> void:
 	_diff = which
 	_click_ms = now
 	_diff_clicks += 1
+	if _diff == Game.Difficulty.BABY:
+		Game.bgm("play_cry")
+	else:
+		Game.bgm("play_floor")
 	_refresh()
 
 
@@ -210,11 +281,20 @@ func _confirm() -> void:
 
 
 func _refresh() -> void:
+	var baby := _diff == Game.Difficulty.BABY
+	_caim_btn.visible = not baby
+	_lilith_btn.visible = not baby
+	if _bebe_card:
+		_bebe_card.visible = baby
+		_paint(_bebe_card, true)
 	_paint(_caim_btn, _body == Game.Body.CAIM)
 	_paint(_lilith_btn, _body == Game.Body.LILITH)
-	_paint(_baby_btn, _diff == Game.Difficulty.BABY)
-	_paint(_normal_btn, _diff == Game.Difficulty.NORMAL)
-	_hint.text = "%s  ·  %s" % [Game.BODY_NAMES[_body], Game.DIFF_NAMES[_diff]]
+	_paint(_baby_btn, baby)
+	_paint(_normal_btn, not baby)
+	if baby:
+		_hint.text = "Bebê Chorão"
+	else:
+		_hint.text = "%s  ·  Normal" % Game.BODY_NAMES[_body]
 	for art in [_caim_btn.get_child(0), _lilith_btn.get_child(0)]:
 		if art is Control:
 			(art as Control).queue_redraw()

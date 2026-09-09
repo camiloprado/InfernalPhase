@@ -13,6 +13,8 @@ const DEATH := [
 
 
 static func death_line() -> String:
+	if Game.is_baby():
+		return "The bebê is ash. The floor rewinds."
 	var who := Game.body_name()
 	var extra := [
 		"%s is ash. The floor rewinds." % who,

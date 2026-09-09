@@ -81,6 +81,20 @@ func is_baby() -> bool:
 	return difficulty == Difficulty.BABY
 
 
+func walker_label() -> String:
+	if is_baby():
+		return "Bebê Chorão"
+	return "%s  ·  Normal" % body_name()
+
+
+func bgm(method: String) -> void:
+	# Never touch the Music identifier — missing autoload must not abort boot.
+	var m := get_node_or_null("/root/Music")
+	if m == null or not m.has_method(method):
+		return
+	m.call(method)
+
+
 func hurt(amount: int = 1) -> bool:
 	if is_dead or is_won:
 		return false

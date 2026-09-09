@@ -32,10 +32,10 @@ At the Threshold, pick **Caim** or **Lilith** (same hearts, speed, and fire rate
 
 | Label | What |
 | --- | --- |
-| **Bebê Chorão** | Enemy bullets that would hit you bounce off (bone flash, no heart loss). Melee and pits still hurt. |
-| **Normal** | Current default combat. Unchanged. |
+| **Bebê Chorão** | Enemy bullets bounce off. Player is the **bebê** sprite (not Caim/Lilith). BGM is a choro-de-criança loop. Melee and pits still hurt. |
+| **Normal** | Caim or Lilith silhouette, usual floor pulse. Combat unchanged. |
 
-The last pair stays highlighted on restart. HUD shows `Caim · Normal` (or Lilith / Bebê Chorão).
+The last pair stays highlighted on restart. HUD shows `Caim · Normal` or `Lilith · Normal`, or just **Bebê Chorão**.
 
 Four hearts. Hit = a short invuln blink, not a vacation. Enemies can drop a brimstone heart (~22%) — it pulses so it reads on the ash floor. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
 
@@ -67,6 +67,9 @@ scenes/ui.tscn         Hearts, flavor lines, minimap, death/win
 assets/characters/imp  Walk + attack sheets (vanilla, sword, sword-shield, pitchfork, pitchfork-shield)
 assets/characters/boss Idle / move / fire / lightning frame sheets (not raw GIF playback)
 assets/env/pit.png     Buraco — distinct pit sprite (not a floor/wall tile)
+assets/sprites/baby.png Bebê Chorão walker (not Caim/Lilith)
+assets/audio/floor.ogg Usual floor pulse (original)
+assets/audio/cry.ogg   Bebê Chorão choro loop (original, not a commercial OST)
 ```
 
 Out of scope on purpose: extra floors, shops, Steam, mobile, web.
