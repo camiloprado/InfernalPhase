@@ -10,6 +10,17 @@ const DEATH := [
 	"Restarting. The imps already forgot your name.",
 	"That was not a metaphor. You are ash. Press R.",
 ]
+
+
+static func death_line() -> String:
+	var who := Game.body_name()
+	var extra := [
+		"%s is ash. The floor rewinds." % who,
+		"The imps already forgot %s." % who,
+	]
+	if Game.rng.randf() < 0.45:
+		return extra[Game.rng.randi() % extra.size()]
+	return pick(DEATH)
 const BOSS := [
 	"THE INFERNAL PHASE — middle management of the damned.",
 	"It brought a meeting. The agenda is bullets.",

@@ -24,7 +24,12 @@ var size := Vector2.ZERO
 var _door_bodies: Dictionary = {}
 var _door_visuals: Dictionary = {}
 var _door_seals: Dictionary = {}
+var _door_art: Dictionary = {}
 var _built := false
+var has_pit := false
+var pit_center := Vector2.ZERO
+var _pit_area: Area2D
+const PIT_SHEET := "res://assets/env/pit.png"
 
 
 func setup(p_id: String, p_grid: Vector2i, p_kind: Kind, p_pack: Array[String]) -> void:
@@ -101,9 +106,40 @@ func title() -> String:
 	return ""
 
 
+func _floor_color() -> Color:
+	match kind:
+		Kind.START:
+			return Palette.ASH
+		Kind.NPC:
+			return Color("2a2420")
+		Kind.BOSS:
+			return Color("140c14")
+		_:
+			return Color("201418")
+
+
+func _wall_color() -> Color:
+	match kind:
+		Kind.START:
+			return Palette.ASH_MID
+		Kind.NPC:
+			return Color("5a4a3a")
+		Kind.BOSS:
+			return Color("2a1830")
+		_:
+			return Color("4a2218")
+
+
+func _owns_door(dir: int) -> bool:
+	var dest: Room = neighbors.get(dir)
+	if dest == null:
+		return true
+	return grid.x < dest.grid.x or (grid.x == dest.grid.x and grid.y < dest.grid.y)
+
+
 func _build_geometry() -> void:
 	var floor_r := ColorRect.new()
-	floor_r.color = Palette.ASH
+	floor_r.color = _floor_color()
 	floor_r.size = size
 	floor_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	floor_r.z_index = -8
@@ -126,7 +162,7 @@ func _build_geometry() -> void:
 		_add_wall(Rect2(0, 0, mid_x, w))
 		_add_wall(Rect2(mid_x + dw, 0, s.x - mid_x - dw, w))
 		_add_door_blocker(Dir.N, Rect2(mid_x, 0, dw, w))
-		_paint_gap(Rect2(mid_x, 0, dw, w))
+		_paint_gap(Rect2(mid_x, 0, dw, w), Dir.N)
 	else:
 		_add_wall(Rect2(0, 0, s.x, w))
 	# South
@@ -134,7 +170,7 @@ func _build_geometry() -> void:
 		_add_wall(Rect2(0, s.y - w, mid_x, w))
 		_add_wall(Rect2(mid_x + dw, s.y - w, s.x - mid_x - dw, w))
 		_add_door_blocker(Dir.S, Rect2(mid_x, s.y - w, dw, w))
-		_paint_gap(Rect2(mid_x, s.y - w, dw, w))
+		_paint_gap(Rect2(mid_x, s.y - w, dw, w), Dir.S)
 	else:
 		_add_wall(Rect2(0, s.y - w, s.x, w))
 	# West
@@ -142,7 +178,7 @@ func _build_geometry() -> void:
 		_add_wall(Rect2(0, 0, w, mid_y))
 		_add_wall(Rect2(0, mid_y + dw, w, s.y - mid_y - dw))
 		_add_door_blocker(Dir.W, Rect2(0, mid_y, w, dw))
-		_paint_gap(Rect2(0, mid_y, w, dw))
+		_paint_gap(Rect2(0, mid_y, w, dw), Dir.W)
 	else:
 		_add_wall(Rect2(0, 0, w, s.y))
 	# East
@@ -150,20 +186,23 @@ func _build_geometry() -> void:
 		_add_wall(Rect2(s.x - w, 0, w, mid_y))
 		_add_wall(Rect2(s.x - w, mid_y + dw, w, s.y - mid_y - dw))
 		_add_door_blocker(Dir.E, Rect2(s.x - w, mid_y, w, dw))
-		_paint_gap(Rect2(s.x - w, mid_y, w, dw))
+		_paint_gap(Rect2(s.x - w, mid_y, w, dw), Dir.E)
 	else:
 		_add_wall(Rect2(s.x - w, 0, w, s.y))
 
 
-func _paint_gap(rect: Rect2) -> void:
-	# Floor-colored throat so an open door reads as a hole in the wall, not a brown notch.
+func _paint_gap(rect: Rect2, dir: int) -> void:
+	# Floor-colored throat. Jambs only on the owner side so shared walls
+	# do not stamp two bone frames on the same opening.
 	var hole := ColorRect.new()
-	hole.color = Palette.ASH
+	hole.color = _floor_color()
 	hole.position = rect.position
 	hole.size = rect.size
 	hole.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hole.z_index = -6
 	add_child(hole)
+	if not _owns_door(dir):
+		return
 	var jamb_a := ColorRect.new()
 	var jamb_b := ColorRect.new()
 	jamb_a.color = Palette.BONE
@@ -190,10 +229,10 @@ func _paint_gap(rect: Rect2) -> void:
 func _draw_floor(node: Node2D) -> void:
 	var s := size
 	var w := Game.WALL
-	for x in range(int(w), int(s.x - w), 40):
-		node.draw_line(Vector2(x, w), Vector2(x, s.y - w), Color(Palette.ASH_MID.r, Palette.ASH_MID.g, Palette.ASH_MID.b, 0.35), 1.0)
-	for y in range(int(w), int(s.y - w), 40):
-		node.draw_line(Vector2(w, y), Vector2(s.x - w, y), Color(Palette.ASH_MID.r, Palette.ASH_MID.g, Palette.ASH_MID.b, 0.35), 1.0)
+	# One faint cross, not a 40px tile grid — that read as a broken tileset.
+	var line := Color(_wall_color().r, _wall_color().g, _wall_color().b, 0.16)
+	node.draw_line(Vector2(s.x * 0.5, w), Vector2(s.x * 0.5, s.y - w), line, 1.0)
+	node.draw_line(Vector2(w, s.y * 0.5), Vector2(s.x - w, s.y * 0.5), line, 1.0)
 	match kind:
 		Kind.START:
 			_draw_sigil(node, s * 0.5, 70.0)
@@ -202,7 +241,7 @@ func _draw_floor(node: Node2D) -> void:
 		Kind.NPC:
 			node.draw_rect(Rect2(s.x * 0.5 - 70, s.y * 0.5 - 40, 140, 90), Color(Palette.ASH_MID.r, Palette.ASH_MID.g, Palette.ASH_MID.b, 0.85))
 		Kind.COMBAT:
-			node.draw_circle(s * 0.5, 18.0, Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.55))
+			pass
 
 
 func _draw_sigil(node: Node2D, c: Vector2, r: float) -> void:
@@ -228,7 +267,7 @@ func _add_wall(rect: Rect2) -> void:
 	col.shape = shape
 	body.add_child(col)
 	var vis := ColorRect.new()
-	vis.color = Palette.ASH_MID
+	vis.color = _wall_color()
 	vis.size = rect.size
 	vis.position = -rect.size * 0.5
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -264,6 +303,7 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	vis.size = rect.size
 	vis.position = -rect.size * 0.5
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vis.visible = false
 	body.add_child(vis)
 	add_child(body)
 	# Seal lives on the room, not the physics body, so it cannot block.
@@ -272,6 +312,7 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	seal.color = Palette.EMBER_HOT
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	seal.z_index = -4
+	seal.visible = false
 	if rect.size.x >= rect.size.y:
 		seal.size = Vector2(rect.size.x - 16.0, 12)
 		seal.position = Vector2(rect.position.x + 8.0, rect.position.y + rect.size.y * 0.5 - 6.0)
@@ -282,8 +323,72 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	_door_bodies[dir] = body
 	_door_visuals[dir] = vis
 	_door_seals[dir] = seal
+	_add_door_art(dir, rect)
 	# Start open so you can walk in; lock_doors() slams them after entry.
 	_set_door_blocked(dir, false)
+
+
+func _add_door_art(dir: int, rect: Rect2) -> void:
+	if not _owns_door(dir):
+		return
+	var art := Node2D.new()
+	art.name = "DoorArt_%d" % dir
+	art.position = rect.position + rect.size * 0.5
+	art.z_index = 3
+	var inward := Vector2.ZERO
+	match dir:
+		Dir.N:
+			inward = Vector2(0, 1)
+		Dir.S:
+			inward = Vector2(0, -1)
+		Dir.W:
+			inward = Vector2(1, 0)
+		Dir.E:
+			inward = Vector2(-1, 0)
+	art.position += inward * 36.0
+	art.set_meta("horiz", rect.size.x >= rect.size.y)
+	art.set_meta("blocked", false)
+	art.draw.connect(_draw_door.bind(art))
+	add_child(art)
+	art.queue_redraw()
+	_door_art[dir] = art
+
+
+func _draw_door(node: Node2D) -> void:
+	var blocked := bool(node.get_meta("blocked", false))
+	var horiz := bool(node.get_meta("horiz", true))
+	var dest_kind: Kind = Kind.COMBAT
+	for dir in _door_art.keys():
+		if _door_art[dir] == node and neighbors.has(dir):
+			dest_kind = (neighbors[dir] as Room).kind
+			break
+	var col := Palette.ASH_LIGHT
+	match dest_kind:
+		Kind.START:
+			col = Palette.BONE_DIM
+		Kind.NPC:
+			col = Palette.BONE
+		Kind.BOSS:
+			col = Palette.HELL_RED
+		_:
+			col = Palette.EMBER
+	var w := 92.0 if horiz else 28.0
+	var h := 28.0 if horiz else 92.0
+	node.draw_rect(Rect2(-w, -h, w * 2.0, h * 2.0), Color(col.r, col.g, col.b, 0.22))
+	# Single arch — one stroke, not a tiled slab.
+	if horiz:
+		node.draw_arc(Vector2(0, 10), 70.0, PI, TAU, 18, col, 5.0, true)
+		node.draw_line(Vector2(-70, 10), Vector2(-70, 22), col, 5.0)
+		node.draw_line(Vector2(70, 10), Vector2(70, 22), col, 5.0)
+	else:
+		node.draw_arc(Vector2(10, 0), 70.0, -PI * 0.5, PI * 0.5, 18, col, 5.0, true)
+		node.draw_line(Vector2(10, -70), Vector2(22, -70), col, 5.0)
+		node.draw_line(Vector2(10, 70), Vector2(22, 70), col, 5.0)
+	if blocked:
+		node.draw_rect(Rect2(-18, -18, 36, 36), Palette.HELL_RED)
+		node.draw_circle(Vector2.ZERO, 7.0, Palette.EMBER_HOT)
+	else:
+		node.draw_circle(Vector2.ZERO, 5.0, Palette.EMBER_HOT)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:
@@ -299,12 +404,75 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 			(col.shape as RectangleShape2D).size = full if blocked else Vector2(0.1, 0.1)
 	body.collision_layer = 1 if blocked else 0
 	body.collision_mask = 0
+	# One graphic per carved edge. Neighbor keeps collision and the gap only.
+	vis.visible = false
+	if _door_seals.has(dir):
+		(_door_seals[dir] as ColorRect).visible = false
+	if _door_art.has(dir):
+		var art: Node2D = _door_art[dir]
+		art.set_meta("blocked", blocked)
+		art.queue_redraw()
+		return
+	if not _owns_door(dir):
+		return
 	vis.visible = blocked
 	vis.color = Palette.HELL_RED if blocked and not cleared else Palette.EMBER
 	if _door_seals.has(dir):
 		var seal: ColorRect = _door_seals[dir]
 		seal.visible = not blocked
 		seal.color = Palette.EMBER_HOT
+
+
+func add_pit() -> void:
+	has_pit = true
+	pit_center = size * 0.5 + Vector2(220, 80)
+	var spr := Sprite2D.new()
+	if ResourceLoader.exists(PIT_SHEET):
+		spr.texture = load(PIT_SHEET) as Texture2D
+	spr.centered = true
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.position = pit_center
+	spr.scale = Vector2(0.22, 0.22)
+	spr.z_index = -5
+	add_child(spr)
+	if spr.texture == null:
+		var hole := Node2D.new()
+		hole.z_index = -5
+		hole.position = pit_center
+		hole.draw.connect(func () -> void:
+			hole.draw_circle(Vector2.ZERO, 46.0, Color(0.02, 0.01, 0.02, 0.92))
+			hole.draw_arc(Vector2.ZERO, 48.0, 0.0, TAU, 28, Palette.EMBER, 3.0, true)
+			hole.draw_circle(Vector2(0, 6), 18.0, Color(0, 0, 0, 1))
+		)
+		add_child(hole)
+		hole.queue_redraw()
+	var area := Area2D.new()
+	area.collision_layer = 0
+	area.collision_mask = 2
+	area.monitoring = true
+	area.monitorable = false
+	area.position = pit_center
+	var cs := CollisionShape2D.new()
+	var circ := CircleShape2D.new()
+	circ.radius = 28.0
+	cs.shape = circ
+	area.add_child(cs)
+	area.body_entered.connect(_on_pit_body)
+	add_child(area)
+	_pit_area = area
+
+
+func arm_pit(on: bool) -> void:
+	if _pit_area:
+		_pit_area.set_deferred("monitoring", on)
+
+
+func _on_pit_body(body: Node) -> void:
+	if not body is Player:
+		return
+	var floor_node := get_tree().get_first_node_in_group("floor") as Floor
+	if floor_node:
+		floor_node.fall_from(self)
 
 
 func _spawn_npc() -> void:

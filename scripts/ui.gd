@@ -13,6 +13,7 @@ extends CanvasLayer
 
 var _flavor_left := 0.0
 var _heart_max := 4
+var _walker: Label
 
 
 func _ready() -> void:
@@ -25,6 +26,14 @@ func _ready() -> void:
 	Game.won.connect(func () -> void: boss_bar.visible = false)
 	_on_hearts(Game.hearts, Game.MAX_HEARTS)
 	hint.text = "WASD move  ·  Mouse aim  ·  Click / Space shoot  ·  Arrows shoot  ·  R restart"
+	_walker = Label.new()
+	_walker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_walker.add_theme_color_override("font_color", Palette.UI_DIM)
+	_walker.add_theme_font_size_override("font_size", 14)
+	_walker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	$Margin/VBox/Top.add_child(_walker)
+	$Margin/VBox/Top.move_child(_walker, 2)
+	_walker.text = ""
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = Palette.HELL_RED
 	fill.set_corner_radius_all(3)
@@ -48,6 +57,11 @@ func _process(delta: float) -> void:
 
 func set_room_title(text: String) -> void:
 	room_label.text = text
+
+
+func set_walker(who: String, diff: String) -> void:
+	if _walker:
+		_walker.text = "%s  ·  %s" % [who, diff]
 
 
 func set_minimap(rooms: Dictionary, current: Room) -> void:

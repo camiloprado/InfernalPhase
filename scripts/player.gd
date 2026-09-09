@@ -87,6 +87,9 @@ func _shoot() -> void:
 func take_hit(_source: Node = null) -> void:
 	if Game.is_dead or Game.is_won:
 		return
+	if _source is Bullet and Game.is_baby():
+		(_source as Bullet).deflect(global_position)
+		return
 	var now := Time.get_ticks_msec()
 	if i_timer > 0.0 or now - _hit_stamp_ms < Game.IFRAME_MS:
 		return
@@ -102,6 +105,9 @@ func take_hit(_source: Node = null) -> void:
 
 func _on_hurt_area(area: Area2D) -> void:
 	if area is Bullet and (area as Bullet).from_enemy:
+		if Game.is_baby():
+			(area as Bullet).deflect(global_position)
+			return
 		take_hit(area)
 		(area as Bullet)._spend()
 
@@ -114,16 +120,26 @@ func _on_hurt_body(body: Node) -> void:
 func _draw() -> void:
 	if blink:
 		return
-	var body_col := Palette.PLAYER
+	var body_col := Palette.PLAYER if Game.body == Game.Body.CAIM else Palette.ROBE_LIGHT
 	if i_timer > 0.0:
 		body_col = Palette.EMBER
 	draw_circle(Vector2.ZERO, RADIUS + 6.0, Color(Palette.EMBER.r, Palette.EMBER.g, Palette.EMBER.b, 0.18))
-	var pts := PackedVector2Array([
-		aim * (RADIUS + 4.0),
-		aim.rotated(2.15) * RADIUS,
-		aim.rotated(PI) * (RADIUS * 0.7),
-		aim.rotated(-2.15) * RADIUS,
-	])
-	draw_colored_polygon(pts, body_col)
-	draw_circle(Vector2.ZERO, 5.0, Palette.PLAYER_CORE)
+	if Game.body == Game.Body.LILITH:
+		var robe := PackedVector2Array([
+			aim * (RADIUS + 5.0),
+			aim.rotated(2.25) * (RADIUS + 2.0),
+			aim.rotated(PI) * (RADIUS * 0.85),
+			aim.rotated(-2.25) * (RADIUS + 2.0),
+		])
+		draw_colored_polygon(robe, body_col)
+		draw_circle(-aim * 4.0, 6.0, Palette.BONE)
+	else:
+		var pts := PackedVector2Array([
+			aim * (RADIUS + 4.0),
+			aim.rotated(2.15) * RADIUS,
+			aim.rotated(PI) * (RADIUS * 0.7),
+			aim.rotated(-2.15) * RADIUS,
+		])
+		draw_colored_polygon(pts, body_col)
+	draw_circle(Vector2.ZERO, 5.0, Palette.PLAYER_CORE if Game.body == Game.Body.CAIM else Palette.EMBER_HOT)
 	draw_circle(Vector2.ZERO, 2.0, Palette.EMBER_HOT)

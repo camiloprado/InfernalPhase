@@ -322,9 +322,12 @@ func _die() -> void:
 	if kind == Kind.BOSS:
 		Game.say(Flavor.pick(Flavor.WIN), 4.0)
 		Game.win()
+	var drop_at := global_position
+	var drop_kind := kind
 	queue_free()
 	var floor_node := _floor()
 	if floor_node:
+		floor_node.drop_from(drop_kind, drop_at)
 		floor_node.on_enemy_died(self)
 
 

@@ -8,6 +8,19 @@ signal won
 signal room_cleared
 signal boss_intro
 signal shake(amount: float)
+signal loadout_changed
+
+enum Body { CAIM, LILITH }
+enum Difficulty { NORMAL, BABY }
+
+const BODY_NAMES := {
+	Body.CAIM: "Caim",
+	Body.LILITH: "Lilith",
+}
+const DIFF_NAMES := {
+	Difficulty.NORMAL: "Normal",
+	Difficulty.BABY: "Bebê Chorão",
+}
 
 const MAX_HEARTS := 4
 const IFRAME_MS := 550
@@ -21,6 +34,11 @@ var is_dead: bool = false
 var is_won: bool = false
 var rng := RandomNumberGenerator.new()
 var _hurt_stamp_ms := -99999
+var body: Body = Body.CAIM
+var last_body: Body = Body.CAIM
+var body_picked: bool = false
+var difficulty: Difficulty = Difficulty.NORMAL
+var last_difficulty: Difficulty = Difficulty.NORMAL
 
 
 func _ready() -> void:
@@ -35,7 +53,32 @@ func reset_run() -> void:
 	is_dead = false
 	is_won = false
 	_hurt_stamp_ms = -99999
+	body_picked = false
+	body = last_body
+	difficulty = last_difficulty
 	hearts_changed.emit(hearts, MAX_HEARTS)
+	loadout_changed.emit()
+
+
+func pick_run(p_body: Body, p_diff: Difficulty) -> void:
+	body = p_body
+	last_body = p_body
+	difficulty = p_diff
+	last_difficulty = p_diff
+	body_picked = true
+	loadout_changed.emit()
+
+
+func body_name() -> String:
+	return String(BODY_NAMES.get(body, "Caim"))
+
+
+func difficulty_name() -> String:
+	return String(DIFF_NAMES.get(difficulty, "Normal"))
+
+
+func is_baby() -> bool:
+	return difficulty == Difficulty.BABY
 
 
 func hurt(amount: int = 1) -> bool:

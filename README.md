@@ -26,9 +26,20 @@ If the editor is already open, F5 is enough.
 - **Mouse**: aim · **Left click** / **Space** / **J**: shoot
 - **Arrow keys**: shoot that way (with WASD, this is dual-stick on a keyboard; arrows alone move and fire)
 - **Right stick**: aim and fire
-- **R** or **Enter**: restart the floor (also after death or the win card)
+- **R** or **Enter**: restart the floor (also after death or the win card). **Enter does not confirm the start card.**
 
-Four hearts. Hit = a short invuln blink, not a vacation. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
+At the Threshold, pick **Caim** or **Lilith** (same hearts, speed, and fire rate — only the silhouette changes) and a difficulty:
+
+| Label | What |
+| --- | --- |
+| **Bebê Chorão** | Enemy bullets that would hit you bounce off (bone flash, no heart loss). Melee and pits still hurt. |
+| **Normal** | Current default combat. Unchanged. |
+
+The last pair stays highlighted on restart. HUD shows `Caim · Normal` (or Lilith / Bebê Chorão).
+
+Four hearts. Hit = a short invuln blink, not a vacation. Enemies can drop a brimstone heart (~22%) — it pulses so it reads on the ash floor. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
+
+The Threshold has a **buraco** (ember-rim pit sprite, not a reused floor tile). Step in and you lose a heart and catch the rim. The boss RING special uses the same pit art for its safe hole.
 
 ## The floor
 
@@ -36,7 +47,7 @@ Nine rooms on a grid:
 
 | Room | What |
 | --- | --- |
-| **The Threshold** (start) | Open doors, pentagram, no fight |
+| **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit |
 | Combat rooms | Ember Imps (walk / attack sheets, random loadout), Ring Wretches (bullet rings), Ash Cantors (sine-wave streams) |
 | **The Concierge** | NPC room. Walk up. First visit restores one heart. It talks. No shop. |
 | **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP. |
@@ -55,9 +66,10 @@ scenes/npc.tscn        Concierge
 scenes/ui.tscn         Hearts, flavor lines, minimap, death/win
 assets/characters/imp  Walk + attack sheets (vanilla, sword, sword-shield, pitchfork, pitchfork-shield)
 assets/characters/boss Idle / move / fire / lightning frame sheets (not raw GIF playback)
+assets/env/pit.png     Buraco — distinct pit sprite (not a floor/wall tile)
 ```
 
-Out of scope on purpose: extra floors, items, shops, Steam, mobile, web.
+Out of scope on purpose: extra floors, shops, Steam, mobile, web.
 
 ## License
 

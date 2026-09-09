@@ -17,6 +17,7 @@ var angular := 0.0
 var parametric := true
 var damage := 1
 var spent := false
+var deflected := false
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
 
@@ -89,15 +90,42 @@ func _physics_process(delta: float) -> void:
 func _draw() -> void:
 	var glow := color.lightened(0.35)
 	glow.a = 0.35
+	if deflected:
+		glow = Palette.BONE
+		glow.a = 0.55
+		draw_arc(Vector2.ZERO, radius + 7.0, 0.0, TAU, 16, Palette.EMBER_HOT, 2.0, true)
 	draw_circle(Vector2.ZERO, radius + 4.0, glow)
 	draw_circle(Vector2.ZERO, radius, color)
 	draw_circle(Vector2.ZERO, maxf(radius * 0.35, 1.5), Palette.BONE if from_enemy else Palette.EMBER_HOT)
+
+
+func deflect(from: Vector2) -> void:
+	if spent or deflected:
+		return
+	deflected = true
+	from_enemy = false
+	var away := (global_position - from)
+	if away.length() < 0.2:
+		away = -dir
+	dir = away.normalized()
+	speed = maxf(speed, 220.0) * 1.2
+	velocity = dir * speed
+	parametric = false
+	angular = 0.0
+	color = Palette.BONE
+	collision_layer = 8
+	collision_mask = 5
+	Game.shake.emit(4.0)
+	queue_redraw()
 
 
 func _on_body_entered(body: Node) -> void:
 	if spent:
 		return
 	if body is Player and from_enemy:
+		if Game.is_baby():
+			deflect(body.global_position)
+			return
 		(body as Player).take_hit(self)
 		_spend()
 	elif body is Enemy and not from_enemy:

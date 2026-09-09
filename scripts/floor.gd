@@ -40,6 +40,8 @@ var _player_scene: PackedScene = preload("res://scenes/player.tscn")
 var _enemy_scene: PackedScene = preload("res://scenes/enemy.tscn")
 var _room_scene: PackedScene = preload("res://scenes/room.tscn")
 var _hazard_scene: PackedScene = preload("res://scenes/hazard.tscn")
+var _pickup_scene: PackedScene = preload("res://scenes/pickup.tscn")
+var _fall_cd := 0.0
 
 
 func _ready() -> void:
@@ -51,6 +53,14 @@ func _ready() -> void:
 	Game.won.connect(_on_won)
 	_build_floor()
 	_spawn_player()
+	if player:
+		player.set_physics_process(false)
+	var pick := RunPick.new()
+	add_child(pick)
+	await pick.chosen
+	if player:
+		player.set_physics_process(true)
+	ui.set_walker(Game.body_name(), Game.difficulty_name())
 	_enter_room(rooms[Vector2i.ZERO], true)
 	await get_tree().create_timer(0.15).timeout
 	Game.say(Flavor.START[0], 2.8)
@@ -76,6 +86,8 @@ func _build_floor() -> void:
 				room.connect_to(dir, rooms[ng])
 	for room in rooms.values():
 		(room as Room).finalize()
+	if rooms.has(Vector2i.ZERO):
+		(rooms[Vector2i.ZERO] as Room).add_pit()
 
 
 func _spawn_player() -> void:
@@ -89,12 +101,20 @@ func _spawn_player() -> void:
 
 func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("restart"):
+		if not Game.body_picked:
+			return
 		Game.restart_floor()
 		return
 	if Game.is_dead or Game.is_won:
 		return
 	if player == null:
 		return
+	var was_falling := _fall_cd > 0.0
+	_fall_cd = maxf(_fall_cd - delta, 0.0)
+	if was_falling and _fall_cd <= 0.0:
+		for room in rooms.values():
+			if (room as Room).has_pit:
+				(room as Room).arm_pit(true)
 	_check_room_change()
 	if shake_t > 0.0:
 		shake_t -= delta
@@ -179,6 +199,33 @@ func spawn_hazard(kind: int, origin: Vector2, room: Room) -> Node2D:
 	return h
 
 
+func spawn_pickup(kind: Pickup.Kind, at: Vector2) -> void:
+	var p: Pickup = _pickup_scene.instantiate()
+	actors.add_child(p)
+	p.setup(kind, at)
+
+
+func drop_from(kind: Enemy.Kind, at: Vector2) -> void:
+	if kind == Enemy.Kind.BOSS:
+		return
+	if Game.rng.randf() < 0.22:
+		spawn_pickup(Pickup.Kind.HEART, at)
+
+
+func fall_from(src: Room) -> void:
+	if _fall_cd > 0.0 or player == null or Game.is_dead:
+		return
+	_fall_cd = 1.1
+	src.arm_pit(false)
+	player.i_timer = maxf(player.i_timer, 0.7)
+	var away := (player.global_position - (src.global_position + src.pit_center)).normalized()
+	if away.length() < 0.15:
+		away = Vector2.UP
+	player.knockback = away * 360.0
+	player.take_hit(src)
+	Game.say("Ash gives. You catch the rim.", 1.5)
+
+
 func on_enemy_died(enemy: Enemy) -> void:
 	if current == null:
 		return
@@ -212,7 +259,7 @@ func _on_shake(amount: float) -> void:
 
 func _on_died() -> void:
 	get_tree().paused = true
-	ui.show_end(false, Flavor.pick(Flavor.DEATH))
+	ui.show_end(false, Flavor.death_line())
 
 
 func _on_won() -> void:
