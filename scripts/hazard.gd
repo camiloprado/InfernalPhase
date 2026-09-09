@@ -61,7 +61,9 @@ func _mark_hole() -> void:
 	# The RING special's safe inner disk is the buraco — same pit art, not a floor tile.
 	var spr := Sprite2D.new()
 	if ResourceLoader.exists("res://assets/env/pit.png"):
-		spr.texture = load("res://assets/env/pit.png") as Texture2D
+		var loaded: Variant = ResourceLoader.load("res://assets/env/pit.png")
+		if loaded is Texture2D:
+			spr.texture = loaded
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = to_local(origin)

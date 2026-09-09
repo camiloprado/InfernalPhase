@@ -428,7 +428,9 @@ func add_pit() -> void:
 	pit_center = size * 0.5 + Vector2(220, 80)
 	var spr := Sprite2D.new()
 	if ResourceLoader.exists(PIT_SHEET):
-		spr.texture = load(PIT_SHEET) as Texture2D
+		var loaded: Variant = ResourceLoader.load(PIT_SHEET)
+		if loaded is Texture2D:
+			spr.texture = loaded
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = pit_center
