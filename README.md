@@ -8,7 +8,10 @@ Top-down move-and-shoot in the Binding of Isaac room style, with Undertale-ish b
 
 1. Install **Godot 4.x** (built and tested with **4.7.2**; 4.3+ should open it). Standard build, not .NET.
 2. In the Project Manager: **Import** → select this folder (`project.godot`) → **Import & Edit**.
-3. Press **F5** (or Run Project).
+3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
+4. Press **F5** (or Run Project).
+
+Character sheets live in `assets/characters/` (imps, boss). The only file in `assets/sprites/` is the Bebê Chorão walker. Walls, doors, and floors are drawn in-room (not a tileset).
 
 The main scene is `scenes/floor.tscn`.
 
@@ -18,7 +21,7 @@ Command line from this folder:
 godot --path .
 ```
 
-If the editor is already open, F5 is enough.
+If the editor is already open, F5 is enough. After a pull, let Godot finish importing (`assets/characters/`, `assets/env/pit.png`, `assets/sprites/baby.png`, the two oggs) before F5.
 
 ## Play
 

@@ -41,6 +41,7 @@ var _enemy_scene: PackedScene = preload("res://scenes/enemy.tscn")
 var _room_scene: PackedScene = preload("res://scenes/room.tscn")
 var _hazard_scene: PackedScene = preload("res://scenes/hazard.tscn")
 var _pickup_scene: PackedScene = preload("res://scenes/pickup.tscn")
+var _run_pick_script: Script = preload("res://scripts/run_pick.gd")
 var _fall_cd := 0.0
 
 
@@ -55,9 +56,12 @@ func _ready() -> void:
 	_spawn_player()
 	if player:
 		player.set_physics_process(false)
-	var pick := RunPick.new()
+	var pick = _run_pick_script.new()
 	add_child(pick)
-	await pick.chosen
+	if pick.has_signal("chosen"):
+		await pick.chosen
+	else:
+		push_warning("RunPick missing chosen signal")
 	if player:
 		player.rebind_visual()
 		player.set_physics_process(true)
@@ -96,9 +100,13 @@ func _spawn_player() -> void:
 	player = _player_scene.instantiate()
 	actors.add_child(player)
 	player.global_position = rooms[Vector2i.ZERO].center_global()
+	camera.position_smoothing_enabled = false
+	camera.global_position = rooms[Vector2i.ZERO].center_global()
+	if camera.has_method("reset_smoothing"):
+		camera.reset_smoothing()
+	camera.make_current()
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 7.0
-	camera.make_current()
 
 
 func _process(delta: float) -> void:

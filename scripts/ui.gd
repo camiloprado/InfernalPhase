@@ -19,6 +19,10 @@ var _walker: Label
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	overlay.visible = false
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flavor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	room_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boss_bar.visible = false
 	Game.hearts_changed.connect(_on_hearts)
 	Game.flavor.connect(_on_flavor)

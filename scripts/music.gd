@@ -40,10 +40,13 @@ func _load_stream(path: String) -> AudioStream:
 func _enable_loop(stream: AudioStream) -> void:
 	if stream == null:
 		return
-	if "loop" in stream:
-		stream.set("loop", true)
-	if "loop_mode" in stream:
-		stream.set("loop_mode", 1)
+	# Property names differ across 4.3–4.7. Never use `in` on a Resource — that
+	# can error and abort the Music autoload, which takes the floor down with it.
+	for p in stream.get_property_list():
+		if p.get("name") == "loop":
+			stream.set("loop", true)
+		elif p.get("name") == "loop_mode":
+			stream.set("loop_mode", 1)
 
 
 func play_for_run() -> void:

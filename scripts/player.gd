@@ -156,6 +156,13 @@ func _draw() -> void:
 		_baby.flip_h = aim.x < -0.15
 	if Game.is_baby() and _baby and _baby.visible:
 		return
+	if Game.is_baby():
+		draw_circle(Vector2(0, 6), 11.0, Palette.BONE)
+		draw_circle(Vector2(0, -6), 9.0, Palette.PLAYER)
+		draw_circle(Vector2(-3, -7), 1.2, Palette.VOID)
+		draw_circle(Vector2(3, -7), 1.2, Palette.VOID)
+		draw_circle(Vector2(0, -3), 2.2, Palette.HELL_RED)
+		return
 	var body_col := Palette.PLAYER if Game.body == Game.Body.CAIM else Palette.ROBE_LIGHT
 	if i_timer > 0.0:
 		body_col = Palette.EMBER
