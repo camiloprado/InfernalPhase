@@ -414,7 +414,14 @@ func _door_col(k: Kind) -> int:
 
 
 func _door_atlas(k: Kind, blocked: bool) -> AtlasTexture:
-	return Sprites.cell(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
+	var at := Sprites.cell(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
+	if at == null:
+		return null
+	# 1px inset so a 90° rotate cannot sample the next sheet cell.
+	var r := at.region
+	if r.size.x > 2.0 and r.size.y > 2.0:
+		at.region = Rect2(r.position + Vector2(1, 1), r.size - Vector2(2, 2))
+	return at
 
 
 func _door_inward(dir: int) -> Vector2:
@@ -442,14 +449,22 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 		spr.texture = atlas
 		spr.centered = true
 		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		spr.position = rect.position + rect.size * 0.5
+		# Sheet cells are portrait (arch spans X). N/S stay upright. E/W rotate
+		# so the arch spans the vertical opening — not an N/S portal glued on.
 		var opening := maxf(rect.size.x, rect.size.y)
-		var s := opening / maxf(cell.x, 1.0)
-		spr.scale = Vector2(s, s)
-		var vis_h := cell.y * s
-		var vis_w := cell.x * s
-		var toward := vis_h if dir == Dir.N or dir == Dir.S else vis_w
-		var inset := maxf(toward * 0.5 - Game.WALL * 0.5, 0.0)
+		var along := opening / maxf(cell.x, 1.0)
+		spr.scale = Vector2(along, along)
+		match dir:
+			Dir.E:
+				spr.rotation = PI * 0.5
+			Dir.W:
+				spr.rotation = -PI * 0.5
+			_:
+				spr.rotation = 0.0
+		spr.position = rect.position + rect.size * 0.5
+		# Original cell height is the doorway depth on every facing after rotate.
+		var depth := cell.y * along
+		var inset := maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
 		spr.position += _door_inward(dir) * inset
 		spr.z_index = 3
 		add_child(spr)

@@ -49,8 +49,8 @@ func _ready() -> void:
 	_lilith_btn = _card(root, LILITH_RECT, "Lilith", "same hearts, same fire", func() -> void: _on_body(Game.Body.LILITH), false)
 	_bebe_card = _bebe_portrait(root, BEBE_RECT)
 	_label(root, Vector2(0, 440), Vector2(1280, 28), "DIFFICULTY", Palette.BONE, 20)
-	_baby_btn = _diff_card(root, BABY_DIFF_RECT, "Bebê Chorão", "Enemy shots bounce off you.", func() -> void: _on_diff(Game.Difficulty.BABY))
-	_normal_btn = _diff_card(root, NORMAL_DIFF_RECT, "Normal", "The floor as written.", func() -> void: _on_diff(Game.Difficulty.NORMAL))
+	_baby_btn = _diff_card(root, BABY_DIFF_RECT, "Bebê Chorão", func() -> void: _on_diff(Game.Difficulty.BABY))
+	_normal_btn = _diff_card(root, NORMAL_DIFF_RECT, "Normal", func() -> void: _on_diff(Game.Difficulty.NORMAL))
 	_hint = _label(root, Vector2(0, 640), Vector2(1280, 28), "", Palette.EMBER_HOT, 14)
 	_refresh()
 	_preview_music()
@@ -116,31 +116,22 @@ func _bebe_portrait(parent: Node, rect: Rect2) -> Control:
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		art.draw.connect(func() -> void: _draw_bebe(art))
 		btn.add_child(art)
-	_caption(btn, "Bebê", "shots bounce · choro on", 184)
+	_caption(btn, "Bebê", "", 184)
 	return btn
 
 
-func _diff_card(parent: Node, rect: Rect2, caption: String, blurb: String, on_click: Callable) -> Control:
+func _diff_card(parent: Node, rect: Rect2, caption: String, on_click: Callable) -> Control:
 	var btn := _shell(parent, rect, on_click)
 	var name := Label.new()
 	name.text = caption
-	name.position = Vector2(12, 16)
-	name.size = Vector2(rect.size.x - 24.0, 36)
+	name.position = Vector2(12, 0)
+	name.size = Vector2(rect.size.x - 24.0, rect.size.y)
 	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name.add_theme_font_size_override("font_size", 22)
+	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name.add_theme_font_size_override("font_size", 26)
 	name.add_theme_color_override("font_color", Palette.BONE)
 	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(name)
-	var sub := Label.new()
-	sub.text = blurb
-	sub.position = Vector2(16, 58)
-	sub.size = Vector2(rect.size.x - 32.0, 44)
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sub.add_theme_font_size_override("font_size", 14)
-	sub.add_theme_color_override("font_color", Palette.UI_DIM)
-	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	btn.add_child(sub)
 	return btn
 
 
@@ -175,6 +166,8 @@ func _caption(btn: Control, caption: String, blurb: String, name_y: float) -> vo
 	name.add_theme_color_override("font_color", Palette.BONE)
 	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(name)
+	if blurb.is_empty():
+		return
 	var sub := Label.new()
 	sub.text = blurb
 	sub.position = Vector2(8, name_y + 36.0)
