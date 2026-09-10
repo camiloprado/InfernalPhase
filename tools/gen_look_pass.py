@@ -116,32 +116,34 @@ def circle_fill(px: Image.Image, cx: int, cy: int, r: int, fill) -> None:
 
 
 def cracked_seal(cell: Image.Image, cx: int, cy: int, r: int, locked: bool, huge: bool) -> None:
-    # Circular fixture on the masonry face. No Bone/white halo — that read as a white oval.
-    rr = int(r * (1.12 if huge else 1.0))
+    # Same circular fixture locked or open. Locked = Ember disk. Open = dark Ash disk
+    # with Wound rim faults. No Void pupil (keyhole) and no Ember diamond on open.
+    rr = int(r * (1.08 if huge else 1.0))
     if locked:
         circle_fill(cell, cx, cy, rr + 3, ASH_DARK)
         circle_fill(cell, cx, cy, rr, EMBER)
-        ring(cell, cx, cy, rr, max(rr - 4, 8), ASH_DARK)
+        ring(cell, cx, cy, rr, max(rr - 5, 8), ASH_DARK)
         return
     circle_fill(cell, cx, cy, rr + 3, ASH)
-    circle_fill(cell, cx, cy, rr, VOID)
-    ring(cell, cx, cy, rr + 1, max(rr - 5, 8), ASH_DARK)
-    for a_deg, span in ((18, 11), (112, 13), (204, 10), (292, 12)):
-        for p in range(-span, span + 1):
-            ang = math.radians(a_deg + p * 0.55)
-            x = int(cx + (rr + 1) * math.cos(ang))
-            y = int(cy + (rr + 1) * math.sin(ang))
-            put(cell, x, y, VOID)
-            put(cell, x + 1, y, VOID)
-    # Short irregular Wound chips from the rim — never a crossing X.
-    for a_deg, length in ((24, int(rr * 0.42)), (128, int(rr * 0.50)), (246, int(rr * 0.38))):
+    circle_fill(cell, cx, cy, rr, ASH_DARK)
+    ring(cell, cx, cy, rr, max(rr - 6, 8), (0x22, 0x21, 0x1F, 255))
+    _wound_rim_faults(cell, cx, cy, rr)
+
+
+def _wound_rim_faults(px: Image.Image, cx: int, cy: int, r: int) -> None:
+    # Outer-band chips only. Never a diameter, never two lines crossing (that was the X).
+    for a_deg, span, inward in ((28, 7, 0.24), (78, 8, 0.28), (168, 6, 0.22), (312, 7, 0.26)):
         ang = math.radians(a_deg)
-        for t in range(int(rr * 0.62), int(rr * 0.62) + length):
-            x = int(cx + t * math.cos(ang))
-            y = int(cy + t * math.sin(ang))
-            if (x - cx) ** 2 + (y - cy) ** 2 <= (rr - 2) ** 2:
-                put(cell, x, y, WOUND)
-                put(cell, x + 1, y, WOUND)
+        nx, ny = math.cos(ang), math.sin(ang)
+        tx, ty = -ny, nx
+        for t in range(int(r * (1.0 - inward)), r + 1):
+            for s in range(-span, span + 1):
+                x = int(cx + t * nx + s * 0.35 * tx)
+                y = int(cy + t * ny + s * 0.35 * ty)
+                d2 = (x - cx) ** 2 + (y - cy) ** 2
+                if d2 <= r * r and d2 >= (r * 0.62) ** 2:
+                    put(px, x, y, WOUND)
+                    put(px, x + 1, y, WOUND)
 
 
 def _masonry(a: np.ndarray, mask: np.ndarray, dark: bool = False) -> None:
@@ -212,12 +214,7 @@ def door_cell(kind: str, locked: bool) -> Image.Image:
     cell.paste(from_arr(a))
     # Huge circular seal on the wall-band face (lower 2/3). No Bone halo.
     seal_y = 118
-    if huge:
-        seal_r = 52 if locked else 46
-    elif kind == "boss":
-        seal_r = 48 if locked else 42
-    else:
-        seal_r = 44 if locked else 40
+    seal_r = 52 if huge else (48 if kind == "boss" else 44)
     cracked_seal(cell, cx, seal_y, seal_r, locked, huge)
     return cell
 
@@ -275,8 +272,8 @@ def write_shots() -> None:
 
 
 def write_hearts() -> None:
-    # 0 full Bone + Ember glyph · 1 empty hollow Ash · 2 hit Wound chips · 3 shot glyph
-    # No slash-X — hit chips are short rim bites that never cross the disk.
+    # 0 full Bone + Ember glyph · 1 empty hollow Ash · 2 hit Wound rim faults · 3 shot glyph
+    # Hit faults stay in the outer band — no diameter, no crossing X.
     sheet = new(256, 64)
     filled = new(64, 64)
     circle_fill(filled, 32, 32, 28, BONE)
@@ -289,16 +286,9 @@ def write_hearts() -> None:
     ring(empty, 32, 32, 28, 26, ASH_DARK)
     sheet.paste(empty, (64, 0), empty)
     cracked = new(64, 64)
-    circle_fill(cracked, 32, 32, 28, BONE_DIM)
-    ring(cracked, 32, 32, 28, 25, ASH)
-    for a_deg, length in ((20, 9), (118, 10), (238, 8)):
-        ang = math.radians(a_deg)
-        for t in range(18, 18 + length):
-            x = int(32 + t * math.cos(ang))
-            y = int(32 + t * math.sin(ang))
-            if (x - 32) ** 2 + (y - 32) ** 2 <= 26 ** 2:
-                put(cracked, x, y, WOUND)
-                put(cracked, x + 1, y, WOUND)
+    circle_fill(cracked, 32, 32, 28, BONE)
+    ring(cracked, 32, 32, 28, 25, BONE_DIM)
+    _wound_rim_faults(cracked, 32, 32, 28)
     sheet.paste(cracked, (128, 0), cracked)
     glyph = new(64, 64)
     diamond(glyph, 32, 32, 22, 16, EMBER, BONE)

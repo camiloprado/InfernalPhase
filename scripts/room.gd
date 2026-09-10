@@ -528,9 +528,11 @@ func _draw_door(node: Node2D) -> void:
 		node.draw_circle(seal_c, seal_r, Palette.EMBER)
 	else:
 		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH)
-		node.draw_circle(seal_c, seal_r, Palette.VOID_DEEP)
-		node.draw_line(seal_c + Vector2(seal_r * 0.55, -seal_r * 0.35), seal_c + Vector2(seal_r * 0.82, -seal_r * 0.05), Palette.WOUND, 1.5)
-		node.draw_line(seal_c + Vector2(-seal_r * 0.70, seal_r * 0.25), seal_c + Vector2(-seal_r * 0.40, seal_r * 0.55), Palette.WOUND, 1.5)
+		node.draw_circle(seal_c, seal_r, Palette.ASH_MID)
+		# Outer-band Wound faults — same circular seal, cracked, no Ember, no X.
+		for a in [0.48, 1.22, 2.93, 5.45]:
+			var inward := Vector2.from_angle(a)
+			node.draw_line(seal_c + inward * (seal_r * 0.72), seal_c + inward * seal_r, Palette.WOUND, 2.0)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:

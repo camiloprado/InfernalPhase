@@ -174,12 +174,12 @@ class HeartPip extends Control:
 		var r := minf(s.x, s.y) * 0.42
 		match state:
 			HIT:
-				draw_circle(c, r, Palette.BONE_DIM)
-				draw_arc(c, r, 0.0, TAU, 18, Palette.ASH, 1.5, true)
-				# Short rim chips — never a crossing X.
-				draw_line(c + Vector2(r * 0.55, -r * 0.35), c + Vector2(r * 0.82, -r * 0.08), Palette.WOUND, 2.0)
-				draw_line(c + Vector2(-r * 0.75, r * 0.20), c + Vector2(-r * 0.42, r * 0.48), Palette.WOUND, 1.5)
-				draw_line(c + Vector2(-r * 0.18, r * 0.72), c + Vector2(r * 0.12, r * 0.88), Palette.WOUND, 1.5)
+				draw_circle(c, r, Palette.BONE)
+				draw_arc(c, r, 0.0, TAU, 18, Palette.BONE_DIM, 1.5, true)
+				# Outer-band Wound faults only — no diameter, no X.
+				for a in [0.48, 1.22, 2.93, 5.45]:
+					var inward := Vector2.from_angle(a)
+					draw_line(c + inward * (r * 0.72), c + inward * r, Palette.WOUND, 2.2)
 			EMPTY:
 				draw_arc(c, r, 0.0, TAU, 22, Palette.ASH, 2.5, true)
 			_:
