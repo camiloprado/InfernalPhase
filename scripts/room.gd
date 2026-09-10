@@ -437,9 +437,24 @@ func _door_inward(dir: int) -> Vector2:
 	return Vector2.ZERO
 
 
+func _door_rotation(dir: int) -> float:
+	# doors.png is a south-facing portrait (crown = texture top).
+	# Each room draws its own inward-facing arch; lesser-grid ownership
+	# used to skip N/W on Threshold so those edges showed the neighbor's
+	# door from the back.
+	match dir:
+		Dir.N:
+			return PI
+		Dir.S:
+			return 0.0
+		Dir.E:
+			return PI * 0.5
+		Dir.W:
+			return -PI * 0.5
+	return 0.0
+
+
 func _add_door_art(dir: int, rect: Rect2) -> void:
-	if not _owns_door(dir):
-		return
 	var dest: Room = neighbors.get(dir)
 	var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, false)
 	if atlas:
@@ -449,20 +464,11 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 		spr.texture = atlas
 		spr.centered = true
 		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		# Sheet cells are portrait (arch spans X). N/S stay upright. E/W rotate
-		# so the arch spans the vertical opening — not an N/S portal glued on.
 		var opening := maxf(rect.size.x, rect.size.y)
 		var along := opening / maxf(cell.x, 1.0)
 		spr.scale = Vector2(along, along)
-		match dir:
-			Dir.E:
-				spr.rotation = PI * 0.5
-			Dir.W:
-				spr.rotation = -PI * 0.5
-			_:
-				spr.rotation = 0.0
+		spr.rotation = _door_rotation(dir)
 		spr.position = rect.position + rect.size * 0.5
-		# Original cell height is the doorway depth on every facing after rotate.
 		var depth := cell.y * along
 		var inset := maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
 		spr.position += _door_inward(dir) * inset
