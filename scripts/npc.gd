@@ -4,6 +4,7 @@ extends Area2D
 var line_i := 0
 var cooldown := 0.0
 var shown := false
+var _sprite: AnimatedSprite2D
 
 func _ready() -> void:
 	collision_layer = 0
@@ -17,10 +18,28 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 	z_index = 6
+	_sprite = Sprites.actor(
+		"res://assets/sprites/concierge.png",
+		4,
+		2,
+		{
+			"idle": {"row": 0, "fps": 3.5, "loop": true},
+			"talk": {"row": 1, "fps": 6.0, "loop": true},
+		},
+		108.0
+	)
+	if _sprite:
+		add_child(_sprite)
 
 
 func _process(delta: float) -> void:
 	cooldown = maxf(cooldown - delta, 0.0)
+	if _sprite:
+		if cooldown > 2.2:
+			if _sprite.animation != &"talk":
+				_sprite.play("talk")
+		elif _sprite.animation != &"idle":
+			_sprite.play("idle")
 	queue_redraw()
 
 
@@ -37,9 +56,14 @@ func _on_body(body: Node) -> void:
 		line_i += 1
 	cooldown = 4.2
 	shown = true
+	if _sprite:
+		_sprite.play("talk")
 
 
 func _draw() -> void:
+	if _sprite:
+		draw_circle(Vector2(0, 28), 40.0, Color(0, 0, 0, 0.28))
+		return
 	# Desk
 	draw_rect(Rect2(-46, 10, 92, 28), Palette.ASH_MID)
 	draw_rect(Rect2(-50, 8, 100, 6), Palette.BONE_DIM)

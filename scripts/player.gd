@@ -13,6 +13,7 @@ var blink := false
 var knockback := Vector2.ZERO
 var _hit_stamp_ms := -99999
 var _baby: Sprite2D
+var _sheet: AnimatedSprite2D
 
 @onready var _hurt: Area2D = $Hurtbox
 @onready var _col: CollisionShape2D = $CollisionShape2D
@@ -48,18 +49,33 @@ func rebind_visual() -> void:
 	if _baby == null:
 		return
 	_baby.visible = false
-	if not Game.is_baby():
+	if _sheet:
+		_sheet.queue_free()
+		_sheet = null
+	if Game.is_baby():
+		var loaded := Sprites.tex(BABY_SHEET)
+		if loaded:
+			_baby.texture = loaded
+			var h := float(loaded.get_height())
+			_baby.scale = Vector2.ONE * (48.0 / maxf(h, 1.0))
+			_baby.visible = true
 		queue_redraw()
 		return
-	if not ResourceLoader.exists(BABY_SHEET):
-		queue_redraw()
-		return
-	var loaded: Variant = ResourceLoader.load(BABY_SHEET)
-	if loaded is Texture2D:
-		_baby.texture = loaded
-		var h := float((loaded as Texture2D).get_height())
-		_baby.scale = Vector2.ONE * (48.0 / maxf(h, 1.0))
-		_baby.visible = true
+	var path := "res://assets/sprites/player_f.png" if Game.body == Game.Body.LILITH else "res://assets/sprites/player.png"
+	_sheet = Sprites.actor(
+		path,
+		4,
+		3,
+		{
+			"idle": {"row": 0, "fps": 5.0, "loop": true},
+			"walk": {"row": 1, "fps": 8.0, "loop": true},
+			"attack": {"row": 2, "fps": 14.0, "loop": false},
+		},
+		48.0
+	)
+	if _sheet:
+		add_child(_sheet)
+		_sheet.animation_finished.connect(_on_sheet_finished)
 	queue_redraw()
 
 
@@ -101,6 +117,7 @@ func _physics_process(delta: float) -> void:
 	if want_shoot and fire_left <= 0.0:
 		_shoot()
 
+	_sync_sheet()
 	queue_redraw()
 
 
@@ -111,6 +128,8 @@ func _shoot() -> void:
 		return
 	var muzzle := global_position + aim * (RADIUS + 8.0)
 	floor_node.spawn_bullet(muzzle, aim, 560.0, false, Palette.EMBER_HOT, 4.5)
+	if _sheet:
+		_sheet.play("attack")
 
 
 func take_hit(_source: Node = null) -> void:
@@ -146,15 +165,42 @@ func _on_hurt_body(body: Node) -> void:
 		take_hit(body)
 
 
+func _sync_sheet() -> void:
+	if _sheet == null:
+		return
+	_sheet.visible = not blink
+	_sheet.flip_h = aim.x < 0.0
+	if i_timer > 0.0 and not blink:
+		_sheet.modulate = Color(1.7, 0.55, 0.2)
+	else:
+		_sheet.modulate = Color.WHITE
+	if _sheet.animation == &"attack" and _sheet.is_playing():
+		return
+	var want := "walk" if velocity.length() > 24.0 else "idle"
+	if _sheet.animation != want:
+		_sheet.play(want)
+
+
+func _on_sheet_finished() -> void:
+	if _sheet == null:
+		return
+	if _sheet.animation == &"attack":
+		_sheet.play("walk" if velocity.length() > 24.0 else "idle")
+
+
 func _draw() -> void:
 	if blink:
 		if _baby:
 			_baby.modulate.a = 0.0
+		if _sheet:
+			_sheet.visible = false
 		return
 	if _baby:
 		_baby.modulate.a = 1.0
 		_baby.flip_h = aim.x < -0.15
 	if Game.is_baby() and _baby and _baby.visible:
+		return
+	if _sheet:
 		return
 	if Game.is_baby():
 		draw_circle(Vector2(0, 6), 11.0, Palette.BONE)

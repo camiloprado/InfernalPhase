@@ -157,10 +157,12 @@ func _fire() -> void:
 			_imp_spread()
 			fire_cd = 0.88
 		Kind.WRETCH:
+			attack_t = 0.5
 			_ring(16, 168.0, ring_off, Palette.EMBER, 6.0)
 			ring_off += 11.0
 			fire_cd = 1.28
 		Kind.CULTIST:
+			attack_t = 0.7
 			if not wave_busy:
 				_start_wave()
 			fire_cd = 1.75 if intro else 1.55
@@ -490,6 +492,16 @@ func _setup_art() -> void:
 			_setup_imp_art()
 		Kind.BOSS:
 			_setup_boss_art()
+		Kind.WRETCH:
+			_setup_sheet_art("res://assets/sprites/wretch.png", 70.0, {
+				"idle": {"row": 0, "fps": 5.0, "loop": true},
+				"attack": {"row": 1, "fps": 9.0, "loop": false},
+			})
+		Kind.CULTIST:
+			_setup_sheet_art("res://assets/sprites/cantor.png", 58.0 if intro else 54.0, {
+				"walk": {"row": 0, "fps": 7.0, "loop": true},
+				"attack": {"row": 1, "fps": 8.0, "loop": true},
+			})
 		_:
 			pass
 
@@ -541,6 +553,22 @@ func _setup_boss_art() -> void:
 	_sprite.visible = true
 	art = true
 	_sprite.play("idle")
+
+
+func _setup_sheet_art(path: String, target_h: float, anims: Dictionary) -> void:
+	var node := Sprites.actor(path, 4, 2, anims, target_h)
+	if node == null:
+		return
+	_sprite.sprite_frames = node.sprite_frames
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = node.scale
+	_sprite.centered = true
+	_sprite.visible = true
+	art = true
+	var keys: Array = anims.keys()
+	if not keys.is_empty():
+		_sprite.play(String(keys[0]))
+	node.free()
 
 
 func _pick_loadout() -> String:
@@ -626,6 +654,11 @@ func _tick_art(delta: float) -> void:
 		var anim := ("attack_" if attack_t > 0.0 else "walk_") + _facing()
 		if _sprite.animation != anim or not _sprite.is_playing():
 			_sprite.play(anim)
+	elif kind == Kind.WRETCH or kind == Kind.CULTIST:
+		_sprite.flip_h = _aim().x < 0.0
+		var want := "attack" if attack_t > 0.0 else ("idle" if kind == Kind.WRETCH else "walk")
+		if _sprite.animation != want or not _sprite.is_playing():
+			_sprite.play(want)
 	elif kind == Kind.BOSS:
 		var anim := "idle"
 		if special_busy:
@@ -650,7 +683,7 @@ func _draw_art_fx() -> void:
 
 
 func _draw() -> void:
-	if art and (kind == Kind.IMP or kind == Kind.BOSS):
+	if art:
 		_draw_art_fx()
 		return
 	var col := _color()

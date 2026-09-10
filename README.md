@@ -7,11 +7,18 @@ Top-down move-and-shoot in the Binding of Isaac room style, with Undertale-ish b
 ## Open in Godot 4
 
 1. Install **Godot 4.x** (built and tested with **4.7.2**; 4.3+ should open it). Standard build, not .NET.
-2. In the Project Manager: **Import** → select this folder (`project.godot`) → **Import & Edit**.
+2. After a pull on a new machine (or if sprites/audio fail to load), wipe the import cache and rebuild it **before** F5:
+
+```bash
+rm -rf .godot
+godot --path . --import
+```
+
+Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine.
 3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
 4. Press **F5** (or Run Project).
 
-Character sheets live in `assets/characters/` (imps, boss). The only file in `assets/sprites/` is the Bebê Chorão walker. Walls, doors, and floors are drawn in-room (not a tileset).
+Floors, walls, and doors use `assets/sprites/env.png` and `doors.png`. Caim is `player.png`, Lilith is `player_f.png`. Bebê Chorão stays `baby.png`. Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, and pickups use the matching files in `assets/sprites/`. If a sheet is missing, the old drawn placeholder still shows.
 
 The main scene is `scenes/floor.tscn`.
 
@@ -70,7 +77,7 @@ scenes/ui.tscn         Hearts, flavor lines, minimap, death/win
 assets/characters/imp  Walk + attack sheets (vanilla, sword, sword-shield, pitchfork, pitchfork-shield)
 assets/characters/boss Idle / move / fire / lightning frame sheets (not raw GIF playback)
 assets/env/pit.png     Buraco — distinct pit sprite (not a floor/wall tile)
-assets/sprites/baby.png Bebê Chorão walker (not Caim/Lilith)
+assets/sprites/         env, doors, player, player_f, baby, hearts, pickups, cantor, wretch, concierge
 assets/audio/floor.ogg Usual floor pulse (original)
 assets/audio/cry.ogg   Bebê Chorão choro loop (original, not a commercial OST)
 ```

@@ -71,13 +71,26 @@ func _label(parent: Node, pos: Vector2, size: Vector2, text: String, col: Color,
 
 func _card(parent: Node, rect: Rect2, caption: String, blurb: String, on_click: Callable, male: bool) -> Control:
 	var btn := _shell(parent, rect, on_click)
-	var art := Control.new()
-	art.position = Vector2(40, 28)
-	art.size = Vector2(120, 140)
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	art.set_meta("male", male)
-	art.draw.connect(func() -> void: _draw_body(art, male))
-	btn.add_child(art)
+	var path := "res://assets/sprites/player.png" if male else "res://assets/sprites/player_f.png"
+	var portrait := Sprites.cell(path, 4, 3, 0, 0)
+	if portrait:
+		var tr := TextureRect.new()
+		tr.position = Vector2(20, 16)
+		tr.size = Vector2(160, 160)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.texture = portrait
+		btn.add_child(tr)
+	else:
+		var art := Control.new()
+		art.position = Vector2(40, 28)
+		art.size = Vector2(120, 140)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.set_meta("male", male)
+		art.draw.connect(func() -> void: _draw_body(art, male))
+		btn.add_child(art)
 	_caption(btn, caption, blurb, 180)
 	return btn
 
@@ -92,7 +105,7 @@ func _bebe_portrait(parent: Node, rect: Rect2) -> Control:
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tex := _load_tex(BABY_SHEET)
+	var tex := Sprites.tex(BABY_SHEET)
 	if tex:
 		tr.texture = tex
 	btn.add_child(tr)
@@ -223,15 +236,6 @@ func _draw_body(node: Control, male: bool) -> void:
 		node.draw_circle(c + Vector2(0, -22), 11.0, Palette.BONE)
 	node.draw_circle(c, 6.0, core)
 	node.draw_circle(c, 2.4, Palette.EMBER_HOT)
-
-
-func _load_tex(path: String) -> Texture2D:
-	if path.is_empty() or not ResourceLoader.exists(path):
-		return null
-	var loaded: Variant = ResourceLoader.load(path)
-	if loaded is Texture2D:
-		return loaded
-	return null
 
 
 func _is_click(event: InputEvent) -> bool:

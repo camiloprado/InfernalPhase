@@ -89,10 +89,21 @@ func _on_hearts(current: int, maximum: int) -> void:
 	for c in hearts.get_children():
 		c.queue_free()
 	for i in maximum:
-		var h := HeartPip.new()
-		h.filled = i < current
-		h.custom_minimum_size = Vector2(28, 24)
-		hearts.add_child(h)
+		var pip := Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 0 if i < current else 1, 0)
+		if pip:
+			var h := TextureRect.new()
+			h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			h.custom_minimum_size = Vector2(30, 28)
+			h.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			h.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			h.texture = pip
+			hearts.add_child(h)
+		else:
+			var h := HeartPip.new()
+			h.filled = i < current
+			h.custom_minimum_size = Vector2(28, 24)
+			hearts.add_child(h)
 
 
 func _on_flavor(text: String, hold: float) -> void:

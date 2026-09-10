@@ -11,6 +11,9 @@ const DIR_VEC := {
 	Dir.W: Vector2i(-1, 0),
 }
 
+const DOOR_SHEET := "res://assets/sprites/doors.png"
+const ENV_SHEET := "res://assets/sprites/env.png"
+
 var room_id: String = ""
 var grid := Vector2i.ZERO
 var kind: Kind = Kind.COMBAT
@@ -20,6 +23,7 @@ var cleared := false
 var visited := false
 var locked := false
 var size := Vector2.ZERO
+var theme: int = 1
 
 var _door_bodies: Dictionary = {}
 var _door_visuals: Dictionary = {}
@@ -37,6 +41,7 @@ func setup(p_id: String, p_grid: Vector2i, p_kind: Kind, p_pack: Array[String]) 
 	grid = p_grid
 	kind = p_kind
 	pack = p_pack.duplicate()
+	theme = _theme_row()
 	size = Game.ROOM_SIZE
 	position = Vector2(grid) * size
 	name = "Room_%s" % room_id
@@ -106,6 +111,22 @@ func title() -> String:
 	return ""
 
 
+func _theme_row() -> int:
+	match kind:
+		Kind.START:
+			return 0
+		Kind.NPC:
+			return 2
+		Kind.BOSS:
+			return 4
+		_:
+			if pack.has("wretch"):
+				return 2
+			if pack.has("cultist") or pack.has("cantor"):
+				return 3
+			return 1
+
+
 func _floor_color() -> Color:
 	match kind:
 		Kind.START:
@@ -144,6 +165,18 @@ func _build_geometry() -> void:
 	floor_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	floor_r.z_index = -8
 	add_child(floor_r)
+	var floor_tex := Sprites.cell(ENV_SHEET, 3, 5, 0, theme)
+	if floor_tex:
+		var tiled := TextureRect.new()
+		tiled.texture = floor_tex
+		tiled.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tiled.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tiled.stretch_mode = TextureRect.STRETCH_TILE
+		tiled.size = size
+		tiled.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tiled.modulate = Color(1, 1, 1, 0.92)
+		floor_r.add_child(tiled)
+	_scatter_decals()
 
 	var grid_n := Node2D.new()
 	grid_n.z_index = -7
@@ -202,6 +235,8 @@ func _paint_gap(rect: Rect2, dir: int) -> void:
 	hole.z_index = -6
 	add_child(hole)
 	if not _owns_door(dir):
+		return
+	if Sprites.tex(DOOR_SHEET):
 		return
 	var jamb_a := ColorRect.new()
 	var jamb_b := ColorRect.new()
@@ -272,6 +307,22 @@ func _add_wall(rect: Rect2) -> void:
 	vis.position = -rect.size * 0.5
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(vis)
+	var wall_tex := Sprites.cell(ENV_SHEET, 3, 5, 1, theme)
+	if wall_tex:
+		var band := AtlasTexture.new()
+		band.atlas = wall_tex.atlas
+		var r: Rect2 = wall_tex.region
+		band.region = Rect2(r.position.x, r.position.y + r.size.y * 0.42, r.size.x, maxf(r.size.y * 0.18, 8.0))
+		band.filter_clip = true
+		var tr := TextureRect.new()
+		tr.texture = band
+		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_TILE
+		tr.size = rect.size
+		tr.position = -rect.size * 0.5
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		body.add_child(tr)
 	var edge := ColorRect.new()
 	edge.color = Palette.BONE_DIM
 	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -328,8 +379,81 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	_set_door_blocked(dir, false)
 
 
+func _scatter_decals() -> void:
+	var decal := Sprites.cell(ENV_SHEET, 3, 5, 2, theme)
+	if decal == null:
+		return
+	var layer := Node2D.new()
+	layer.z_index = -7
+	add_child(layer)
+	var n := 3 if theme == 0 else (7 if theme == 4 else 5)
+	var w := Game.WALL
+	for i in n:
+		var s := Sprite2D.new()
+		s.texture = decal
+		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		s.centered = true
+		s.position = Vector2(
+			w + 90.0 + float((i * 197 + theme * 17) % int(size.x - w * 2.0 - 80.0)),
+			w + 70.0 + float((i * 131 + theme * 40) % int(size.y - w * 2.0 - 80.0))
+		)
+		s.modulate.a = 0.7
+		layer.add_child(s)
+
+
+func _door_col(k: Kind) -> int:
+	match k:
+		Kind.START:
+			return 0
+		Kind.NPC:
+			return 2
+		Kind.BOSS:
+			return 3
+		_:
+			return 1
+
+
+func _door_atlas(k: Kind, blocked: bool) -> AtlasTexture:
+	return Sprites.cell(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
+
+
+func _door_inward(dir: int) -> Vector2:
+	match dir:
+		Dir.N:
+			return Vector2(0, 1)
+		Dir.S:
+			return Vector2(0, -1)
+		Dir.W:
+			return Vector2(1, 0)
+		Dir.E:
+			return Vector2(-1, 0)
+	return Vector2.ZERO
+
+
 func _add_door_art(dir: int, rect: Rect2) -> void:
 	if not _owns_door(dir):
+		return
+	var dest: Room = neighbors.get(dir)
+	var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, false)
+	if atlas:
+		var cell := atlas.region.size
+		var spr := Sprite2D.new()
+		spr.name = "DoorArt_%d" % dir
+		spr.texture = atlas
+		spr.centered = true
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		spr.position = rect.position + rect.size * 0.5
+		var opening := maxf(rect.size.x, rect.size.y)
+		var s := opening / maxf(cell.x, 1.0)
+		spr.scale = Vector2(s, s)
+		var vis_h := cell.y * s
+		var vis_w := cell.x * s
+		var toward := vis_h if dir == Dir.N or dir == Dir.S else vis_w
+		var inset := maxf(toward * 0.5 - Game.WALL * 0.5, 0.0)
+		spr.position += _door_inward(dir) * inset
+		spr.z_index = 3
+		add_child(spr)
+		_door_art[dir] = spr
 		return
 	var art := Node2D.new()
 	art.name = "DoorArt_%d" % dir
@@ -409,9 +533,15 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 	if _door_seals.has(dir):
 		(_door_seals[dir] as ColorRect).visible = false
 	if _door_art.has(dir):
-		var art: Node2D = _door_art[dir]
+		var art: Node = _door_art[dir]
+		if art is Sprite2D:
+			var dest: Room = neighbors.get(dir)
+			var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, blocked)
+			if atlas:
+				(art as Sprite2D).texture = atlas
+			return
 		art.set_meta("blocked", blocked)
-		art.queue_redraw()
+		(art as Node2D).queue_redraw()
 		return
 	if not _owns_door(dir):
 		return
