@@ -675,7 +675,8 @@ func _on_pit_body(body: Node) -> void:
 		return
 	var floor_node := get_tree().get_first_node_in_group("floor") as Floor
 	if floor_node:
-		floor_node.fall_from(self, pit_dest)
+		# body_entered runs while physics is flushing — defer the room swap.
+		floor_node.call_deferred("fall_from", self, pit_dest)
 
 
 func _spawn_npc() -> void:
