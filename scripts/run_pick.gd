@@ -19,7 +19,7 @@ var _click_ms := -99999
 var _pick_frame := -1
 var _sworn := false
 const BABY_SHEET := "res://assets/sprites/baby.png"
-const PENITENT_RECT := Rect2(520, 72, 240, 230)
+const PENITENT_RECT := Rect2(480, 48, 320, 268)
 const CAIM_RECT := Rect2(280, 318, 240, 78)
 const LILITH_RECT := Rect2(760, 318, 240, 78)
 const BABY_DIFF_RECT := Rect2(300, 448, 300, 100)
@@ -46,7 +46,7 @@ func _ready() -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(dim)
 
-	_label(root, Vector2(0, 28), Vector2(1280, 22), "Click a name  ·  Space / E to swear in", Palette.UI_DIM, 15)
+	_label(root, Vector2(0, 16), Vector2(1280, 20), "Click a name  ·  Space / E to swear in", Palette.UI_DIM, 14)
 	_bebe_card = _penitent_face(root, PENITENT_RECT)
 	_caim_btn = _name_card(root, CAIM_RECT, "Caim", func() -> void: _on_body(Game.Body.CAIM))
 	_lilith_btn = _name_card(root, LILITH_RECT, "Lilith", func() -> void: _on_body(Game.Body.LILITH))
@@ -79,7 +79,7 @@ func _name_card(parent: Node, rect: Rect2, caption: String, on_click: Callable) 
 
 
 func _penitent_face(parent: Node, rect: Rect2) -> Control:
-	# Product face. Not a picker — Bebê Chorão stays a difficulty mode.
+	# One hooded face. Not a WHO WALKS poster and not dual Caim/Lilith portraits.
 	var frame := Control.new()
 	frame.position = rect.position
 	frame.size = rect.size
@@ -93,28 +93,14 @@ func _penitent_face(parent: Node, rect: Rect2) -> Control:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_theme_stylebox_override("panel", chrome)
 	frame.add_child(panel)
-	var path := "res://assets/sprites/player.png"
-	var portrait := Sprites.cell(path, 4, 3, 0, 0)
-	if portrait == null:
-		portrait = Sprites.tex(BABY_SHEET)
-	if portrait:
-		var tr := TextureRect.new()
-		tr.position = Vector2(20, 12)
-		tr.size = Vector2(rect.size.x - 40.0, 168)
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tr.texture = portrait
-		frame.add_child(tr)
-	else:
-		var art := Control.new()
-		art.position = Vector2(40, 16)
-		art.size = Vector2(rect.size.x - 80.0, 160)
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.draw.connect(func() -> void: _draw_penitent(art, false))
-		frame.add_child(art)
-	_caption(frame, "Penitent", "", 186)
+	var art := Control.new()
+	art.position = Vector2(24, 10)
+	art.size = Vector2(rect.size.x - 48.0, 196)
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.draw.connect(func() -> void: _draw_penitent(art, false))
+	frame.add_child(art)
+	art.queue_redraw()
+	_caption(frame, "THE PENITENT", "", 214)
 	parent.add_child(frame)
 	return frame
 
@@ -227,9 +213,10 @@ func _style(btn: Button) -> void:
 
 
 func _draw_penitent(node: Control, lilith: bool) -> void:
-	var c := node.size * 0.5
-	var rx := 28.0 if lilith else 32.0
-	var ry := 48.0 if lilith else 42.0
+	# Hooded, no face, Bone body, 4–6px Ember brand. Not a Caim/Lilith pair.
+	var c := node.size * 0.5 + Vector2(0, 8)
+	var rx := 62.0 if lilith else 70.0
+	var ry := 88.0 if lilith else 80.0
 	var pts := PackedVector2Array([
 		c + Vector2(0, -ry),
 		c + Vector2(rx, 0),
@@ -239,21 +226,28 @@ func _draw_penitent(node: Control, lilith: bool) -> void:
 	node.draw_colored_polygon(pts, Palette.BONE)
 	var hood := PackedVector2Array([
 		c + Vector2(0, -ry),
-		c + Vector2(rx * 0.72, -ry * 0.22),
-		c + Vector2(0, -ry * 0.12),
-		c + Vector2(-rx * 0.72, -ry * 0.22),
+		c + Vector2(rx * 0.78, -ry * 0.08),
+		c + Vector2(rx * 0.18, -ry * 0.02),
+		c + Vector2(0, -ry * 0.18),
+		c + Vector2(-rx * 0.18, -ry * 0.02),
+		c + Vector2(-rx * 0.78, -ry * 0.08),
 	])
 	node.draw_colored_polygon(hood, Palette.ASH)
 	node.draw_colored_polygon(PackedVector2Array([
-		c + Vector2(0, -ry * 0.55),
-		c + Vector2(8, -ry * 0.22),
-		c + Vector2(-8, -ry * 0.22),
+		c + Vector2(0, -ry),
+		c + Vector2(rx * 0.42, -ry * 0.55),
+		c + Vector2(-rx * 0.42, -ry * 0.55),
+	]), Palette.ASH_MID)
+	node.draw_colored_polygon(PackedVector2Array([
+		c + Vector2(0, -ry * 0.42),
+		c + Vector2(14, -ry * 0.12),
+		c + Vector2(-14, -ry * 0.12),
 	]), Palette.VOID)
 	var brand := PackedVector2Array([
-		c + Vector2(0, -5),
-		c + Vector2(5, 2),
-		c + Vector2(0, 9),
-		c + Vector2(-5, 2),
+		c + Vector2(0, 6),
+		c + Vector2(6, 14),
+		c + Vector2(0, 22),
+		c + Vector2(-6, 14),
 	])
 	node.draw_colored_polygon(brand, Palette.EMBER)
 

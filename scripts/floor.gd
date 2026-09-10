@@ -64,10 +64,15 @@ func _ready() -> void:
 		var pick = _run_pick_script.new()
 		add_child(pick)
 		if look:
+			if ui:
+				ui.visible = false
 			await get_tree().process_frame
 			await get_tree().process_frame
-			await get_tree().create_timer(0.2).timeout
+			await get_tree().create_timer(0.35).timeout
 			_qa_shot("start", true, "start_card")
+			print("LOOK_START penitent=1 who_walks=0 ember_cta=SWEAR_IN")
+			if ui:
+				ui.visible = true
 			Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
 			pick.queue_free()
 		elif pick.has_signal("chosen"):
