@@ -56,18 +56,25 @@ func _ready() -> void:
 	_spawn_player()
 	if player:
 		player.set_physics_process(false)
-	var pick = _run_pick_script.new()
-	add_child(pick)
-	if pick.has_signal("chosen"):
-		await pick.chosen
+	var qa := "--qa-proof" in OS.get_cmdline_user_args()
+	if qa:
+		Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
 	else:
-		push_warning("RunPick missing chosen signal")
+		var pick = _run_pick_script.new()
+		add_child(pick)
+		if pick.has_signal("chosen"):
+			await pick.chosen
+		else:
+			push_warning("RunPick missing chosen signal")
 	if player:
 		player.rebind_visual()
 		player.set_physics_process(true)
 	ui.set_walker(Game.walker_label(), "")
 	Game.bgm("play_for_run")
 	_enter_room(rooms[Vector2i.ZERO], true)
+	if qa:
+		await _qa_proof()
+		return
 	await get_tree().create_timer(0.15).timeout
 	Game.say(Flavor.START[0], 2.8)
 	await get_tree().create_timer(2.9).timeout
@@ -331,3 +338,72 @@ func _on_won() -> void:
 	await get_tree().create_timer(1.1).timeout
 	get_tree().paused = true
 	ui.show_end(true, Flavor.WIN[0] + "\n" + Flavor.WIN[1])
+
+
+func _qa_proof() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var origin := current.center_global()
+	var arts: Array[String] = ["player", "imp", "wretch", "cantor", "boss", "ember", "bone", "deflect"]
+	var cols: Array[Color] = [
+		Palette.EMBER_HOT, Palette.EMBER, Palette.EMBER, Palette.ROBE_LIGHT,
+		Palette.HELL_RED, Palette.EMBER_HOT, Palette.BONE, Palette.BONE,
+	]
+	for i in arts.size():
+		spawn_bullet(
+			origin + Vector2(-280.0 + float(i) * 72.0, -90.0),
+			Vector2.RIGHT,
+			12.0,
+			arts[i] != "player",
+			cols[i],
+			6.0,
+			0.0,
+			8.0,
+			0.0,
+			0.0,
+			arts[i]
+		)
+	spawn_pickup(Pickup.Kind.HEART, origin + Vector2(-140, 100))
+	spawn_pickup(Pickup.Kind.EMBER, origin + Vector2(-70, 100))
+	spawn_pickup(Pickup.Kind.MAX_HEART, origin + Vector2(0, 100))
+	spawn_pickup(Pickup.Kind.PIERCE, origin + Vector2(70, 100))
+	spawn_pickup(Pickup.Kind.RAPID, origin + Vector2(140, 100))
+	spawn_hazard(Hazard.Kind.CROSS, origin, current)
+	await get_tree().create_timer(0.4).timeout
+	_qa_shot("qa_shots_pickups_cross")
+	for n in projectiles.get_children():
+		if n is Hazard:
+			n.queue_free()
+	await get_tree().process_frame
+	spawn_hazard(Hazard.Kind.RING, origin, current)
+	spawn_hazard(Hazard.Kind.SLAM, origin, current)
+	await get_tree().create_timer(0.4).timeout
+	_qa_shot("qa_ring_slam")
+	for n in projectiles.get_children():
+		if n is Hazard:
+			n.queue_free()
+	await get_tree().process_frame
+	spawn_hazard(Hazard.Kind.DIAG, origin, current)
+	spawn_hazard(Hazard.Kind.LANES, origin, current)
+	await get_tree().create_timer(0.4).timeout
+	_qa_shot("qa_diag_lanes")
+	var grant := Pickup.apply(roll_item())
+	Game.say("QA Concierge: " + grant, 2.0)
+	var dest: Room = rooms.get(Vector2i(0, 2))
+	var before := player.global_position
+	var src_id := current.room_id
+	fall_from(current, dest)
+	await get_tree().create_timer(0.45).timeout
+	_qa_shot("qa_pit_landing")
+	print("QA_PIT src=", src_id, " dest=", current.room_id if current else "?", " before=", before, " after=", player.global_position)
+	print("QA_CONCIERGE ", grant)
+	get_tree().quit()
+
+
+func _qa_shot(name: String) -> void:
+	var tex := get_viewport().get_texture()
+	if tex == null:
+		return
+	var img := tex.get_image()
+	if img:
+		img.save_png("/opt/cursor/artifacts/%s.png" % name)
