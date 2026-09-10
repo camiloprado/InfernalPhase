@@ -57,12 +57,20 @@ func _ready() -> void:
 	if player:
 		player.set_physics_process(false)
 	var qa := "--qa-proof" in OS.get_cmdline_user_args()
-	if qa:
+	var look := "--qa-look" in OS.get_cmdline_user_args()
+	if qa and not look:
 		Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
 	else:
 		var pick = _run_pick_script.new()
 		add_child(pick)
-		if pick.has_signal("chosen"):
+		if look:
+			await get_tree().process_frame
+			await get_tree().process_frame
+			await get_tree().create_timer(0.2).timeout
+			_qa_shot("start")
+			Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
+			pick.queue_free()
+		elif pick.has_signal("chosen"):
 			await pick.chosen
 		else:
 			push_warning("RunPick missing chosen signal")
@@ -72,6 +80,11 @@ func _ready() -> void:
 	ui.set_walker(Game.walker_label(), "")
 	Game.bgm("play_for_run")
 	_enter_room(rooms[Vector2i.ZERO], true)
+	if look:
+		await _look_dump()
+		if not qa:
+			get_tree().quit()
+			return
 	if qa:
 		await _qa_proof()
 		return
@@ -422,10 +435,54 @@ func _qa_proof() -> void:
 	get_tree().quit()
 
 
-func _qa_shot(name: String) -> void:
+func _look_dump() -> void:
+	await get_tree().process_frame
+	await get_tree().create_timer(0.25).timeout
+	_qa_shot("doors")
+	_qa_shot("hud")
+	var origin := current.center_global()
+	var arts: Array[String] = ["player", "imp", "wretch", "cantor", "boss", "ember", "bone", "deflect"]
+	var cols: Array[Color] = [
+		Palette.EMBER, Palette.EMBER, Palette.BONE, Palette.BONE,
+		Palette.EMBER, Palette.EMBER, Palette.BONE, Palette.EMBER,
+	]
+	for i in arts.size():
+		spawn_bullet(
+			origin + Vector2(-280.0 + float(i) * 72.0, -40.0),
+			Vector2.RIGHT,
+			8.0,
+			arts[i] != "player",
+			cols[i],
+			6.0,
+			0.0,
+			8.0,
+			0.0,
+			0.0,
+			arts[i]
+		)
+	await get_tree().create_timer(0.35).timeout
+	_qa_shot("shots")
+	for n in projectiles.get_children():
+		if n is Bullet:
+			n.queue_free()
+	if player and current:
+		player.global_position = current.pit_global() + Vector2(118, 0)
+		camera.global_position = current.pit_global()
+	await get_tree().process_frame
+	await get_tree().create_timer(0.2).timeout
+	_qa_shot("pit")
+	if player:
+		player.global_position = rooms[Vector2i.ZERO].center_global()
+		camera.global_position = rooms[Vector2i.ZERO].center_global()
+
+
+func _qa_shot(shot_name: String) -> void:
 	var tex := get_viewport().get_texture()
 	if tex == null:
 		return
 	var img := tex.get_image()
-	if img:
-		img.save_png("/opt/cursor/artifacts/%s.png" % name)
+	if img == null:
+		return
+	DirAccess.make_dir_recursive_absolute("/workspace/gate")
+	img.save_png("/workspace/gate/%s.png" % shot_name)
+	img.save_png("/opt/cursor/artifacts/%s.png" % shot_name)

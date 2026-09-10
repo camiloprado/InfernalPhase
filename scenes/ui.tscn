@@ -37,7 +37,7 @@ theme_override_constants/separation = 6
 [node name="RoomLabel" type="Label" parent="Margin/VBox/Top"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.91, 0.86, 0.78, 0.9)
+theme_override_colors/font_color = Color(0.902, 0.851, 0.765, 0.9)
 theme_override_font_sizes/font_size = 20
 text = "THE THRESHOLD"
 vertical_alignment = 1
@@ -65,7 +65,7 @@ mouse_filter = 2
 
 [node name="Hint" type="Label" parent="Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.65, 0.58, 0.75)
+theme_override_colors/font_color = Color(0.718, 0.678, 0.604, 0.75)
 theme_override_font_sizes/font_size = 14
 text = "WASD move  ·  Mouse aim  ·  Click / Space shoot  ·  Arrows shoot  ·  R restart"
 horizontal_alignment = 1
@@ -82,8 +82,8 @@ offset_top = 88.0
 offset_right = 480.0
 offset_bottom = 156.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.91, 0.86, 0.78, 1)
-theme_override_colors/font_shadow_color = Color(0.05, 0.03, 0.04, 0.9)
+theme_override_colors/font_color = Color(0.902, 0.851, 0.765, 1)
+theme_override_colors/font_shadow_color = Color(0.043, 0.047, 0.063, 0.9)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 22
@@ -99,7 +99,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.03, 0.015, 0.02, 0.84)
+color = Color(0.043, 0.047, 0.063, 0.9)
 
 [node name="Center" type="CenterContainer" parent="Overlay"]
 layout_mode = 1
@@ -115,7 +115,7 @@ theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="Overlay/Center/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.91, 0.22, 0.16, 1)
+theme_override_colors/font_color = Color(0.478, 0.122, 0.102, 1)
 theme_override_font_sizes/font_size = 42
 text = "YOU DIED"
 horizontal_alignment = 1
@@ -123,7 +123,7 @@ horizontal_alignment = 1
 [node name="Body" type="Label" parent="Overlay/Center/VBox"]
 custom_minimum_size = Vector2(640, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.91, 0.86, 0.78, 1)
+theme_override_colors/font_color = Color(0.902, 0.851, 0.765, 1)
 theme_override_font_sizes/font_size = 20
 text = "Restart the floor."
 horizontal_alignment = 1

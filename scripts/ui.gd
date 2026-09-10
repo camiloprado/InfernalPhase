@@ -40,7 +40,7 @@ func _ready() -> void:
 	$Margin/VBox/Top.move_child(_walker, 2)
 	_walker.text = ""
 	var fill := StyleBoxFlat.new()
-	fill.bg_color = Palette.HELL_RED
+	fill.bg_color = Palette.WOUND
 	fill.set_corner_radius_all(3)
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Palette.VOID
@@ -94,7 +94,7 @@ func _on_hearts(current: int, maximum: int) -> void:
 		if pip:
 			var h := TextureRect.new()
 			h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			h.custom_minimum_size = Vector2(30, 28)
+			h.custom_minimum_size = Vector2(28, 28)
 			h.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			h.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -103,10 +103,9 @@ func _on_hearts(current: int, maximum: int) -> void:
 		else:
 			var h := HeartPip.new()
 			h.filled = i < current
-			h.custom_minimum_size = Vector2(28, 24)
+			h.custom_minimum_size = Vector2(28, 28)
 			hearts.add_child(h)
-	if Game.ember > 0:
-		_pip(Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 22)
+	_pip(Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 22)
 	if Game.pierce > 0:
 		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 0, 0), 22)
 	if Game.rapid > 0:
@@ -158,16 +157,12 @@ class HeartPip extends Control:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _draw() -> void:
-		var col := Palette.HELL_RED if filled else Palette.ASH_LIGHT
 		var s := size
-		var pts := PackedVector2Array([
-			Vector2(s.x * 0.5, s.y * 0.92),
-			Vector2(s.x * 0.08, s.y * 0.42),
-			Vector2(s.x * 0.28, s.y * 0.12),
-			Vector2(s.x * 0.5, s.y * 0.32),
-			Vector2(s.x * 0.72, s.y * 0.12),
-			Vector2(s.x * 0.92, s.y * 0.42),
-		])
-		draw_colored_polygon(pts, col)
+		var c := s * 0.5
+		var r := minf(s.x, s.y) * 0.42
 		if filled:
-			draw_circle(Vector2(s.x * 0.38, s.y * 0.32), 2.0, Palette.EMBER_HOT)
+			draw_circle(c, r, Palette.BONE)
+			draw_line(c + Vector2(-r * 0.55, -r * 0.1), c + Vector2(r * 0.5, r * 0.35), Palette.WOUND, 1.5)
+			draw_line(c + Vector2(-r * 0.15, -r * 0.55), c + Vector2(r * 0.2, r * 0.5), Palette.WOUND, 1.5)
+		else:
+			draw_circle(c, r, Palette.ASH)

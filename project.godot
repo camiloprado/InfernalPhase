@@ -10,7 +10,7 @@ config/version="1.0.0"
 run/main_scene="res://scenes/floor.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
-boot_splash/bg_color=Color(0.047, 0.035, 0.043, 1)
+boot_splash/bg_color=Color(0.043, 0.047, 0.063, 1)
 boot_splash/show_image=false
 
 [autoload]
@@ -44,6 +44,6 @@ window/vsync/vsync_mode=1
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-environment/defaults/default_clear_color=Color(0.047, 0.035, 0.043, 1)
+environment/defaults/default_clear_color=Color(0.043, 0.047, 0.063, 1)
 2d/snap/snap_2d_transforms_to_pixel=true
 textures/canvas_textures/default_texture_filter=0

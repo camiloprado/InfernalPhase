@@ -18,22 +18,23 @@ func _draw() -> void:
 		min_g.y = mini(min_g.y, g.y)
 		max_g.x = maxi(max_g.x, g.x)
 		max_g.y = maxi(max_g.y, g.y)
-	var cell := Vector2(22, 16)
-	var gap := 4.0
+	var r := 7.0
+	var gap := 6.0
+	var step := r * 2.0 + gap
 	for g in rooms.keys():
 		var room: Room = rooms[g]
-		var p := Vector2((g.x - min_g.x) * (cell.x + gap), (g.y - min_g.y) * (cell.y + gap))
-		var col := Palette.ASH_LIGHT
+		var p := Vector2((g.x - min_g.x) * step + r + 2.0, (g.y - min_g.y) * step + r + 2.0)
+		var col := Palette.ASH
 		if room.kind == Room.Kind.START:
 			col = Palette.BONE_DIM
 		elif room.kind == Room.Kind.NPC:
-			col = Palette.ROBE_LIGHT
+			col = Palette.BONE_DIM
 		elif room.kind == Room.Kind.BOSS:
-			col = Palette.HELL_RED
+			col = Palette.WOUND
 		elif room.cleared:
-			col = Palette.EMBER
+			col = Palette.BONE_DIM
 		else:
 			col = Palette.ASH_MID
-		draw_rect(Rect2(p, cell), col)
+		draw_circle(p, r, col)
 		if room == current:
-			draw_rect(Rect2(p, cell), Palette.EMBER_HOT, false, 2.0)
+			draw_arc(p, r + 3.0, 0.0, TAU, 18, Palette.BONE, 2.0, true)

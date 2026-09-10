@@ -131,7 +131,7 @@ func bind_shot(art: String) -> void:
 			_spr.rotation = _travel().angle()
 		else:
 			_spr.rotation = _pulse_phase
-		_bind_core()
+		# Hard silhouettes only — no soft inner orb.
 
 
 func _shot_row() -> int:
@@ -172,20 +172,14 @@ func _shot_row() -> int:
 
 
 func _configure_motion(row: int) -> void:
-	# Orbs (ring, skull, ember, deflect) spin; bolts keep a travel heading plus a wobble.
+	# Rings spin in place. Diamonds face travel or spin. Never smear into tears.
 	match row:
-		2:
+		2, 3, 6:
 			_face_travel = false
 			_spin_rate = 5.6
-		4:
-			_face_travel = false
-			_spin_rate = 3.4
-		5:
+		4, 5, 7:
 			_face_travel = false
 			_spin_rate = 4.2
-		7:
-			_face_travel = false
-			_spin_rate = 8.0
 		_:
 			_face_travel = true
 			_spin_rate = 0.0
@@ -215,38 +209,40 @@ func _bind_core() -> void:
 
 func _animate_shot(delta: float) -> void:
 	var beat := age * 18.0 + _pulse_phase
-	var flick := 0.68 + 0.32 * absf(sin(age * 22.0 + _pulse_phase))
-	_spr.modulate = Color(1.2 * flick, 0.92 * flick + 0.08, 0.7 * flick + 0.12, 1.0)
+	var pulse := 1.0 + 0.10 * sin(beat)
+	_spr.modulate = Color.WHITE
+	_spr.scale = _base_scale * pulse
+	_spr.position = Vector2.ZERO
 	if _face_travel:
-		# Local +X is the trail. Stretch along travel, fatten the head.
-		var stretch := 1.0 + 0.26 * sin(beat)
-		var fat := 1.0 + 0.14 * sin(beat + PI * 0.5)
-		_spr.scale = Vector2(_base_scale.x * stretch, _base_scale.y * fat)
-		_spr.rotation = _travel().angle() + 0.22 * sin(age * 13.0 + _pulse_phase)
+		_spr.rotation = _travel().angle()
 	else:
-		_spr.scale = _base_scale * (1.0 + 0.16 * sin(beat))
 		_spr.rotation += _spin_rate * delta
-		_spr.position = Vector2.RIGHT.rotated(age * 11.0 + _pulse_phase) * 2.0
 	if _core:
-		_core.rotation += 12.0 * delta
-		var c := 0.38 + 0.16 * sin(age * 24.0 + _pulse_phase)
-		_core.scale = Vector2.ONE * c
-		_core.modulate.a = 0.4 + 0.35 * absf(sin(age * 20.0 + _pulse_phase))
+		_core.queue_free()
+		_core = null
 
 
 func _draw() -> void:
 	if _spr:
 		return
-	var pulse := 1.0 + 0.12 * sin(age * 16.0)
-	var glow := color.lightened(0.35)
-	glow.a = 0.35
+	var pulse := 1.0 + 0.10 * sin(age * 16.0)
+	var use_ring := from_enemy and (
+		_shot_art == "wretch" or _shot_art == "cantor" or _shot_art == "bone"
+		or color.is_equal_approx(Palette.BONE) or color.is_equal_approx(Palette.ROBE_LIGHT)
+	)
 	if deflected:
-		glow = Palette.BONE
-		glow.a = 0.55
-		draw_arc(Vector2.ZERO, (radius + 7.0) * pulse, 0.0, TAU, 16, Palette.EMBER_HOT, 2.0, true)
-	draw_circle(Vector2.ZERO, (radius + 4.0) * pulse, glow)
-	draw_circle(Vector2.ZERO, radius * pulse, color)
-	draw_circle(Vector2.ZERO, maxf(radius * 0.35, 1.5) * pulse, Palette.BONE if from_enemy else Palette.EMBER_HOT)
+		use_ring = false
+	if use_ring:
+		draw_arc(Vector2.ZERO, (radius + 4.0) * pulse, 0.0, TAU, 20, Palette.BONE, 3.0, true)
+		return
+	var r := (radius + 5.0) * pulse
+	var pts := PackedVector2Array([
+		Vector2(r, 0.0),
+		Vector2(0.0, r * 0.7),
+		Vector2(-r, 0.0),
+		Vector2(0.0, -r * 0.7),
+	])
+	draw_colored_polygon(pts, Palette.EMBER)
 
 
 func deflect(from: Vector2) -> void:

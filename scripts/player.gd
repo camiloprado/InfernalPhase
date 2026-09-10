@@ -229,32 +229,44 @@ func _draw() -> void:
 	if _sheet:
 		return
 	if Game.is_baby():
-		draw_circle(Vector2(0, 6), 11.0, Palette.BONE)
-		draw_circle(Vector2(0, -6), 9.0, Palette.PLAYER)
-		draw_circle(Vector2(-3, -7), 1.2, Palette.VOID)
-		draw_circle(Vector2(3, -7), 1.2, Palette.VOID)
-		draw_circle(Vector2(0, -3), 2.2, Palette.HELL_RED)
-		return
-	var body_col := Palette.PLAYER if Game.body == Game.Body.CAIM else Palette.ROBE_LIGHT
-	if i_timer > 0.0:
-		body_col = Palette.EMBER
-	draw_circle(Vector2.ZERO, RADIUS + 6.0, Color(Palette.EMBER.r, Palette.EMBER.g, Palette.EMBER.b, 0.18))
-	if Game.body == Game.Body.LILITH:
-		var robe := PackedVector2Array([
-			aim * (RADIUS + 5.0),
-			aim.rotated(2.25) * (RADIUS + 2.0),
-			aim.rotated(PI) * (RADIUS * 0.85),
-			aim.rotated(-2.25) * (RADIUS + 2.0),
-		])
-		draw_colored_polygon(robe, body_col)
-		draw_circle(-aim * 4.0, 6.0, Palette.BONE)
-	else:
 		var pts := PackedVector2Array([
-			aim * (RADIUS + 4.0),
-			aim.rotated(2.15) * RADIUS,
-			aim.rotated(PI) * (RADIUS * 0.7),
-			aim.rotated(-2.15) * RADIUS,
+			Vector2(0, -16),
+			Vector2(11, 0),
+			Vector2(0, 16),
+			Vector2(-11, 0),
 		])
-		draw_colored_polygon(pts, body_col)
-	draw_circle(Vector2.ZERO, 5.0, Palette.PLAYER_CORE if Game.body == Game.Body.CAIM else Palette.EMBER_HOT)
-	draw_circle(Vector2.ZERO, 2.0, Palette.EMBER_HOT)
+		draw_colored_polygon(pts, Palette.BONE)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(0, -16),
+			Vector2(8, -6),
+			Vector2(-8, -6),
+		]), Palette.ASH)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(0, -2),
+			Vector2(3, 3),
+			Vector2(0, 8),
+			Vector2(-3, 3),
+		]), Palette.EMBER)
+		return
+	var rx := 12.0 if Game.body == Game.Body.LILITH else 14.0
+	var ry := 18.0 if Game.body == Game.Body.LILITH else 16.0
+	var body_col := Palette.BONE
+	if i_timer > 0.0:
+		body_col = Palette.WOUND
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(0, -ry),
+		Vector2(rx, 0),
+		Vector2(0, ry),
+		Vector2(-rx, 0),
+	]), body_col)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(0, -ry),
+		Vector2(rx * 0.7, -ry * 0.2),
+		Vector2(-rx * 0.7, -ry * 0.2),
+	]), Palette.ASH)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(0, -2),
+		Vector2(3, 2),
+		Vector2(0, 7),
+		Vector2(-3, 2),
+	]), Palette.EMBER)

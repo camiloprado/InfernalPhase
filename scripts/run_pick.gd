@@ -14,14 +14,17 @@ var _bebe_card: Control
 var _baby_btn: Control
 var _normal_btn: Control
 var _hint: Label
+var _confirm_btn: Button
 var _click_ms := -99999
 var _pick_frame := -1
+var _sworn := false
 const BABY_SHEET := "res://assets/sprites/baby.png"
 const CAIM_RECT := Rect2(340, 140, 200, 260)
 const LILITH_RECT := Rect2(740, 140, 200, 260)
 const BEBE_RECT := Rect2(540, 140, 200, 260)
-const BABY_DIFF_RECT := Rect2(300, 480, 300, 120)
-const NORMAL_DIFF_RECT := Rect2(680, 480, 300, 120)
+const BABY_DIFF_RECT := Rect2(300, 468, 300, 110)
+const NORMAL_DIFF_RECT := Rect2(680, 468, 300, 110)
+const CONFIRM_RECT := Rect2(490, 600, 300, 48)
 
 
 func _ready() -> void:
@@ -38,7 +41,7 @@ func _ready() -> void:
 
 	var dim := ColorRect.new()
 	dim.name = "Dim"
-	dim.color = Color(0.04, 0.03, 0.035, 0.82)
+	dim.color = Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.92)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(dim)
@@ -51,7 +54,8 @@ func _ready() -> void:
 	_label(root, Vector2(0, 440), Vector2(1280, 28), "DIFFICULTY", Palette.BONE, 20)
 	_baby_btn = _diff_card(root, BABY_DIFF_RECT, "Bebê Chorão", func() -> void: _on_diff(Game.Difficulty.BABY))
 	_normal_btn = _diff_card(root, NORMAL_DIFF_RECT, "Normal", func() -> void: _on_diff(Game.Difficulty.NORMAL))
-	_hint = _label(root, Vector2(0, 640), Vector2(1280, 28), "", Palette.EMBER_HOT, 14)
+	_confirm_btn = _confirm_cta(root, CONFIRM_RECT)
+	_hint = _label(root, Vector2(0, 656), Vector2(1280, 28), "", Palette.BONE_DIM, 14)
 	_refresh()
 	_preview_music()
 
@@ -116,7 +120,7 @@ func _bebe_portrait(parent: Node, rect: Rect2) -> Control:
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		art.draw.connect(func() -> void: _draw_bebe(art))
 		btn.add_child(art)
-	_caption(btn, "Bebê", "", 184)
+	_caption(btn, "Penitent", "", 184)
 	return btn
 
 
@@ -179,15 +183,47 @@ func _caption(btn: Control, caption: String, blurb: String, name_y: float) -> vo
 	btn.add_child(sub)
 
 
+func _confirm_cta(parent: Node, rect: Rect2) -> Button:
+	var btn := Button.new()
+	btn.position = rect.position
+	btn.size = rect.size
+	btn.text = "SWEAR IN"
+	btn.flat = false
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_color_override("font_color", Palette.VOID)
+	btn.add_theme_color_override("font_hover_color", Palette.VOID)
+	btn.add_theme_color_override("font_pressed_color", Palette.VOID)
+	var box := StyleBoxFlat.new()
+	box.bg_color = Palette.EMBER
+	box.set_border_width_all(0)
+	box.set_corner_radius_all(0)
+	btn.add_theme_stylebox_override("normal", box)
+	btn.add_theme_stylebox_override("hover", box)
+	btn.add_theme_stylebox_override("pressed", box)
+	btn.add_theme_stylebox_override("focus", box)
+	btn.pressed.connect(_confirm)
+	btn.gui_input.connect(func(event: InputEvent) -> void:
+		if _is_click(event):
+			_confirm()
+			btn.accept_event()
+	)
+	parent.add_child(btn)
+	return btn
+
+
 func _style(btn: Button) -> void:
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("1c1418")
+	normal.bg_color = Palette.VOID
 	normal.set_border_width_all(2)
-	normal.border_color = Palette.ASH_LIGHT
+	normal.border_color = Palette.ASH
 	var hover := StyleBoxFlat.new()
-	hover.bg_color = Palette.ASH
+	hover.bg_color = Palette.VOID
 	hover.set_border_width_all(2)
-	hover.border_color = Palette.EMBER
+	hover.border_color = Palette.BONE
 	btn.add_theme_stylebox_override("normal", normal)
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.add_theme_stylebox_override("pressed", hover)
@@ -195,40 +231,44 @@ func _style(btn: Button) -> void:
 	btn.add_theme_stylebox_override("disabled", normal)
 
 
-func _draw_bebe(node: Control) -> void:
+func _draw_penitent(node: Control, lilith: bool) -> void:
 	var c := node.size * 0.5
-	node.draw_circle(c + Vector2(0, 10), 28.0, Palette.BONE)
-	node.draw_circle(c + Vector2(0, -18), 22.0, Palette.PLAYER)
-	node.draw_circle(c + Vector2(-8, -20), 2.2, Palette.VOID)
-	node.draw_circle(c + Vector2(8, -20), 2.2, Palette.VOID)
-	node.draw_circle(c + Vector2(0, -10), 5.0, Palette.HELL_RED)
-	node.draw_circle(c + Vector2(-14, -8), 2.0, Palette.EMBER)
+	var rx := 28.0 if lilith else 32.0
+	var ry := 48.0 if lilith else 42.0
+	var pts := PackedVector2Array([
+		c + Vector2(0, -ry),
+		c + Vector2(rx, 0),
+		c + Vector2(0, ry),
+		c + Vector2(-rx, 0),
+	])
+	node.draw_colored_polygon(pts, Palette.BONE)
+	var hood := PackedVector2Array([
+		c + Vector2(0, -ry),
+		c + Vector2(rx * 0.72, -ry * 0.22),
+		c + Vector2(0, -ry * 0.12),
+		c + Vector2(-rx * 0.72, -ry * 0.22),
+	])
+	node.draw_colored_polygon(hood, Palette.ASH)
+	node.draw_colored_polygon(PackedVector2Array([
+		c + Vector2(0, -ry * 0.55),
+		c + Vector2(8, -ry * 0.22),
+		c + Vector2(-8, -ry * 0.22),
+	]), Palette.VOID)
+	var brand := PackedVector2Array([
+		c + Vector2(0, -5),
+		c + Vector2(5, 2),
+		c + Vector2(0, 9),
+		c + Vector2(-5, 2),
+	])
+	node.draw_colored_polygon(brand, Palette.EMBER)
+
+
+func _draw_bebe(node: Control) -> void:
+	_draw_penitent(node, false)
 
 
 func _draw_body(node: Control, male: bool) -> void:
-	var c := node.size * 0.5
-	var col := Palette.PLAYER if male else Palette.ROBE_LIGHT
-	var core := Palette.PLAYER_CORE if male else Palette.EMBER_HOT
-	node.draw_circle(c, 34.0, Color(Palette.EMBER.r, Palette.EMBER.g, Palette.EMBER.b, 0.18))
-	if male:
-		var pts := PackedVector2Array([
-			c + Vector2(0, -32),
-			c + Vector2(22, 24),
-			c + Vector2(0, 12),
-			c + Vector2(-22, 24),
-		])
-		node.draw_colored_polygon(pts, col)
-	else:
-		var robe := PackedVector2Array([
-			c + Vector2(0, -30),
-			c + Vector2(26, 28),
-			c + Vector2(0, 18),
-			c + Vector2(-26, 28),
-		])
-		node.draw_colored_polygon(robe, col)
-		node.draw_circle(c + Vector2(0, -22), 11.0, Palette.BONE)
-	node.draw_circle(c, 6.0, core)
-	node.draw_circle(c, 2.4, Palette.EMBER_HOT)
+	_draw_penitent(node, not male)
 
 
 func _is_click(event: InputEvent) -> bool:
@@ -313,6 +353,10 @@ func _input(event: InputEvent) -> void:
 	if NORMAL_DIFF_RECT.has_point(pos):
 		_on_diff(Game.Difficulty.NORMAL)
 		get_viewport().set_input_as_handled()
+		return
+	if CONFIRM_RECT.has_point(pos):
+		_confirm()
+		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -335,6 +379,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _confirm() -> void:
+	if _sworn:
+		return
+	_sworn = true
 	Game.pick_run(_body, _diff)
 	chosen.emit()
 	queue_free()
@@ -362,9 +409,9 @@ func _refresh() -> void:
 
 func _paint(btn: Control, on: bool) -> void:
 	var box := StyleBoxFlat.new()
-	box.bg_color = Color("3a2418") if on else Color("1c1418")
+	box.bg_color = Palette.ASH_MID if on else Palette.VOID
 	box.set_border_width_all(3 if on else 2)
-	box.border_color = Palette.EMBER_HOT if on else Palette.ASH_LIGHT
+	box.border_color = Palette.BONE if on else Palette.ASH
 	if btn is Button:
 		var b := btn as Button
 		b.add_theme_stylebox_override("normal", box)

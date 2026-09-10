@@ -2,7 +2,7 @@
 
 One infernal floor. No campaign. You walk a small graph of hell-rooms, dodge patterned bullets, and either kill **The Infernal Phase** or get filed as ash and start over.
 
-Top-down move-and-shoot in the Binding of Isaac room style, with Undertale-ish bullet patterns and short dark-humor lines. Ember Imps and **The Infernal Phase** use character sheets (`assets/characters/imp/`, `assets/characters/boss/`). Cantors, wretches, cultists, and the Concierge stay as placeholder shapes until those folders get art. Hell palette (ash, ember, bone, void).
+Top-down move-and-shoot in the Binding of Isaac room style, with Undertale-ish bullet patterns and short dark-humor lines. Ember Imps and **The Infernal Phase** use character sheets (`assets/characters/imp/`, `assets/characters/boss/`). Cantors, wretches, cultists, and the Concierge stay as placeholder shapes until those folders get art. Hell palette locked in `VISUAL-BRIEF.md`: Void `#0B0C10`, Ash `#5C5A56`, Bone `#E6D9C3`, Ember `#E25A1A` (accent), Wound `#7A1F1A`. See `LOOK-PASS-FIX.md` for the look-pass delta.
 
 ## Open in Godot 4
 
@@ -18,7 +18,7 @@ Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs 
 3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
 4. Press **F5** (or Run Project).
 
-Floors, walls, and doors use `assets/sprites/env.png` and `doors.png`. Caim is `player.png`, Lilith is `player_f.png`. Bebê Chorão stays `baby.png`. Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, and pickups use the matching files in `assets/sprites/`. If a sheet is missing, the old drawn placeholder still shows.
+Floors, walls, and doors use `assets/sprites/env.png` and `doors.png` (gothic Ash arches, Bone inlay, Ember / cracked seals). Caim and Lilith share **Penitent** language on `player.png` / `player_f.png` (hooded Bone diamond, no face, 4–6px Ember brand). Bebê Chorão is a difficulty **mode** (enemy shots deflect); its sprite is the same Penitent language on `baby.png`, not a cute face. Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, and pickups use the matching files in `assets/sprites/`. If a sheet is missing, the old drawn placeholder still shows.
 
 The main scene is `scenes/floor.tscn`.
 
@@ -38,18 +38,18 @@ If the editor is already open, F5 is enough. After a pull, let Godot finish impo
 - **Right stick**: aim and fire
 - **R** or **Enter**: restart the floor (also after death or the win card). **Enter does not confirm the start card.**
 
-At the Threshold, pick **Caim** or **Lilith** (same hearts, speed, and fire rate — only the silhouette changes) and a difficulty:
+At the Threshold, pick **Caim** or **Lilith** (same hearts, speed, and fire rate — only the silhouette changes) and a difficulty. The start card face is the **Penitent**. Ember is only on **Swear In**.
 
 | Label | What |
 | --- | --- |
-| **Bebê Chorão** | Enemy bullets bounce off. Player is the **bebê** sprite (not Caim/Lilith). BGM is a choro-de-criança loop. Melee and pits still hurt. |
+| **Bebê Chorão** | Enemy bullets bounce off. Player keeps Penitent language. BGM is a choro-de-criança loop. Melee and pits still hurt. |
 | **Normal** | Caim or Lilith silhouette, usual floor pulse. Combat unchanged. |
 
 The last pair stays highlighted on restart. HUD shows `Caim · Normal` or `Lilith · Normal`, or just **Bebê Chorão**.
 
 Four hearts (vessel drops can raise the cap to six). Hit = a short invuln blink, not a vacation. Trash enemies drop about half the time: brimstone hearts, ember (damage-up), rare vessel (max-heart), or a shot mod (pierce / rapid / heavy / burn). Drops pulse so they read on the ash floor. Only the **current room** draws and collides its door arches; a neighbor never stamps a second frame into the shared opening. Arches sit on the 64px wall ColorRect: width = the 200px opening, depth = 92px (`WALL` 64 + `DOOR_REVEAL` 28), inset 14px from the gap center toward the room. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
 
-The Threshold has a **buraco** (ember-rim pit sprite, not a reused floor tile). Step in and you **drop** — teleport to the deep south room. No heart loss on the drop. The boss RING special is a fire-wisp annulus with a safe inner disk and **no pit**.
+The Threshold has a **buraco** (Void hole, thin Ash/Bone lip — not a reused floor tile). Step in and you **drop** — teleport to the deep south room. No heart loss on the drop. The boss RING special is a fire-wisp annulus with a safe inner disk and **no pit**.
 
 ## The floor
 
@@ -58,7 +58,7 @@ Nine rooms on a grid:
 | Room | What |
 | --- | --- |
 | **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit that teleports to Deep |
-| Combat rooms | Ember Imps, Ring Wretches, Ash Cantors — pixel shot sprites (fireball / bone ring / violet bolt) that cycle, spin, or pulse |
+| Combat rooms | Ember Imps, Ring Wretches, Ash Cantors — pixel shots are an Ember diamond or a Bone ring |
 | **The Concierge** | NPC room. Walk up. First visit grants a random item from the drop pool (heart, ember, vessel, or shot mod). Later visits are flavor. No shop. |
 | **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP (CROSS, DIAG, SLAM, LANES, RING). RING has no pit. |
 

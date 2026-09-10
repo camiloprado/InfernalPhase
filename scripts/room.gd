@@ -133,27 +133,11 @@ func _theme_row() -> int:
 
 
 func _floor_color() -> Color:
-	match kind:
-		Kind.START:
-			return Palette.ASH
-		Kind.NPC:
-			return Color("2a2420")
-		Kind.BOSS:
-			return Color("140c14")
-		_:
-			return Color("201418")
+	return Palette.VOID
 
 
 func _wall_color() -> Color:
-	match kind:
-		Kind.START:
-			return Palette.ASH_MID
-		Kind.NPC:
-			return Color("5a4a3a")
-		Kind.BOSS:
-			return Color("2a1830")
-		_:
-			return Color("4a2218")
+	return Palette.ASH
 
 
 func _owns_door(dir: int) -> bool:
@@ -179,7 +163,7 @@ func _build_geometry() -> void:
 		tiled.stretch_mode = TextureRect.STRETCH_TILE
 		tiled.size = size
 		tiled.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tiled.modulate = Color(1, 1, 1, 0.92)
+		tiled.modulate = Color(1, 1, 1, 0.35)
 		floor_r.add_child(tiled)
 	_scatter_decals()
 
@@ -290,8 +274,8 @@ func _draw_sigil(node: Node2D, c: Vector2, r: float) -> void:
 		var a := -PI * 0.5 + i * TAU * 2.0 / 5.0
 		pts.append(c + Vector2.RIGHT.rotated(a) * r)
 	pts.append(pts[0])
-	node.draw_polyline(pts, Color(Palette.HELL_RED.r, Palette.HELL_RED.g, Palette.HELL_RED.b, 0.45), 2.0, true)
-	node.draw_arc(c, r * 0.72, 0, TAU, 40, Color(Palette.EMBER.r, Palette.EMBER.g, Palette.EMBER.b, 0.28), 1.5, true)
+	node.draw_polyline(pts, Color(Palette.WOUND.r, Palette.WOUND.g, Palette.WOUND.b, 0.45), 2.0, true)
+	node.draw_arc(c, r * 0.72, 0, TAU, 40, Color(Palette.ASH.r, Palette.ASH.g, Palette.ASH.b, 0.55), 1.5, true)
 
 
 func _add_wall(rect: Rect2) -> void:
@@ -312,22 +296,6 @@ func _add_wall(rect: Rect2) -> void:
 	vis.position = -rect.size * 0.5
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(vis)
-	var wall_tex := Sprites.cell(ENV_SHEET, 3, 5, 1, theme)
-	if wall_tex:
-		var band := AtlasTexture.new()
-		band.atlas = wall_tex.atlas
-		var r: Rect2 = wall_tex.region
-		band.region = Rect2(r.position.x, r.position.y + r.size.y * 0.42, r.size.x, maxf(r.size.y * 0.18, 8.0))
-		band.filter_clip = true
-		var tr := TextureRect.new()
-		tr.texture = band
-		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.stretch_mode = TextureRect.STRETCH_TILE
-		tr.size = rect.size
-		tr.position = -rect.size * 0.5
-		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		body.add_child(tr)
 	var edge := ColorRect.new()
 	edge.color = Palette.BONE_DIM
 	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -355,7 +323,7 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	body.add_child(col)
 	var vis := ColorRect.new()
 	vis.name = "Slab"
-	vis.color = Palette.EMBER
+	vis.color = Palette.ASH
 	vis.size = rect.size
 	vis.position = -rect.size * 0.5
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -365,7 +333,7 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 	# Seal lives on the room, not the physics body, so it cannot block.
 	var seal := ColorRect.new()
 	seal.name = "Seal_%d" % dir
-	seal.color = Palette.EMBER_HOT
+	seal.color = Palette.EMBER
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	seal.z_index = -4
 	seal.visible = false
@@ -526,39 +494,36 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 
 func _draw_door(node: Node2D) -> void:
 	var blocked := bool(node.get_meta("blocked", false))
-	var horiz := bool(node.get_meta("horiz", true))
 	var dest_kind: Kind = Kind.COMBAT
 	for dir in _door_art.keys():
 		if _door_art[dir] == node and neighbors.has(dir):
 			dest_kind = (neighbors[dir] as Room).kind
 			break
-	var col := Palette.ASH_LIGHT
-	match dest_kind:
-		Kind.START:
-			col = Palette.BONE_DIM
-		Kind.NPC:
-			col = Palette.BONE
-		Kind.BOSS:
-			col = Palette.HELL_RED
-		_:
-			col = Palette.EMBER
-	var w := 92.0 if horiz else 28.0
-	var h := 28.0 if horiz else 92.0
-	node.draw_rect(Rect2(-w, -h, w * 2.0, h * 2.0), Color(col.r, col.g, col.b, 0.22))
-	# Single arch — one stroke, not a tiled slab.
-	if horiz:
-		node.draw_arc(Vector2(0, 10), 70.0, PI, TAU, 18, col, 5.0, true)
-		node.draw_line(Vector2(-70, 10), Vector2(-70, 22), col, 5.0)
-		node.draw_line(Vector2(70, 10), Vector2(70, 22), col, 5.0)
-	else:
-		node.draw_arc(Vector2(10, 0), 70.0, -PI * 0.5, PI * 0.5, 18, col, 5.0, true)
-		node.draw_line(Vector2(10, -70), Vector2(22, -70), col, 5.0)
-		node.draw_line(Vector2(10, 70), Vector2(22, 70), col, 5.0)
+	var heavy := dest_kind == Kind.START
+	var col := Palette.ASH
+	var inlay := Palette.BONE
+	# Pointed gothic arch. No gray rect, no circular portal.
+	var span := 88.0 if heavy else 78.0
+	var rise := 40.0 if heavy else 34.0
+	var pts := PackedVector2Array()
+	pts.append(Vector2(-span, 22.0))
+	pts.append(Vector2(-span, 4.0))
+	pts.append(Vector2(0.0, -rise))
+	pts.append(Vector2(span, 4.0))
+	pts.append(Vector2(span, 22.0))
+	node.draw_polyline(pts, col, 10.0 if heavy else 8.0, true)
+	node.draw_polyline(pts, inlay, 2.0, true)
+	if heavy:
+		node.draw_line(Vector2(-span * 0.45, 18.0), Vector2(-span * 0.2, -rise * 0.35), inlay, 2.0)
+		node.draw_line(Vector2(span * 0.45, 18.0), Vector2(span * 0.2, -rise * 0.35), inlay, 2.0)
+	var seal_r := 16.0 if heavy else 9.0
 	if blocked:
-		node.draw_rect(Rect2(-18, -18, 36, 36), Palette.HELL_RED)
-		node.draw_circle(Vector2.ZERO, 7.0, Palette.EMBER_HOT)
+		node.draw_circle(Vector2.ZERO, seal_r + 2.0, inlay)
+		node.draw_circle(Vector2.ZERO, seal_r, Palette.EMBER)
 	else:
-		node.draw_circle(Vector2.ZERO, 5.0, Palette.EMBER_HOT)
+		node.draw_arc(Vector2.ZERO, seal_r, 0.4, PI - 0.2, 10, Palette.ASH_MID, 2.0, true)
+		node.draw_arc(Vector2.ZERO, seal_r, PI + 0.5, TAU - 0.3, 10, Palette.ASH_MID, 2.0, true)
+		node.draw_line(Vector2(-seal_r * 0.4, -2.0), Vector2(seal_r * 0.5, 4.0), Palette.WOUND, 1.5)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:
@@ -595,11 +560,11 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 	if not _owns_door(dir):
 		return
 	vis.visible = blocked
-	vis.color = Palette.HELL_RED if blocked and not cleared else Palette.EMBER
+	vis.color = Palette.ASH
 	if _door_seals.has(dir):
 		var seal: ColorRect = _door_seals[dir]
-		seal.visible = not blocked
-		seal.color = Palette.EMBER_HOT
+		seal.visible = false
+		seal.color = Palette.EMBER
 
 
 func landing_global() -> Vector2:
@@ -632,9 +597,9 @@ func add_pit(dest: Room = null) -> void:
 		hole.z_index = -5
 		hole.position = pit_center
 		hole.draw.connect(func () -> void:
-			hole.draw_circle(Vector2.ZERO, 46.0, Color(0.02, 0.01, 0.02, 0.92))
-			hole.draw_arc(Vector2.ZERO, 48.0, 0.0, TAU, 28, Palette.EMBER, 3.0, true)
-			hole.draw_circle(Vector2(0, 6), 18.0, Color(0, 0, 0, 1))
+			hole.draw_circle(Vector2.ZERO, 46.0, Palette.VOID)
+			hole.draw_arc(Vector2.ZERO, 48.0, 0.0, TAU, 28, Palette.ASH, 2.0, true)
+			hole.draw_arc(Vector2.ZERO, 50.0, 0.0, TAU, 28, Palette.BONE, 1.0, true)
 		)
 		add_child(hole)
 		hole.queue_redraw()
