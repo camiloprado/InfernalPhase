@@ -58,7 +58,7 @@ Nine rooms on a grid:
 | Room | What |
 | --- | --- |
 | **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit that teleports to Deep |
-| Combat rooms | Ember Imps (walk / attack sheets, random loadout), Ring Wretches (bullet rings), Ash Cantors (sine-wave streams) |
+| Combat rooms | Ember Imps, Ring Wretches, Ash Cantors — pixel shot sprites (fireball / bone ring / violet bolt), not `_draw` orbs |
 | **The Concierge** | NPC room. Walk up. First visit grants a random item from the drop pool (heart, ember, vessel, or shot mod). Later visits are flavor. No shop. |
 | **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP (CROSS, DIAG, SLAM, LANES, RING). RING has no pit. |
 
