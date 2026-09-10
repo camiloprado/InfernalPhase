@@ -41,7 +41,7 @@ func _ready() -> void:
 
 	var dim := ColorRect.new()
 	dim.name = "Dim"
-	dim.color = Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 0.92)
+	dim.color = Color(Palette.VOID.r, Palette.VOID.g, Palette.VOID.b, 1.0)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(dim)

@@ -67,7 +67,7 @@ func _ready() -> void:
 			await get_tree().process_frame
 			await get_tree().process_frame
 			await get_tree().create_timer(0.2).timeout
-			_qa_shot("start")
+			_qa_shot("start", true)
 			Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
 			pick.queue_free()
 		elif pick.has_signal("chosen"):
@@ -438,8 +438,8 @@ func _qa_proof() -> void:
 func _look_dump() -> void:
 	await get_tree().process_frame
 	await get_tree().create_timer(0.25).timeout
-	_qa_shot("doors")
-	_qa_shot("hud")
+	_qa_shot("doors", true)
+	_qa_shot("hud", true)
 	var origin := current.center_global()
 	var arts: Array[String] = ["player", "imp", "wretch", "cantor", "boss", "ember", "bone", "deflect"]
 	var cols: Array[Color] = [
@@ -461,7 +461,7 @@ func _look_dump() -> void:
 			arts[i]
 		)
 	await get_tree().create_timer(0.35).timeout
-	_qa_shot("shots")
+	_qa_shot("shots", true)
 	for n in projectiles.get_children():
 		if n is Bullet:
 			n.queue_free()
@@ -470,19 +470,20 @@ func _look_dump() -> void:
 		camera.global_position = current.pit_global()
 	await get_tree().process_frame
 	await get_tree().create_timer(0.2).timeout
-	_qa_shot("pit")
+	_qa_shot("pit", true)
 	if player:
 		player.global_position = rooms[Vector2i.ZERO].center_global()
 		camera.global_position = rooms[Vector2i.ZERO].center_global()
 
 
-func _qa_shot(shot_name: String) -> void:
+func _qa_shot(shot_name: String, to_gate: bool = false) -> void:
 	var tex := get_viewport().get_texture()
 	if tex == null:
 		return
 	var img := tex.get_image()
 	if img == null:
 		return
-	DirAccess.make_dir_recursive_absolute("/workspace/gate")
-	img.save_png("/workspace/gate/%s.png" % shot_name)
+	if to_gate:
+		DirAccess.make_dir_recursive_absolute("/workspace/gate")
+		img.save_png("/workspace/gate/%s.png" % shot_name)
 	img.save_png("/opt/cursor/artifacts/%s.png" % shot_name)
