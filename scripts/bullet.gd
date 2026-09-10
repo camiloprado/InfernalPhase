@@ -21,6 +21,10 @@ var deflected := false
 var pierce_left := 0
 var burn := false
 var _hit: Dictionary = {}
+var _shot_art := ""
+var _spr: AnimatedSprite2D
+
+const SHOT_SHEET := "res://assets/sprites/shots.png"
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
 
@@ -41,7 +45,8 @@ func setup(
 		p_sine_amp: float = 0.0,
 		p_sine_freq: float = 8.0,
 		p_sine_phase: float = 0.0,
-		p_angular: float = 0.0
+		p_angular: float = 0.0,
+		p_art: String = ""
 	) -> void:
 	origin = p_origin
 	global_position = p_origin
@@ -71,6 +76,7 @@ func setup(
 		_shape = CollisionShape2D.new()
 		add_child(_shape)
 	_shape.shape = circle
+	bind_shot(p_art)
 	queue_redraw()
 
 
@@ -87,10 +93,70 @@ func _physics_process(delta: float) -> void:
 		if not is_zero_approx(angular):
 			velocity = velocity.rotated(angular * delta)
 		global_position += velocity * delta
-	queue_redraw()
+	if _spr:
+		_spr.rotation = dir.angle()
+	else:
+		queue_redraw()
+
+
+func bind_shot(art: String) -> void:
+	_shot_art = art
+	if _spr:
+		_spr.queue_free()
+		_spr = null
+	var row := _shot_row()
+	_spr = Sprites.actor(
+		SHOT_SHEET,
+		4,
+		8,
+		{"fly": {"row": row, "fps": 12.0, "loop": true}},
+		maxf(radius * 5.2, 24.0)
+	)
+	if _spr:
+		add_child(_spr)
+		_spr.rotation = dir.angle()
+
+
+func _shot_row() -> int:
+	var key := _shot_art
+	if deflected:
+		key = "deflect"
+	elif key.is_empty():
+		if not from_enemy:
+			key = "player"
+		elif color.is_equal_approx(Palette.ROBE_LIGHT):
+			key = "cantor"
+		elif color.is_equal_approx(Palette.BONE):
+			key = "bone"
+		elif color.is_equal_approx(Palette.HELL_RED):
+			key = "boss"
+		elif color.is_equal_approx(Palette.EMBER_HOT):
+			key = "ember"
+		else:
+			key = "imp"
+	match key:
+		"player":
+			return 0
+		"imp":
+			return 1
+		"wretch":
+			return 2
+		"cantor":
+			return 3
+		"boss":
+			return 4
+		"ember":
+			return 5
+		"bone":
+			return 6
+		"deflect":
+			return 7
+	return 1
 
 
 func _draw() -> void:
+	if _spr:
+		return
 	var glow := color.lightened(0.35)
 	glow.a = 0.35
 	if deflected:
@@ -119,6 +185,7 @@ func deflect(from: Vector2) -> void:
 	collision_layer = 8
 	collision_mask = 5
 	Game.shake.emit(4.0)
+	bind_shot("deflect")
 	queue_redraw()
 
 

@@ -145,7 +145,7 @@ func _shoot() -> void:
 		var a := deg_to_rad(start + arc * float(i))
 		var dir := aim.rotated(a)
 		var muzzle := global_position + dir * (RADIUS + 8.0)
-		var shot := floor_node.spawn_bullet(muzzle, dir, spd, false, col, rad)
+		var shot := floor_node.spawn_bullet(muzzle, dir, spd, false, col, rad, 0.0, 8.0, 0.0, 0.0, "player")
 		if shot:
 			shot.damage = Game.shot_damage()
 			shot.pierce_left = Game.pierce

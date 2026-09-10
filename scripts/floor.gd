@@ -93,7 +93,10 @@ func _build_floor() -> void:
 	for room in rooms.values():
 		(room as Room).finalize()
 	if rooms.has(Vector2i.ZERO):
-		(rooms[Vector2i.ZERO] as Room).add_pit()
+		var drop: Room = rooms.get(Vector2i(0, 2))
+		if drop == null:
+			drop = rooms.get(Vector2i(0, 1))
+		(rooms[Vector2i.ZERO] as Room).add_pit(drop)
 
 
 func _spawn_player() -> void:
@@ -196,11 +199,12 @@ func spawn_bullet(
 		sine_amp: float = 0.0,
 		sine_freq: float = 8.0,
 		sine_phase: float = 0.0,
-		angular: float = 0.0
+		angular: float = 0.0,
+		art: String = ""
 	) -> Bullet:
 	var b: Bullet = _bullet_scene.instantiate()
 	projectiles.add_child(b)
-	b.setup(origin, dir, speed, from_enemy, color, radius, sine_amp, sine_freq, sine_phase, angular)
+	b.setup(origin, dir, speed, from_enemy, color, radius, sine_amp, sine_freq, sine_phase, angular, art)
 	return b
 
 
@@ -267,18 +271,24 @@ func _roll_skill() -> Pickup.Kind:
 	return pool[Game.rng.randi() % pool.size()]
 
 
-func fall_from(src: Room) -> void:
+func fall_from(src: Room, dest: Room = null) -> void:
 	if _fall_cd > 0.0 or player == null or Game.is_dead:
 		return
-	_fall_cd = 1.1
+	_fall_cd = 1.2
 	src.arm_pit(false)
 	player.i_timer = maxf(player.i_timer, 0.7)
-	var away := (player.global_position - (src.global_position + src.pit_center)).normalized()
-	if away.length() < 0.15:
-		away = Vector2.UP
-	player.knockback = away * 360.0
-	player.take_hit(src)
-	Game.say("Ash gives. You catch the rim.", 1.5)
+	if dest == null or dest == src:
+		var away := (player.global_position - (src.global_position + src.pit_center)).normalized()
+		if away.length() < 0.15:
+			away = Vector2.UP
+		player.knockback = away * 360.0
+		player.take_hit(src)
+		Game.say("Ash gives. You catch the rim.", 1.5)
+		return
+	player.global_position = dest.landing_global()
+	Game.shake.emit(9.0)
+	Game.say("The floor gives way.", 1.6)
+	_enter_room(dest, false)
 
 
 func on_enemy_died(enemy: Enemy) -> void:

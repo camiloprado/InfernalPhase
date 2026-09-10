@@ -32,6 +32,7 @@ var _door_art: Dictionary = {}
 var _built := false
 var has_pit := false
 var pit_center := Vector2.ZERO
+var pit_dest: Room = null
 var _pit_area: Area2D
 const PIT_SHEET := "res://assets/env/pit.png"
 
@@ -602,8 +603,15 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 		seal.color = Palette.EMBER_HOT
 
 
-func add_pit() -> void:
+func landing_global() -> Vector2:
+	if has_pit:
+		return global_position + size * 0.5 + Vector2(-140, -20)
+	return center_global() + Vector2(-90, 36)
+
+
+func add_pit(dest: Room = null) -> void:
 	has_pit = true
+	pit_dest = dest
 	pit_center = size * 0.5 + Vector2(220, 80)
 	var spr := Sprite2D.new()
 	if ResourceLoader.exists(PIT_SHEET):
@@ -653,7 +661,7 @@ func _on_pit_body(body: Node) -> void:
 		return
 	var floor_node := get_tree().get_first_node_in_group("floor") as Floor
 	if floor_node:
-		floor_node.fall_from(self)
+		floor_node.fall_from(self, pit_dest)
 
 
 func _spawn_npc() -> void:

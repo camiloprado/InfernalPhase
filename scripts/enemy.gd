@@ -42,6 +42,7 @@ var attack_t := 0.0
 var special_pick := 0
 var _burn_left := 0.0
 var _burn_dmg := 0
+var _tele_fx: AnimatedSprite2D
 
 const SPECIAL_AT := [0.8, 0.6, 0.4, 0.2]
 
@@ -206,7 +207,7 @@ func _wave_shots(aim: Vector2, perp: Vector2) -> void:
 			return
 		var lateral := sin(i * 0.55) * amp
 		var origin := global_position + aim * (radius + 8.0) + perp * lateral
-		floor_node.spawn_bullet(origin, aim, spd, true, Palette.ROBE_LIGHT, 6.0, 0.0)
+		floor_node.spawn_bullet(origin, aim, spd, true, Palette.ROBE_LIGHT, 6.0, 0.0, 8.0, 0.0, 0.0, "cantor")
 		await get_tree().create_timer(gap).timeout
 	wave_busy = false
 
@@ -265,7 +266,9 @@ func _boss_wave(aim: Vector2, perp: Vector2) -> void:
 			5.8,
 			38.0,
 			7.0,
-			i * 0.4
+			i * 0.4,
+			0.0,
+			"cantor"
 		)
 		await get_tree().create_timer(0.055).timeout
 
@@ -277,7 +280,7 @@ func _spread(aim: Vector2, count: int, arc_deg: float, spd: float, col: Color, r
 	var start := -arc_deg * 0.5 * (count - 1)
 	for i in count:
 		var a := deg_to_rad(start + arc_deg * i)
-		floor_node.spawn_bullet(global_position + aim.rotated(a) * (radius + 6.0), aim.rotated(a), spd, true, col, rad)
+		floor_node.spawn_bullet(global_position + aim.rotated(a) * (radius + 6.0), aim.rotated(a), spd, true, col, rad, 0.0, 8.0, 0.0, 0.0, _shot_key(col))
 
 
 func _ring(count: int, spd: float, offset_deg: float, col: Color, rad: float) -> void:
@@ -287,7 +290,7 @@ func _ring(count: int, spd: float, offset_deg: float, col: Color, rad: float) ->
 	for i in count:
 		var a := deg_to_rad(offset_deg + i * (360.0 / count))
 		var d := Vector2.RIGHT.rotated(a)
-		floor_node.spawn_bullet(global_position + d * (radius + 8.0), d, spd, true, col, rad)
+		floor_node.spawn_bullet(global_position + d * (radius + 8.0), d, spd, true, col, rad, 0.0, 8.0, 0.0, 0.0, _shot_key(col))
 
 
 func _spiral(count: int, spd: float, ang: float) -> void:
@@ -297,7 +300,7 @@ func _spiral(count: int, spd: float, ang: float) -> void:
 	for i in count:
 		var a := TAU * float(i) / float(count) + ring_off * 0.04
 		var d := Vector2.RIGHT.rotated(a)
-		floor_node.spawn_bullet(global_position + d * (radius + 8.0), d, spd, true, Palette.EMBER, 6.0, 0.0, 8.0, 0.0, ang * (1.0 if i % 2 == 0 else -1.0))
+		floor_node.spawn_bullet(global_position + d * (radius + 8.0), d, spd, true, Palette.EMBER, 6.0, 0.0, 8.0, 0.0, ang * (1.0 if i % 2 == 0 else -1.0), "ember")
 
 
 func _cross() -> void:
@@ -308,7 +311,26 @@ func _cross() -> void:
 	for d in [base, base.orthogonal(), -base, -base.orthogonal()]:
 		for k in 3:
 			var spread := deg_to_rad((k - 1) * 8.0)
-			floor_node.spawn_bullet(global_position + d.rotated(spread) * (radius + 8.0), d.rotated(spread), 195.0, true, Palette.BONE, 6.0)
+			floor_node.spawn_bullet(global_position + d.rotated(spread) * (radius + 8.0), d.rotated(spread), 195.0, true, Palette.BONE, 6.0, 0.0, 8.0, 0.0, 0.0, "bone")
+
+
+func _shot_key(col: Color = Color(0, 0, 0, 0)) -> String:
+	match kind:
+		Kind.IMP:
+			return "imp"
+		Kind.WRETCH:
+			return "wretch"
+		Kind.CULTIST:
+			return "cantor"
+		Kind.BOSS:
+			if col.a > 0.0 and col.is_equal_approx(Palette.HELL_RED):
+				return "boss"
+			if col.a > 0.0 and col.is_equal_approx(Palette.BONE):
+				return "bone"
+			if col.a > 0.0 and col.is_equal_approx(Palette.ROBE_LIGHT):
+				return "cantor"
+			return "ember"
+	return "imp"
 
 
 func apply_burn(amount: int, delay: float) -> void:
@@ -502,6 +524,8 @@ func _setup_art() -> void:
 			})
 		_:
 			pass
+	if kind == Kind.BOSS:
+		_bind_tele_fx()
 
 
 func _setup_imp_art() -> void:
@@ -640,7 +664,31 @@ func _facing() -> String:
 	return "down" if v.y >= 0.0 else "up"
 
 
+func _bind_tele_fx() -> void:
+	if _tele_fx:
+		_tele_fx.queue_free()
+		_tele_fx = null
+	_tele_fx = Sprites.actor(
+		"res://assets/sprites/fx_tele.png",
+		4,
+		1,
+		{"pulse": {"row": 0, "fps": 8.0, "loop": true}},
+		78.0
+	)
+	if _tele_fx:
+		_tele_fx.visible = false
+		_tele_fx.z_index = 4
+		add_child(_tele_fx)
+
+
 func _tick_art(delta: float) -> void:
+	if _tele_fx:
+		var show := kind == Kind.BOSS and tele_wind > 0.0
+		_tele_fx.visible = show
+		if show:
+			_tele_fx.global_position = tele_dest
+			if _tele_fx.animation != &"pulse":
+				_tele_fx.play("pulse")
 	if not art or _sprite == null:
 		return
 	attack_t = maxf(attack_t - delta, 0.0)
@@ -668,7 +716,7 @@ func _tick_art(delta: float) -> void:
 
 
 func _draw_art_fx() -> void:
-	if kind == Kind.BOSS and tele_wind > 0.0:
+	if kind == Kind.BOSS and tele_wind > 0.0 and _tele_fx == null:
 		var dest := to_local(tele_dest)
 		var pulse := 0.55 + 0.45 * sin(visual_rot * 8.0)
 		draw_arc(dest, 28.0 + pulse * 10.0, 0.0, TAU, 24, Palette.EMBER_HOT, 4.0, true)

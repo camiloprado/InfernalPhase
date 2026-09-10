@@ -4,6 +4,10 @@ extends Node2D
 
 enum Kind { CROSS, DIAG, SLAM, LANES, RING }
 
+const BEAM_SHEET := "res://assets/sprites/fx_beam.png"
+const SLAM_SHEET := "res://assets/sprites/fx_slam.png"
+const WISP_SHEET := "res://assets/sprites/fx_wisp.png"
+
 var kind: Kind = Kind.CROSS
 var telegraph := 0.9
 var active := 0.45
@@ -19,6 +23,9 @@ var ring_inner := 96.0
 var ring_outer := 520.0
 var lane_h := 168.0
 var inner_top := 0.0
+var _fx: Array[Node] = []
+var _slam: AnimatedSprite2D
+var _has_art := false
 
 
 func setup(p_kind: int, p_origin: Vector2, room: Room) -> void:
@@ -53,6 +60,7 @@ func setup(p_kind: int, p_origin: Vector2, room: Room) -> void:
 			ring_inner = 100.0
 			ring_outer = maxf(room_rect.size.x, room_rect.size.y) * 0.72
 	Game.shake.emit(7.0)
+	_build_art()
 
 
 func _physics_process(delta: float) -> void:
@@ -60,6 +68,7 @@ func _physics_process(delta: float) -> void:
 	if not hot and age >= telegraph:
 		hot = true
 		Game.shake.emit(14.0)
+		_play_hot()
 	if hot and kind == Kind.SLAM:
 		var t := clampf((age - telegraph) / maxf(active, 0.01), 0.0, 1.0)
 		slam_r = lerpf(64.0, slam_max, t)
@@ -68,7 +77,9 @@ func _physics_process(delta: float) -> void:
 		return
 	if hot:
 		_try_hit()
-	queue_redraw()
+	_sync_art()
+	if not _has_art:
+		queue_redraw()
 
 
 func _try_hit() -> void:
@@ -106,7 +117,124 @@ func _line_dist(p: Vector2, dir: Vector2) -> float:
 	return absf(v.x * d.y - v.y * d.x)
 
 
+func _build_art() -> void:
+	match kind:
+		Kind.CROSS:
+			_stamp_line(Vector2(room_rect.position.x, origin.y), Vector2(room_rect.end.x, origin.y), 58.0, 52.0)
+			_stamp_line(Vector2(origin.x, room_rect.position.y), Vector2(origin.x, room_rect.end.y), 58.0, 52.0)
+		Kind.DIAG:
+			_stamp_line(_edge(origin, Vector2.ONE), _edge(origin, -Vector2.ONE), 58.0, 52.0)
+			_stamp_line(_edge(origin, Vector2(1, -1)), _edge(origin, Vector2(-1, 1)), 58.0, 52.0)
+		Kind.SLAM:
+			_slam = _add_anim(
+				SLAM_SHEET,
+				4,
+				2,
+				{"warn": {"row": 0, "fps": 8.0, "loop": true}, "hot": {"row": 1, "fps": 12.0, "loop": true}},
+				128.0
+			)
+			if _slam:
+				_slam.position = to_local(origin)
+		Kind.LANES:
+			for i in 3:
+				if i == safe_lane:
+					continue
+				var y := inner_top + lane_h * (float(i) + 0.5)
+				_stamp_line(Vector2(room_rect.position.x, y), Vector2(room_rect.end.x, y), 64.0, 56.0)
+		Kind.RING:
+			_stamp_ring(ring_inner + 28.0, 18, 34.0)
+			_stamp_ring((ring_inner + ring_outer) * 0.5, 26, 40.0)
+			_stamp_ring(ring_outer - 36.0, 32, 36.0)
+	_has_art = not _fx.is_empty()
+	_play_warn()
+
+
+func _edge(from: Vector2, dir: Vector2) -> Vector2:
+	var d := dir.normalized() * 10.0
+	var p := from
+	for _i in 220:
+		var nxt := p + d
+		if not room_rect.has_point(nxt):
+			return p
+		p = nxt
+	return p
+
+
+func _stamp_line(a: Vector2, b: Vector2, step: float, tall: float) -> void:
+	var span := b - a
+	var length := span.length()
+	if length < 8.0:
+		return
+	var n := maxi(int(round(length / step)), 1)
+	var ang := span.angle() + PI * 0.5
+	for i in n:
+		var t := (float(i) + 0.5) / float(n)
+		var spr := _add_anim(
+			BEAM_SHEET,
+			4,
+			2,
+			{"warn": {"row": 0, "fps": 8.0, "loop": true}, "hot": {"row": 1, "fps": 12.0, "loop": true}},
+			tall
+		)
+		if spr == null:
+			return
+		spr.position = to_local(a + span * t)
+		spr.rotation = ang
+
+
+func _stamp_ring(radius: float, count: int, tall: float) -> void:
+	for i in count:
+		var a := TAU * float(i) / float(count)
+		var spr := _add_anim(
+			WISP_SHEET,
+			4,
+			1,
+			{"burn": {"row": 0, "fps": 10.0, "loop": true}},
+			tall
+		)
+		if spr == null:
+			return
+		spr.position = to_local(origin) + Vector2.RIGHT.rotated(a) * radius
+		spr.rotation = a + PI * 0.5
+
+
+func _add_anim(path: String, cols: int, rows: int, anims: Dictionary, tall: float) -> AnimatedSprite2D:
+	var spr := Sprites.actor(path, cols, rows, anims, tall)
+	if spr == null:
+		return null
+	spr.modulate = Color(1, 1, 1, 0.58)
+	add_child(spr)
+	_fx.append(spr)
+	return spr
+
+
+func _play_warn() -> void:
+	for n in _fx:
+		if n is AnimatedSprite2D and (n as AnimatedSprite2D).sprite_frames:
+			var spr := n as AnimatedSprite2D
+			if spr.sprite_frames.has_animation("warn"):
+				spr.play("warn")
+
+
+func _play_hot() -> void:
+	for n in _fx:
+		if n is AnimatedSprite2D and (n as AnimatedSprite2D).sprite_frames:
+			var spr := n as AnimatedSprite2D
+			if spr.sprite_frames.has_animation("hot"):
+				spr.play("hot")
+			spr.modulate = Color(1.2, 0.78, 0.55, 1.0)
+
+
+func _sync_art() -> void:
+	if _slam:
+		var diam := slam_r * 2.15
+		_slam.scale = Vector2.ONE * (diam / 128.0)
+		_slam.position = to_local(origin)
+
+
 func _draw() -> void:
+	if _has_art:
+		return
 	var col := Palette.EMBER_HOT if not hot else Palette.HELL_RED
 	var a := 0.28 if not hot else 0.5
 	col.a = a
@@ -132,8 +260,6 @@ func _draw() -> void:
 			var mid := (ring_inner + ring_outer) * 0.5
 			draw_arc(local_o, mid, 0.0, TAU, 64, col, ring_outer - ring_inner, true)
 			draw_arc(local_o, ring_inner, 0.0, TAU, 40, Palette.BONE, 4.0, true)
-			if not hot:
-				draw_arc(local_o, ring_inner - 8.0, 0.0, TAU, 32, Palette.EMBER_HOT, 2.0, true)
 
 
 func _draw_bar(center: Vector2, size: Vector2, col: Color) -> void:

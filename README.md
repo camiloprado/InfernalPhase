@@ -49,7 +49,7 @@ The last pair stays highlighted on restart. HUD shows `Caim · Normal` or `Lilit
 
 Four hearts (vessel drops can raise the cap to six). Hit = a short invuln blink, not a vacation. Trash enemies drop about half the time: brimstone hearts, ember (damage-up), rare vessel (max-heart), or a shot mod (pierce / rapid / heavy / burn). Drops pulse so they read on the ash floor. Only the **current room** draws and collides its door arches; a neighbor never stamps a second frame into the shared opening. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
 
-The Threshold has a **buraco** (ember-rim pit sprite, not a reused floor tile). Step in and you lose a heart and catch the rim. The boss RING special is a map-wide annulus with a safe inner disk — no pit sprite.
+The Threshold has a **buraco** (ember-rim pit sprite, not a reused floor tile). Step in and you **drop** — teleport to the deep south room. No heart loss on the drop. The boss RING special is a fire-wisp annulus with a safe inner disk and **no pit**.
 
 ## The floor
 
@@ -57,7 +57,7 @@ Nine rooms on a grid:
 
 | Room | What |
 | --- | --- |
-| **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit |
+| **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit that teleports to Deep |
 | Combat rooms | Ember Imps (walk / attack sheets, random loadout), Ring Wretches (bullet rings), Ash Cantors (sine-wave streams) |
 | **The Concierge** | NPC room. Walk up. First visit grants a random item from the drop pool (heart, ember, vessel, or shot mod). Later visits are flavor. No shop. |
 | **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP (CROSS, DIAG, SLAM, LANES, RING). RING has no pit. |
@@ -78,6 +78,12 @@ assets/characters/imp  Walk + attack sheets (vanilla, sword, sword-shield, pitch
 assets/characters/boss Idle / move / fire / lightning frame sheets (not raw GIF playback)
 assets/env/pit.png     Buraco — distinct pit sprite (not a floor/wall tile)
 assets/sprites/         env, doors, player, player_f, baby, hearts, pickups, skills, cantor, wretch, concierge
+assets/sprites/shots.png        Projectile atlas (player / imp / wretch / cantor / boss / ember / bone / deflect)
+assets/sprites/fx_beam.png      Boss CROSS / DIAG / LANES flame tiles
+assets/sprites/fx_slam.png      Boss SLAM nova frames
+assets/sprites/fx_ring.png      Ring texture (unused hole — RING stamps fx_wisp)
+assets/sprites/fx_wisp.png      RING fire tongues
+assets/sprites/fx_tele.png      Boss teleport tell
 assets/audio/floor.ogg Usual floor pulse (original)
 assets/audio/cry.ogg   Bebê Chorão choro loop (original, not a commercial OST)
 ```
