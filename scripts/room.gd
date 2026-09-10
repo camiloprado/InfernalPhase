@@ -13,10 +13,10 @@ const DIR_VEC := {
 
 const DOOR_SHEET := "res://assets/sprites/doors.png"
 const ENV_SHEET := "res://assets/sprites/env.png"
-## Arch lip past the inner wall face. Depth on the wall axis is WALL + this (167px).
-## Inset from the gap ColorRect center toward the room is half of this (51px).
-## Tall lancet (384×320 cell → 200×167) so it reads as a gothic arch, not a squat shield.
-const DOOR_REVEAL := 103.0
+## Arch lip past the inner wall face. Depth on the wall axis is WALL + this (100px).
+## Inset from the gap ColorRect center toward the room is half of this (18px).
+## Flush wall-band lancet (384×192 cell → 200×100). No hallway throat.
+const DOOR_REVEAL := 36.0
 
 var room_id: String = ""
 var grid := Vector2i.ZERO
@@ -434,18 +434,17 @@ func set_active_doors(on: bool) -> void:
 
 
 func _door_rotation(dir: int) -> float:
-	# doors.png: crown = texture top / local -Y, throat = texture bottom.
-	# Rotate so the throat faces into this room and the crown sits on the outer wall.
-	# (Crown-inward showed the filled back as a gray shield.)
+	# doors.png: crown = texture top / local -Y. Crown faces into the room so the
+	# gothic point and circular seal sit on the inner wall band, not a hallway.
 	match dir:
 		Dir.N:
-			return 0.0
-		Dir.S:
 			return PI
+		Dir.S:
+			return 0.0
 		Dir.E:
-			return PI * 0.5
-		Dir.W:
 			return -PI * 0.5
+		Dir.W:
+			return PI * 0.5
 	return 0.0
 
 
@@ -457,7 +456,7 @@ func _apply_door_sprite(spr: Sprite2D, atlas: AtlasTexture, dir: int, rect: Rect
 	var cell := atlas.region.size
 	var opening := maxf(rect.size.x, rect.size.y)
 	var depth := Game.WALL + DOOR_REVEAL
-	# Uniform scale: 200×167 slot on a 384×320 cell (~0.521). Circles stay circles.
+	# Uniform scale: 200×100 slot on a 384×192 cell (~0.521). Circles stay circles.
 	spr.scale = Vector2(
 		opening / maxf(cell.x, 1.0),
 		depth / maxf(cell.y, 1.0)
@@ -516,27 +515,20 @@ func _draw_door(node: Node2D) -> void:
 	pts.append(Vector2(0.0, -rise))
 	pts.append(Vector2(span, 4.0))
 	pts.append(Vector2(span, 42.0))
-	# Masonry lancet + Void throat + circular seal in the tympanum.
+	# Masonry lancet + circular Ember / cracked seal. No Void hallway throat.
 	node.draw_colored_polygon(pts, Palette.ASH)
 	node.draw_polyline(pts, Palette.BONE_DIM, 2.0, true)
-	var throat := PackedVector2Array()
-	throat.append(Vector2(-span * 0.55, 42.0))
-	throat.append(Vector2(-span * 0.55, 10.0))
-	throat.append(Vector2(0.0, -rise * 0.15))
-	throat.append(Vector2(span * 0.55, 10.0))
-	throat.append(Vector2(span * 0.55, 42.0))
-	node.draw_colored_polygon(throat, Palette.VOID)
 	if heavy:
 		node.draw_line(Vector2(-span * 0.35, 36.0), Vector2(-span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
 		node.draw_line(Vector2(span * 0.35, 36.0), Vector2(span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
-	var seal_c := Vector2(0.0, -rise * 0.42)
-	var seal_r := 20.0 if heavy else 16.0
+	var seal_c := Vector2(0.0, 10.0)
+	var seal_r := 24.0 if heavy else 20.0
 	if blocked:
 		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH_MID)
 		node.draw_circle(seal_c, seal_r, Palette.EMBER)
 	else:
 		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH)
-		node.draw_circle(seal_c, seal_r, Palette.VOID)
+		node.draw_circle(seal_c, seal_r, Palette.VOID_DEEP)
 		node.draw_line(seal_c + Vector2(seal_r * 0.55, -seal_r * 0.35), seal_c + Vector2(seal_r * 0.82, -seal_r * 0.05), Palette.WOUND, 1.5)
 		node.draw_line(seal_c + Vector2(-seal_r * 0.70, seal_r * 0.25), seal_c + Vector2(-seal_r * 0.40, seal_r * 0.55), Palette.WOUND, 1.5)
 
@@ -600,21 +592,22 @@ func add_pit(dest: Room = null) -> void:
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = pit_center
-	spr.scale = Vector2(0.22, 0.22)
+	spr.scale = Vector2(0.36, 0.36)
 	spr.z_index = -5
 	add_child(spr)
-	# Sheet is 1024px at 0.22 scale (~225px). Trigger the dark mouth, not just a 28px dot.
-	pit_radius = 56.0
+	# Sheet is 1024px at 0.36 scale (~369px). Trigger the Void-deep mouth.
+	pit_radius = 96.0
 	if spr.texture:
-		pit_radius = maxf(float(spr.texture.get_width()) * spr.scale.x * 0.26, 52.0)
+		pit_radius = maxf(float(spr.texture.get_width()) * spr.scale.x * 0.28, 88.0)
 	if spr.texture == null:
 		var hole := Node2D.new()
 		hole.z_index = -5
 		hole.position = pit_center
 		hole.draw.connect(func () -> void:
-			hole.draw_circle(Vector2.ZERO, 46.0, Palette.VOID)
-			hole.draw_arc(Vector2.ZERO, 48.0, 0.0, TAU, 28, Palette.ASH, 2.0, true)
-			hole.draw_arc(Vector2.ZERO, 50.0, 0.0, TAU, 28, Palette.BONE, 1.0, true)
+			hole.draw_circle(Vector2.ZERO, 78.0, Palette.VOID_DEEP)
+			hole.draw_arc(Vector2.ZERO, 84.0, 0.0, TAU, 32, Palette.ASH_MID, 10.0, true)
+			hole.draw_arc(Vector2.ZERO, 90.0, 0.0, TAU, 32, Palette.ASH, 8.0, true)
+			hole.draw_arc(Vector2.ZERO, 94.0, 0.0, TAU, 32, Palette.BONE, 2.0, true)
 		)
 		add_child(hole)
 		hole.queue_redraw()

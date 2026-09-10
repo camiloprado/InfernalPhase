@@ -13,6 +13,7 @@ SPR = ROOT / "assets" / "sprites"
 ENV = ROOT / "assets" / "env"
 
 VOID = (0x0B, 0x0C, 0x10, 255)
+VOID_DEEP = (0x04, 0x05, 0x07, 255)
 ASH = (0x5C, 0x5A, 0x56, 255)
 ASH_DARK = (0x3A, 0x39, 0x36, 255)
 BONE = (0xE6, 0xD9, 0xC3, 255)
@@ -180,26 +181,21 @@ def _voussoirs(a: np.ndarray, outer: np.ndarray, cx: int, y0: int, half: int) ->
 
 
 def door_cell(kind: str, locked: bool) -> Image.Image:
-    # Tall lancet cell (~200×167 in-game). Squat 92px slabs read as gray shields.
-    # Solid masonry face — a punched hole read as a portal.
-    w, h = 384, 320
+    # Flush wall-band lancet (~200×100). A Void throat read as a hallway notch;
+    # a squat filled slab read as a gray shield. Masonry face + huge circular seal.
+    w, h = 384, 192
     cell = new(w, h)
     a = arr_of(cell)
-    cx, y0, y1 = 192, 6, 314
-    half = 148
+    cx, y0, y1 = 192, 6, 186
+    half = 168
     huge = kind == "start"
     ribs = 5 if huge else (4 if kind == "boss" else 3)
     if huge:
-        half = 154
+        half = 172
     outer = arch_mask(h, w, cx, y0, y1, half)
     _masonry(a, outer)
     _voussoirs(a, outer, cx, y0, half)
-    # Pointed gothic throat — an archway, not a filled shield and not a round portal.
-    # Opening is a lancet (same family as the frame), sitting in the lower body.
-    throat = arch_mask(h, w, cx, y0 + 150, y1 - 6, max(half - 58, 12))
-    paint_mask(a, throat, VOID)
-    paint_mask(a, outline(throat) & outer, BONE_DIM)
-    inlay = arch_mask(h, w, cx, y0 + 14, y1 - 6, max(half - 14, 8))
+    inlay = arch_mask(h, w, cx, y0 + 12, y1 - 8, max(half - 16, 8))
     paint_mask(a, outline(inlay) & outer, BONE_DIM)
     for i in range(ribs):
         t = (i + 1) / (ribs + 1)
@@ -207,27 +203,27 @@ def door_cell(kind: str, locked: bool) -> Image.Image:
         for ox in (0, 1, 2):
             xx = x + ox
             if 0 <= xx < w:
-                col = outer[:, xx] & ~throat[:, xx]
+                col = outer[:, xx]
                 a[col, xx] = BONE_DIM if ox == 0 else (0x1A, 0x19, 0x18, 255)
     if 0 <= y1 < h:
         a[y1, outer[y1]] = ASH
         if y1 - 1 >= 0:
             a[y1 - 1, outer[y1 - 1]] = ASH_DARK
     cell.paste(from_arr(a))
-    # Circular seal sits in the tympanum (masonry above the throat), not in the opening.
-    seal_y = 102
+    # Huge circular seal on the wall-band face (lower 2/3). No Bone halo.
+    seal_y = 118
     if huge:
-        seal_r = 48 if locked else 42
+        seal_r = 52 if locked else 46
     elif kind == "boss":
-        seal_r = 44 if locked else 38
+        seal_r = 48 if locked else 42
     else:
-        seal_r = 40 if locked else 36
+        seal_r = 44 if locked else 40
     cracked_seal(cell, cx, seal_y, seal_r, locked, huge)
     return cell
 
 
 def write_doors() -> None:
-    cw, ch = 384, 320
+    cw, ch = 384, 192
     sheet = new(cw * 4, ch * 2)
     kinds = ["start", "combat", "npc", "boss"]
     for col, kind in enumerate(kinds):
@@ -312,15 +308,17 @@ def write_hearts() -> None:
 
 
 def write_pit() -> None:
+    # Filled Void-deep disk (darker than the floor) + thick Ash rim + thin Bone hairline.
+    # A 12px Bone hoop on VOID read as a white circle on black.
     n = 1024
     a = np.zeros((n, n, 4), dtype=np.uint8)
     yy, xx = np.ogrid[:n, :n]
     d2 = (xx - n // 2) ** 2 + (yy - n // 2) ** 2
-    outer, bone, ash, hole = 390, 372, 358, 340
-    paint_mask(a, (d2 <= outer * outer) & (d2 > bone * bone), ASH)
+    bone, ash, shade, hole = 400, 376, 318, 292
     paint_mask(a, (d2 <= bone * bone) & (d2 > ash * ash), BONE)
-    paint_mask(a, (d2 <= ash * ash) & (d2 > hole * hole), ASH_DARK)
-    paint_mask(a, d2 <= hole * hole, VOID)
+    paint_mask(a, (d2 <= ash * ash) & (d2 > shade * shade), ASH)
+    paint_mask(a, (d2 <= shade * shade) & (d2 > hole * hole), ASH_DARK)
+    paint_mask(a, d2 <= hole * hole, VOID_DEEP)
     from_arr(a).save(ENV / "pit.png")
 
 
@@ -410,9 +408,9 @@ def main() -> None:
     SPR.mkdir(parents=True, exist_ok=True)
     ENV.mkdir(parents=True, exist_ok=True)
     only = set(sys.argv[1:])
-    # Default: doors + hearts only. Do not churn pit / shots / Penitent sheets.
+    # Default: doors + hearts + pit. Do not churn shots / Penitent sheets.
     if not only:
-        only = {"doors", "hearts"}
+        only = {"doors", "hearts", "pit"}
     if "all" in only:
         only = {"doors", "shots", "hearts", "pit", "player", "env"}
     if "doors" in only:

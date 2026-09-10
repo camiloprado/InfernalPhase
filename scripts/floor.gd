@@ -462,7 +462,7 @@ func _look_dump() -> void:
 	if ui:
 		ui.hint.visible = false
 		if ui.minimap:
-			ui.minimap.visible = false
+			ui.minimap.visible = true
 	await get_tree().process_frame
 	await get_tree().create_timer(0.12).timeout
 	_qa_hud_crop()
@@ -471,8 +471,6 @@ func _look_dump() -> void:
 	Game.hearts_changed.emit(keep_h, keep_max)
 	if ui:
 		ui.hint.visible = true
-		if ui.minimap:
-			ui.minimap.visible = true
 	await _qa_pit_still()
 	if current:
 		current.set_door_sprites_visible(true)
@@ -484,29 +482,31 @@ func _look_dump() -> void:
 
 
 func _qa_hud_crop() -> void:
-	# Left strip only — hearts + title. Full-width top crop still contained the north arch.
+	# Full top bar, doors hidden: Bone seals + Ember glyph + circular map. 1280×130 ≠ doors.
 	var tex := get_viewport().get_texture()
 	if tex == null:
 		return
 	var img := tex.get_image()
 	if img == null:
 		return
-	var crop := img.get_region(Rect2i(8, 4, 560, 84))
+	var crop := img.get_region(Rect2i(0, 0, img.get_width(), mini(130, img.get_height())))
 	_write_look("hud", crop)
 	crop.save_png("/workspace/gate/hud.png")
 	crop.save_png("/opt/cursor/artifacts/hud.png")
 
 
 func _qa_pit_still() -> void:
-	# Close plate: Void disk + Ash/Bone lip + player on the rim. Doors hidden so this
-	# cannot be read as another arch still. Pit art is Game-owned; this is the look still.
+	# Close plate: Void-deep disk + thick Ash rim + Bone hairline + player on the lip.
+	# Doors and HUD hidden so this cannot be read as a doors / hoop still.
 	var start: Room = rooms.get(Vector2i.ZERO)
 	if start == null or player == null or camera == null or not start.has_pit:
 		return
 	start.set_door_sprites_visible(false)
-	player.global_position = start.pit_global() + Vector2(-86.0, 6.0)
-	camera.zoom = Vector2(1.7, 1.7)
-	camera.global_position = start.pit_global() + Vector2(-28.0, 0.0)
+	if ui:
+		ui.visible = false
+	player.global_position = start.pit_global() + Vector2(-118.0, 8.0)
+	camera.zoom = Vector2(1.55, 1.55)
+	camera.global_position = start.pit_global() + Vector2(-36.0, 0.0)
 	camera.reset_smoothing()
 	await get_tree().process_frame
 	await get_tree().create_timer(0.2).timeout
@@ -518,14 +518,16 @@ func _qa_pit_still() -> void:
 		return
 	var cw := img.get_width()
 	var ch := img.get_height()
-	var rw := mini(880, cw)
-	var rh := mini(560, ch)
+	var rw := mini(900, cw)
+	var rh := mini(580, ch)
 	var rx := maxi((cw - rw) / 2, 0)
 	var ry := maxi((ch - rh) / 2, 0)
 	var crop := img.get_region(Rect2i(rx, ry, rw, rh))
 	_write_look("pit", crop)
 	crop.save_png("/workspace/gate/pit.png")
 	crop.save_png("/opt/cursor/artifacts/pit.png")
+	if ui:
+		ui.visible = true
 
 
 func _qa_shot(shot_name: String, to_gate: bool = false, look_name: String = "") -> void:

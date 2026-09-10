@@ -10,19 +10,19 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 | Shots | Soft round Ember dots / tears | Ember diamond + Bone ring only, hard edges |
 | HUD | Diamond hearts, Ember frame crests, rect minimap | Bone seals, Ash/Bone frame, circular nodes, Ember diamond glyph |
 | Start | Gold chrome, cute Bebé as product face | Penitent (hooded, no face). Ember on one confirm CTA |
-| Pit | Gray halo, Ember rim | Void hole, thin Ash/Bone lip, transparent outside |
+| Pit | Gray halo, Ember rim; white hoop on black | Void-deep filled disk, thick Ash rim, thin Bone hairline |
 | Palette | Gold heat `#FFBA08`, brown-black ash | Void / Ash / Bone / Ember / Wound only |
 
 ## What changed (files)
 
 - `scripts/palette.gd` — locked five colors. `EMBER_HOT` no longer gold. `WOUND` is the damage red.
-- `assets/sprites/doors.png` — tall gothic masonry lancets (384×320 cells), First Gate heavier, circular Ember / cracked seals with no Bone halo.
+- `assets/sprites/doors.png` — flush gothic masonry lancets (384×192 cells) on the wall band, circular Ember / cracked seals, no hallway throat.
+- `assets/env/pit.png` — Void-deep filled disk, thick Ash rim, thin Bone hairline.
 - `assets/sprites/shots.png` — diamond + ring rows only.
 - `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph. Hit = rim chips, never a red X.
 - `assets/sprites/player.png` / `player_f.png` / `baby.png` — Penitent language.
-- `assets/env/pit.png` — Void mouth, Ash/Bone lip.
 - `assets/sprites/env.png` — Void / Ash, no brown brick band.
-- `scripts/room.gd` — Ash wall band, Void floor, gothic fallback, throat faces into the room (crown on the outer wall), pit fallback without Ember rim.
+- `scripts/room.gd` — Ash wall band, Void floor, flush gothic fallback, pit fallback with Void-deep fill + Ash/Bone rim.
 - `scripts/bullet.gd` — two silhouettes; pulse stays inside the shape.
 - `scripts/ui.gd` / `minimap.gd` / `run_pick.gd` / `player.gd` — HUD, start card, Penitent fallbacks.
 - `gate/` — full-res stills for doors, shots, HUD, start, pit.

@@ -3,7 +3,7 @@ extends RefCounted
 ## Locked look: Void, Ash, Bone, Ember (accent), Wound.
 
 const VOID := Color("0B0C10")
-const VOID_DEEP := Color("07080B")
+const VOID_DEEP := Color("040507")
 const ASH := Color("5C5A56")
 const ASH_MID := Color("3A3936")
 const ASH_LIGHT := Color("5C5A56")
