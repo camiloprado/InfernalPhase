@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://atkfx_beamfx00"
-path="res://.godot/imported/fx_beam.png-atkfx965692704733.ctex"
+uid="uid://dk0c0m23j6tv5"
+path="res://.godot/imported/fx_beam.png-ffaf1073603ce1568cfc10bd9910b51a.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/fx_beam.png"
-dest_files=["res://.godot/imported/fx_beam.png-atkfx965692704733.ctex"]
+dest_files=["res://.godot/imported/fx_beam.png-ffaf1073603ce1568cfc10bd9910b51a.ctex"]
 
 [params]
 

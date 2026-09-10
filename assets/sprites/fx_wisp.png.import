@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://atkfx_wispfx00"
-path="res://.godot/imported/fx_wisp.png-atkfx163352237542.ctex"
+uid="uid://cyv3d2yslgi00"
+path="res://.godot/imported/fx_wisp.png-670e01e8a43362176e097cb97a3ecefb.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/fx_wisp.png"
-dest_files=["res://.godot/imported/fx_wisp.png-atkfx163352237542.ctex"]
+dest_files=["res://.godot/imported/fx_wisp.png-670e01e8a43362176e097cb97a3ecefb.ctex"]
 
 [params]
 

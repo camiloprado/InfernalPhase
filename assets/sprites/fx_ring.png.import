@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://atkfx_ringfx00"
-path="res://.godot/imported/fx_ring.png-atkfx874302751239.ctex"
+uid="uid://dloprlncrkxp5"
+path="res://.godot/imported/fx_ring.png-e10654cafb355094cf31766ee91ddf1c.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/fx_ring.png"
-dest_files=["res://.godot/imported/fx_ring.png-atkfx874302751239.ctex"]
+dest_files=["res://.godot/imported/fx_ring.png-e10654cafb355094cf31766ee91ddf1c.ctex"]
 
 [params]
 

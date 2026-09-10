@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://atkfx_telefx00"
-path="res://.godot/imported/fx_tele.png-atkfx381444281065.ctex"
+uid="uid://dx32hge0bq6ej"
+path="res://.godot/imported/fx_tele.png-3a93e3c589226029f5aacda75f278ee3.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/fx_tele.png"
-dest_files=["res://.godot/imported/fx_tele.png-atkfx381444281065.ctex"]
+dest_files=["res://.godot/imported/fx_tele.png-3a93e3c589226029f5aacda75f278ee3.ctex"]
 
 [params]
 

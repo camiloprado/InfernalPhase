@@ -33,6 +33,7 @@ var _built := false
 var has_pit := false
 var pit_center := Vector2.ZERO
 var pit_dest: Room = null
+var pit_radius := 56.0
 var _pit_area: Area2D
 const PIT_SHEET := "res://assets/env/pit.png"
 
@@ -624,6 +625,10 @@ func add_pit(dest: Room = null) -> void:
 	spr.scale = Vector2(0.22, 0.22)
 	spr.z_index = -5
 	add_child(spr)
+	# Sheet is 1024px at 0.22 scale (~225px). Trigger the dark mouth, not just a 28px dot.
+	pit_radius = 56.0
+	if spr.texture:
+		pit_radius = maxf(float(spr.texture.get_width()) * spr.scale.x * 0.26, 52.0)
 	if spr.texture == null:
 		var hole := Node2D.new()
 		hole.z_index = -5
@@ -636,6 +641,7 @@ func add_pit(dest: Room = null) -> void:
 		add_child(hole)
 		hole.queue_redraw()
 	var area := Area2D.new()
+	area.name = "EnvPit"
 	area.collision_layer = 0
 	area.collision_mask = 2
 	area.monitoring = true
@@ -643,12 +649,20 @@ func add_pit(dest: Room = null) -> void:
 	area.position = pit_center
 	var cs := CollisionShape2D.new()
 	var circ := CircleShape2D.new()
-	circ.radius = 28.0
+	circ.radius = pit_radius
 	cs.shape = circ
 	area.add_child(cs)
 	area.body_entered.connect(_on_pit_body)
 	add_child(area)
 	_pit_area = area
+
+
+func pit_global() -> Vector2:
+	return global_position + pit_center
+
+
+func covers_pit(point: Vector2) -> bool:
+	return has_pit and point.distance_to(pit_global()) <= pit_radius
 
 
 func arm_pit(on: bool) -> void:

@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://atkfx_slamfx00"
-path="res://.godot/imported/fx_slam.png-atkfx557317096683.ctex"
+uid="uid://b3mfo3x4p638s"
+path="res://.godot/imported/fx_slam.png-8a513ea0dd498cb99fb98d1ee4100ad7.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/fx_slam.png"
-dest_files=["res://.godot/imported/fx_slam.png-atkfx557317096683.ctex"]
+dest_files=["res://.godot/imported/fx_slam.png-8a513ea0dd498cb99fb98d1ee4100ad7.ctex"]
 
 [params]
 

@@ -100,10 +100,7 @@ func _build_floor() -> void:
 	for room in rooms.values():
 		(room as Room).finalize()
 	if rooms.has(Vector2i.ZERO):
-		var drop: Room = rooms.get(Vector2i(0, 2))
-		if drop == null:
-			drop = rooms.get(Vector2i(0, 1))
-		(rooms[Vector2i.ZERO] as Room).add_pit(drop)
+		(rooms[Vector2i.ZERO] as Room).add_pit(drop_room())
 
 
 func _spawn_player() -> void:
@@ -135,6 +132,7 @@ func _process(delta: float) -> void:
 		for room in rooms.values():
 			if (room as Room).has_pit:
 				(room as Room).arm_pit(true)
+	_check_pit()
 	_check_room_change()
 	if shake_t > 0.0:
 		shake_t -= delta
@@ -278,24 +276,47 @@ func _roll_skill() -> Pickup.Kind:
 	return pool[Game.rng.randi() % pool.size()]
 
 
+func drop_room() -> Room:
+	if rooms.has(Vector2i(0, 2)):
+		return rooms[Vector2i(0, 2)]
+	if rooms.has(Vector2i(0, 1)):
+		return rooms[Vector2i(0, 1)]
+	return null
+
+
+func _check_pit() -> void:
+	if current == null or player == null or Game.is_dead:
+		return
+	if not current.has_pit or _fall_cd > 0.0:
+		return
+	if current.covers_pit(player.global_position):
+		fall_from(current, current.pit_dest)
+
+
 func fall_from(src: Room, dest: Room = null) -> void:
 	if _fall_cd > 0.0 or player == null or Game.is_dead:
 		return
+	var land: Room = dest
+	if land == null or land == src:
+		land = src.pit_dest
+	if land == null or land == src:
+		land = drop_room()
 	_fall_cd = 1.2
 	src.arm_pit(false)
 	player.i_timer = maxf(player.i_timer, 0.7)
-	if dest == null or dest == src:
-		var away := (player.global_position - (src.global_position + src.pit_center)).normalized()
+	# Rim damage only if this floor has no drop target. Env pits teleport.
+	if land == null or land == src:
+		var away := (player.global_position - src.pit_global()).normalized()
 		if away.length() < 0.15:
 			away = Vector2.UP
 		player.knockback = away * 360.0
 		player.take_hit(src)
 		Game.say("Ash gives. You catch the rim.", 1.5)
 		return
-	player.global_position = dest.landing_global()
+	player.global_position = land.landing_global()
 	Game.shake.emit(9.0)
 	Game.say("The floor gives way.", 1.6)
-	_enter_room(dest, false)
+	_enter_room(land, false)
 
 
 func on_enemy_died(enemy: Enemy) -> void:
@@ -389,13 +410,14 @@ func _qa_proof() -> void:
 	_qa_shot("qa_diag_lanes")
 	var grant := Pickup.apply(roll_item())
 	Game.say("QA Concierge: " + grant, 2.0)
-	var dest: Room = rooms.get(Vector2i(0, 2))
+	var dest: Room = drop_room()
 	var before := player.global_position
 	var src_id := current.room_id
-	fall_from(current, dest)
-	await get_tree().create_timer(0.45).timeout
+	# Walk into the Area2D — do not call fall_from() here.
+	player.global_position = current.pit_global()
+	await get_tree().create_timer(0.35).timeout
 	_qa_shot("qa_pit_landing")
-	print("QA_PIT src=", src_id, " dest=", current.room_id if current else "?", " before=", before, " after=", player.global_position)
+	print("QA_PIT src=", src_id, " dest=", current.room_id if current else "?", " before=", before, " after=", player.global_position, " dest_ok=", dest != null)
 	print("QA_CONCIERGE ", grant)
 	get_tree().quit()
 
