@@ -79,6 +79,14 @@ def outline(mask: np.ndarray) -> np.ndarray:
     return mask & ~(up & down & left & right)
 
 
+def thick_lip(mask: np.ndarray, px: int) -> np.ndarray:
+    lip = outline(mask)
+    acc = lip.copy()
+    for _ in range(max(px, 1)):
+        acc = acc | np.roll(acc, 1, 0) | np.roll(acc, -1, 0) | np.roll(acc, 1, 1) | np.roll(acc, -1, 1)
+    return acc & mask
+
+
 def diamond(px: Image.Image, cx: int, cy: int, rx: int, ry: int, fill, edge=None) -> None:
     a = arr_of(px)
     h, w = a.shape[:2]
@@ -107,89 +115,90 @@ def circle_fill(px: Image.Image, cx: int, cy: int, r: int, fill) -> None:
 
 
 def cracked_seal(cell: Image.Image, cx: int, cy: int, r: int, locked: bool, huge: bool) -> None:
-    # Circular fixture on the masonry. No void pupil (that read as an eye).
-    rr = int(r * (1.2 if huge else 1.0))
+    # Large circular fixture on the wall-band face. No void pupil (eye) and no Bone halo
+    # on open seals (that read as a white oval at game scale).
+    rr = int(r * (1.15 if huge else 1.0))
     if locked:
-        circle_fill(cell, cx, cy, rr + 2, BONE)
+        circle_fill(cell, cx, cy, rr + 5, BONE)
         circle_fill(cell, cx, cy, rr, EMBER)
         return
-    circle_fill(cell, cx, cy, rr + 2, ASH)
+    circle_fill(cell, cx, cy, rr + 5, ASH)
     circle_fill(cell, cx, cy, rr, VOID)
-    ring(cell, cx, cy, rr + 1, max(rr - 3, 2), ASH)
-    for a_deg, span in ((18, 10), (130, 12), (248, 9)):
+    ring(cell, cx, cy, rr + 2, max(rr - 7, 6), ASH_DARK)
+    for a_deg, span in ((22, 14), (118, 16), (210, 12), (300, 13)):
         for p in range(-span, span + 1):
-            ang = math.radians(a_deg + p * 0.7)
+            ang = math.radians(a_deg + p * 0.55)
             x = int(cx + (rr + 1) * math.cos(ang))
             y = int(cy + (rr + 1) * math.sin(ang))
             put(cell, x, y, VOID)
             put(cell, x + 1, y, VOID)
-    for dx, dy in ((0, 0), (1, 1), (-1, 2), (2, -1), (-2, -1)):
-        for t in range(-rr, rr):
-            x = cx + t + dx
-            y = cy + int(t * 0.4) + dy
-            if (x - cx) ** 2 + (y - cy) ** 2 <= (rr - 2) ** 2:
-                put(cell, x, y, WOUND if abs(t) % 4 < 2 else ASH_DARK)
+            put(cell, x, y + 1, VOID)
+    # Irregular Wound fissures from the rim — not an X through the disk.
+    for a_deg, length in ((35, int(rr * 0.55)), (155, int(rr * 0.62)), (250, int(rr * 0.48))):
+        ang = math.radians(a_deg)
+        for t in range(int(rr * 0.25), length + int(rr * 0.25)):
+            x = int(cx + t * math.cos(ang))
+            y = int(cy + t * math.sin(ang))
+            if (x - cx) ** 2 + (y - cy) ** 2 <= (rr - 3) ** 2:
+                put(cell, x, y, WOUND)
+                put(cell, x + 1, y, WOUND)
 
 
 def _masonry(a: np.ndarray, mask: np.ndarray) -> None:
+    # Chunky Ash courses so brick survives the 200×92 wall-band scale.
+    # Fill is darker than the flat wall Ash so the arch reads as masonry, not a gray notch.
     h, w = mask.shape
     yy, xx = np.ogrid[:h, :w]
-    paint_mask(a, mask, ASH)
-    course = 10
-    paint_mask(a, mask & (yy % course == 0), ASH_DARK)
-    stagger = ((yy // course) % 2) * 14
-    paint_mask(a, mask & (((xx + stagger) % 28) == 0), ASH_DARK)
-    paint_mask(a, mask & (((xx * 5 + yy * 9) % 21) == 0), ASH_DARK)
+    mortar = (0x2A, 0x29, 0x27, 255)
+    paint_mask(a, mask, ASH_DARK)
+    course = 16
+    face = mask & (yy % course > 1)
+    stagger = ((yy // course) % 2) * 22
+    joint = mask & (((xx + stagger) % 44) <= 1)
+    paint_mask(a, face & ~joint, ASH)
+    paint_mask(a, mask & ((yy % course <= 1) | joint), mortar)
+    paint_mask(a, mask & (((xx * 5 + yy * 9) % 29) == 0), ASH_DARK)
 
 
 def door_cell(kind: str, locked: bool) -> Image.Image:
     # Landscape cell matches the in-game wall band (~200x92) so seals stay circular.
+    # Solid gothic slab — a punched inner hole read as a gray notch / portal.
     w, h = 384, 176
     cell = new(w, h)
     a = arr_of(cell)
-    cx, y0, y1 = 192, 4, 170
-    half = 168
-    inner_half = 114
-    inner_y0 = 48
+    cx, y0, y1 = 192, 6, 172
+    half = 170
     huge = kind == "start"
     ribs = 5 if huge else (4 if kind == "boss" else 3)
     if huge:
         half = 174
-        inner_half = 108
-        inner_y0 = 42
     outer = arch_mask(h, w, cx, y0, y1, half)
-    inner = arch_mask(h, w, cx, inner_y0, y1 - 8, inner_half)
-    masonry = outer if locked else (outer & ~inner)
-    _masonry(a, masonry)
+    _masonry(a, outer)
+    paint_mask(a, thick_lip(outer, 4), BONE)
     paint_mask(a, outline(outer), BONE)
-    paint_mask(a, outline(np.roll(outer, 1, 0) | np.roll(outer, -1, 0)) & outer, BONE_DIM)
-    if not locked:
-        paint_mask(a, outline(inner) & outer, BONE)
+    inlay = arch_mask(h, w, cx, y0 + 12, y1 - 10, max(half - 14, 8))
+    paint_mask(a, outline(inlay) & outer, BONE_DIM)
     for i in range(ribs):
         t = (i + 1) / (ribs + 1)
         x = int(cx - half + t * half * 2)
-        if 0 <= x < w:
-            rib = masonry.copy()
-            rib[:, :] = False
-            rib[:, x] = masonry[:, x]
-            a[rib] = BONE_DIM
-            if x + 1 < w:
-                extra = masonry.copy()
-                extra[:, :] = False
-                extra[:, x + 1] = masonry[:, x + 1]
-                a[extra] = ASH_DARK
+        for ox in (0, 1):
+            xx = x + ox
+            if 0 <= xx < w:
+                col = outer[:, xx]
+                a[col, xx] = BONE_DIM if ox == 0 else ASH_DARK
     if 0 <= y1 < h:
         a[y1, outer[y1]] = BONE
         if y1 - 1 >= 0:
             a[y1 - 1, outer[y1 - 1]] = BONE_DIM
     cell.paste(from_arr(a))
-    # Open: circular cracked seal on the solid keystone. Locked: Ember disk on the slab.
-    seal_y = (y0 + inner_y0) // 2 + 2
-    if locked:
-        seal_y = (inner_y0 + y1) // 2
-    seal_r = 26 if huge else 22
-    if locked:
-        seal_r = 36 if huge else (28 if kind == "boss" else 24)
+    # Seal sits on the wall-band (lower 2/3), not the crown tip. Large so it reads at 92px.
+    seal_y = 118
+    if huge:
+        seal_r = 56 if locked else 50
+    elif kind == "boss":
+        seal_r = 50 if locked else 44
+    else:
+        seal_r = 46 if locked else 40
     cracked_seal(cell, cx, seal_y, seal_r, locked, huge)
     return cell
 
@@ -247,27 +256,30 @@ def write_shots() -> None:
 
 
 def write_hearts() -> None:
-    # 0 full Bone+Ember glyph · 1 empty hollow Ash · 2 hit Wound cracks · 3 shot glyph
+    # 0 full Bone + Ember glyph · 1 empty hollow Ash · 2 hit Wound cracks · 3 shot glyph
+    # No slash-X on any cell — fissures stay irregular and off-center.
     sheet = new(256, 64)
     filled = new(64, 64)
     circle_fill(filled, 32, 32, 26, BONE)
     ring(filled, 32, 32, 27, 24, BONE_DIM)
-    diamond(filled, 32, 32, 11, 8, EMBER, ASH_DARK)
-    diamond(filled, 32, 32, 4, 3, VOID)
+    diamond(filled, 32, 32, 10, 7, EMBER, ASH_DARK)
+    diamond(filled, 32, 32, 3, 2, VOID)
     sheet.paste(filled, (0, 0), filled)
     empty = new(64, 64)
-    ring(empty, 32, 32, 26, 18, ASH)
+    ring(empty, 32, 32, 26, 17, ASH)
     ring(empty, 32, 32, 27, 25, ASH_DARK)
     sheet.paste(empty, (64, 0), empty)
     cracked = new(64, 64)
     circle_fill(cracked, 32, 32, 26, BONE_DIM)
     ring(cracked, 32, 32, 27, 24, ASH)
-    for t in range(-18, 19):
-        put(cracked, 32 + t, 32 + t // 3, WOUND)
-        put(cracked, 32 + t, 32 + t // 3 + 1, WOUND)
-        put(cracked, 32 + t // 2, 32 + t, WOUND)
-    for t in range(-10, 12):
-        put(cracked, 32 - t, 32 + t // 2 + 4, WOUND)
+    for a_deg, length in ((28, 16), (148, 18), (255, 14)):
+        ang = math.radians(a_deg)
+        for t in range(8, length + 8):
+            x = int(32 + t * math.cos(ang))
+            y = int(32 + t * math.sin(ang))
+            if (x - 32) ** 2 + (y - 32) ** 2 <= 24 ** 2:
+                put(cracked, x, y, WOUND)
+                put(cracked, x + 1, y, WOUND)
     sheet.paste(cracked, (128, 0), cracked)
     glyph = new(64, 64)
     diamond(glyph, 32, 32, 22, 16, EMBER, BONE)

@@ -478,7 +478,7 @@ func _qa_hud_crop() -> void:
 	if img == null:
 		return
 	var w := img.get_width()
-	var h := mini(200, img.get_height())
+	var h := mini(96, img.get_height())
 	var crop := img.get_region(Rect2i(0, 0, w, h))
 	_write_look("hud", crop)
 	crop.save_png("/workspace/gate/hud.png")
