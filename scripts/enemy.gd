@@ -40,6 +40,8 @@ var loadout := "vanilla"
 var art := false
 var attack_t := 0.0
 var special_pick := 0
+var _burn_left := 0.0
+var _burn_dmg := 0
 
 const SPECIAL_AT := [0.8, 0.6, 0.4, 0.2]
 
@@ -105,6 +107,12 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 	flash = maxf(flash - delta * 3.5, 0.0)
+	if _burn_left > 0.0:
+		_burn_left -= delta
+		if _burn_left <= 0.0 and alive:
+			var dmg := _burn_dmg
+			_burn_dmg = 0
+			take_hit(dmg)
 	visual_rot += delta * (0.6 if kind != Kind.BOSS else 0.35)
 	if kind == Kind.BOSS:
 		_boss_clock(delta)
@@ -303,6 +311,13 @@ func _cross() -> void:
 			floor_node.spawn_bullet(global_position + d.rotated(spread) * (radius + 8.0), d.rotated(spread), 195.0, true, Palette.BONE, 6.0)
 
 
+func apply_burn(amount: int, delay: float) -> void:
+	if not alive or _burn_left > 0.0:
+		return
+	_burn_dmg = amount
+	_burn_left = delay
+
+
 func take_hit(amount: int = 1) -> void:
 	if not alive:
 		return
@@ -352,10 +367,8 @@ func _begin_special() -> void:
 	var origin := global_position
 	if room:
 		match pick:
-			3:
+			3, 4:
 				origin = room.center_global()
-			4:
-				origin = _ring_hole(room)
 	if pick < Flavor.SPECIAL.size():
 		Game.say(Flavor.SPECIAL[pick], 1.7)
 	var floor_node := _floor()
@@ -430,21 +443,6 @@ func _teleport_point() -> Vector2:
 		if player and p.distance_to(player.global_position) < 160.0:
 			continue
 		if p.distance_to(global_position) < 90.0:
-			continue
-		return p
-	return room.center_global()
-
-
-func _ring_hole(room: Room) -> Vector2:
-	var inset := Game.WALL + 120.0
-	var rect := Rect2(room.global_position + Vector2(inset, inset), room.size - Vector2(inset * 2.0, inset * 2.0))
-	var player := _player()
-	for _i in 14:
-		var p := Vector2(
-			Game.rng.randf_range(rect.position.x, rect.end.x),
-			Game.rng.randf_range(rect.position.y, rect.end.y)
-		)
-		if player and p.distance_to(player.global_position) < 170.0:
 			continue
 		return p
 	return room.center_global()

@@ -437,11 +437,37 @@ func _door_inward(dir: int) -> Vector2:
 	return Vector2.ZERO
 
 
+func set_active_doors(on: bool) -> void:
+	# Only the room the player is in draws or collides its arches.
+	# Neighbors keep the carved gap but hide their art so shared edges
+	# do not stack two inward frames.
+	for dir in _door_art.keys():
+		var art: Node = _door_art[dir]
+		if art is CanvasItem:
+			(art as CanvasItem).visible = on
+	if on:
+		for dir in neighbors.keys():
+			_set_door_blocked(dir, locked)
+		return
+	for dir in _door_bodies.keys():
+		var body: StaticBody2D = _door_bodies[dir]
+		body.collision_layer = 0
+		body.collision_mask = 0
+		var col := body.get_node_or_null("Col") as CollisionShape2D
+		if col:
+			col.disabled = true
+			if col.shape is RectangleShape2D:
+				(col.shape as RectangleShape2D).size = Vector2(0.1, 0.1)
+		if _door_visuals.has(dir):
+			(_door_visuals[dir] as ColorRect).visible = false
+		if _door_seals.has(dir):
+			(_door_seals[dir] as ColorRect).visible = false
+
+
 func _door_rotation(dir: int) -> float:
 	# doors.png is a south-facing portrait (crown = texture top).
-	# Each room draws its own inward-facing arch; lesser-grid ownership
-	# used to skip N/W on Threshold so those edges showed the neighbor's
-	# door from the back.
+	# Rotation faces the arch into this room. Floor only shows these
+	# sprites while this room is the active phase.
 	match dir:
 		Dir.N:
 			return PI
@@ -473,6 +499,7 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 		var inset := maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
 		spr.position += _door_inward(dir) * inset
 		spr.z_index = 3
+		spr.visible = false
 		add_child(spr)
 		_door_art[dir] = spr
 		return
@@ -480,6 +507,7 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 	art.name = "DoorArt_%d" % dir
 	art.position = rect.position + rect.size * 0.5
 	art.z_index = 3
+	art.visible = false
 	var inward := Vector2.ZERO
 	match dir:
 		Dir.N:

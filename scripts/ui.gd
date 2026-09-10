@@ -25,10 +25,11 @@ func _ready() -> void:
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boss_bar.visible = false
 	Game.hearts_changed.connect(_on_hearts)
+	Game.loadout_changed.connect(func () -> void: _on_hearts(Game.hearts, Game.max_hearts))
 	Game.flavor.connect(_on_flavor)
 	Game.boss_intro.connect(func () -> void: boss_bar.visible = true)
 	Game.won.connect(func () -> void: boss_bar.visible = false)
-	_on_hearts(Game.hearts, Game.MAX_HEARTS)
+	_on_hearts(Game.hearts, Game.max_hearts)
 	hint.text = "WASD move  ·  Mouse aim  ·  Click / Space shoot  ·  Arrows shoot  ·  R restart"
 	_walker = Label.new()
 	_walker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -104,6 +105,29 @@ func _on_hearts(current: int, maximum: int) -> void:
 			h.filled = i < current
 			h.custom_minimum_size = Vector2(28, 24)
 			hearts.add_child(h)
+	if Game.ember > 0:
+		_pip(Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 22)
+	if Game.pierce > 0:
+		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 0, 0), 22)
+	if Game.rapid > 0:
+		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 1, 0), 22)
+	if Game.heavy > 0:
+		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 2, 0), 22)
+	if Game.burn > 0:
+		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 3, 0), 22)
+
+
+func _pip(tex: Texture2D, px: int) -> void:
+	if tex == null:
+		return
+	var icon := TextureRect.new()
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(px, px)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.texture = tex
+	hearts.add_child(icon)
 
 
 func _on_flavor(text: String, hold: float) -> void:

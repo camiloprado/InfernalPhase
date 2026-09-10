@@ -53,28 +53,6 @@ func setup(p_kind: int, p_origin: Vector2, room: Room) -> void:
 			ring_inner = 100.0
 			ring_outer = maxf(room_rect.size.x, room_rect.size.y) * 0.72
 	Game.shake.emit(7.0)
-	if kind == Kind.RING:
-		_mark_hole()
-
-
-func _mark_hole() -> void:
-	# The RING special's safe inner disk is the buraco — same pit art, not a floor tile.
-	var spr := Sprite2D.new()
-	if ResourceLoader.exists("res://assets/env/pit.png"):
-		var loaded: Variant = ResourceLoader.load("res://assets/env/pit.png")
-		if loaded is Texture2D:
-			spr.texture = loaded
-	spr.centered = true
-	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	spr.position = to_local(origin)
-	if spr.texture:
-		var tex_w := float(spr.texture.get_width())
-		if tex_w > 1.0:
-			spr.scale = Vector2.ONE * ((ring_inner * 2.0) / tex_w)
-	spr.z_index = -1
-	add_child(spr)
-	if spr.texture == null:
-		spr.queue_free()
 
 
 func _physics_process(delta: float) -> void:

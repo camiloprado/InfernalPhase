@@ -47,9 +47,9 @@ At the Threshold, pick **Caim** or **Lilith** (same hearts, speed, and fire rate
 
 The last pair stays highlighted on restart. HUD shows `Caim · Normal` or `Lilith · Normal`, or just **Bebê Chorão**.
 
-Four hearts. Hit = a short invuln blink, not a vacation. Enemies can drop a brimstone heart (~22%) — it pulses so it reads on the ash floor. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
+Four hearts (vessel drops can raise the cap to six). Hit = a short invuln blink, not a vacation. Trash enemies drop about half the time: brimstone hearts, ember (damage-up), rare vessel (max-heart), or a shot mod (pierce / rapid / heavy / burn). Drops pulse so they read on the ash floor. Only the **current room** draws and collides its door arches; a neighbor never stamps a second frame into the shared opening. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
 
-The Threshold has a **buraco** (ember-rim pit sprite, not a reused floor tile). Step in and you lose a heart and catch the rim. The boss RING special uses the same pit art for its safe hole.
+The Threshold has a **buraco** (ember-rim pit sprite, not a reused floor tile). Step in and you lose a heart and catch the rim. The boss RING special is a map-wide annulus with a safe inner disk — no pit sprite.
 
 ## The floor
 
@@ -59,8 +59,8 @@ Nine rooms on a grid:
 | --- | --- |
 | **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit |
 | Combat rooms | Ember Imps (walk / attack sheets, random loadout), Ring Wretches (bullet rings), Ash Cantors (sine-wave streams) |
-| **The Concierge** | NPC room. Walk up. First visit restores one heart. It talks. No shop. |
-| **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP. |
+| **The Concierge** | NPC room. Walk up. First visit grants a random item from the drop pool (heart, ember, vessel, or shot mod). Later visits are flavor. No shop. |
+| **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP (CROSS, DIAG, SLAM, LANES, RING). RING has no pit. |
 
 Reach the boss via the Concierge (east then south) or through the southern combat rooms. The first east room is still an intro cantor plus an imp — slower than later rooms, not a free pass.
 
@@ -77,7 +77,7 @@ scenes/ui.tscn         Hearts, flavor lines, minimap, death/win
 assets/characters/imp  Walk + attack sheets (vanilla, sword, sword-shield, pitchfork, pitchfork-shield)
 assets/characters/boss Idle / move / fire / lightning frame sheets (not raw GIF playback)
 assets/env/pit.png     Buraco — distinct pit sprite (not a floor/wall tile)
-assets/sprites/         env, doors, player, player_f, baby, hearts, pickups, cantor, wretch, concierge
+assets/sprites/         env, doors, player, player_f, baby, hearts, pickups, skills, cantor, wretch, concierge
 assets/audio/floor.ogg Usual floor pulse (original)
 assets/audio/cry.ogg   Bebê Chorão choro loop (original, not a commercial OST)
 ```

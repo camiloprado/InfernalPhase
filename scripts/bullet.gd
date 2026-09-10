@@ -18,6 +18,9 @@ var parametric := true
 var damage := 1
 var spent := false
 var deflected := false
+var pierce_left := 0
+var burn := false
+var _hit: Dictionary = {}
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
 
@@ -129,8 +132,7 @@ func _on_body_entered(body: Node) -> void:
 		(body as Player).take_hit(self)
 		_spend()
 	elif body is Enemy and not from_enemy:
-		(body as Enemy).take_hit(1)
-		_spend()
+		_hit_enemy(body as Enemy)
 	elif body is StaticBody2D:
 		_spend()
 
@@ -141,6 +143,20 @@ func _on_area_entered(area: Node) -> void:
 	if area is Player and from_enemy:
 		(area as Player).take_hit(self)
 		_spend()
+
+
+func _hit_enemy(en: Enemy) -> void:
+	var id := en.get_instance_id()
+	if _hit.has(id):
+		return
+	_hit[id] = true
+	en.take_hit(damage)
+	if burn:
+		en.apply_burn(1, 0.42)
+	if pierce_left > 0:
+		pierce_left -= 1
+		return
+	_spend()
 
 
 func _spend() -> void:

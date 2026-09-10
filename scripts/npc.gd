@@ -49,8 +49,12 @@ func _on_body(body: Node) -> void:
 	if cooldown > 0.0:
 		return
 	if not shown:
-		Game.heal(1)
-		Game.say("\"One heart. Don't tell payroll. The boss is south of here.\"", 3.6)
+		var kind := Pickup.Kind.HEART
+		var floor_node := get_tree().get_first_node_in_group("floor") as Floor
+		if floor_node:
+			kind = floor_node.roll_item()
+		var blurb := Pickup.apply(kind)
+		Game.say("\"On the house. Don't tell payroll.\" " + blurb, 3.8)
 	else:
 		Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 3.6)
 		line_i += 1

@@ -32,7 +32,7 @@ const SPECIAL := [
 	"X. You are the signature.",
 	"It slams the minutes shut.",
 	"Lanes merge. You do not.",
-	"A hole in the policy. Use it.",
+	"A ring of policy. Stand inside.",
 ]
 const WIN := [
 	"The phase ends. You do not get a raise.",

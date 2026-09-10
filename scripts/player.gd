@@ -122,12 +122,34 @@ func _physics_process(delta: float) -> void:
 
 
 func _shoot() -> void:
-	fire_left = FIRE_CD
+	var cd := FIRE_CD * (1.0 - 0.2 * float(Game.rapid))
+	if Game.heavy > 0:
+		cd *= 1.18
+	fire_left = cd
 	var floor_node := get_tree().get_first_node_in_group("floor") as Floor
 	if floor_node == null:
 		return
-	var muzzle := global_position + aim * (RADIUS + 8.0)
-	floor_node.spawn_bullet(muzzle, aim, 560.0, false, Palette.EMBER_HOT, 4.5)
+	var count := 1 + Game.rapid
+	var arc := 0.0 if count == 1 else 7.0
+	var spd := 380.0 if Game.heavy > 0 else 560.0
+	var rad := 7.2 if Game.heavy > 0 else (5.2 if Game.ember > 0 else 4.5)
+	var col := Palette.EMBER_HOT
+	if Game.burn > 0:
+		col = Palette.EMBER
+	elif Game.heavy > 0:
+		col = Palette.BLOOD
+	elif Game.ember > 0:
+		col = Palette.EMBER
+	var start := -arc * 0.5 * float(count - 1)
+	for i in count:
+		var a := deg_to_rad(start + arc * float(i))
+		var dir := aim.rotated(a)
+		var muzzle := global_position + dir * (RADIUS + 8.0)
+		var shot := floor_node.spawn_bullet(muzzle, dir, spd, false, col, rad)
+		if shot:
+			shot.damage = Game.shot_damage()
+			shot.pierce_left = Game.pierce
+			shot.burn = Game.burn > 0
 	if _sheet:
 		_sheet.play("attack")
 
@@ -172,6 +194,10 @@ func _sync_sheet() -> void:
 	_sheet.flip_h = aim.x < 0.0
 	if i_timer > 0.0 and not blink:
 		_sheet.modulate = Color(1.7, 0.55, 0.2)
+	elif Game.burn > 0:
+		_sheet.modulate = Color(1.25, 0.7, 0.35)
+	elif Game.ember > 0 or Game.heavy > 0:
+		_sheet.modulate = Color(1.18, 0.82, 0.55)
 	else:
 		_sheet.modulate = Color.WHITE
 	if _sheet.animation == &"attack" and _sheet.is_playing():

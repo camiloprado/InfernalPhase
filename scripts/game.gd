@@ -23,12 +23,21 @@ const DIFF_NAMES := {
 }
 
 const MAX_HEARTS := 4
+const HEART_CAP := 6
+const RAPID_CAP := 2
+const PIERCE_CAP := 2
 const IFRAME_MS := 550
 const ROOM_SIZE := Vector2(1280, 720)
 const WALL := 64.0
 const DOOR_WIDTH := 200.0
 
 var hearts: int = MAX_HEARTS
+var max_hearts: int = MAX_HEARTS
+var ember: int = 0
+var rapid: int = 0
+var pierce: int = 0
+var burn: int = 0
+var heavy: int = 0
 var floor_seed: int = 0
 var is_dead: bool = false
 var is_won: bool = false
@@ -49,14 +58,20 @@ func _ready() -> void:
 
 
 func reset_run() -> void:
-	hearts = MAX_HEARTS
+	max_hearts = MAX_HEARTS
+	hearts = max_hearts
+	ember = 0
+	rapid = 0
+	pierce = 0
+	burn = 0
+	heavy = 0
 	is_dead = false
 	is_won = false
 	_hurt_stamp_ms = -99999
 	body_picked = false
 	body = last_body
 	difficulty = last_difficulty
-	hearts_changed.emit(hearts, MAX_HEARTS)
+	hearts_changed.emit(hearts, max_hearts)
 	loadout_changed.emit()
 
 
@@ -103,7 +118,7 @@ func hurt(amount: int = 1) -> bool:
 		return false
 	_hurt_stamp_ms = now
 	hearts = max(hearts - amount, 0)
-	hearts_changed.emit(hearts, MAX_HEARTS)
+	hearts_changed.emit(hearts, max_hearts)
 	shake.emit(10.0)
 	if hearts <= 0:
 		is_dead = true
@@ -113,8 +128,58 @@ func hurt(amount: int = 1) -> bool:
 
 
 func heal(amount: int = 1) -> void:
-	hearts = mini(hearts + amount, MAX_HEARTS)
-	hearts_changed.emit(hearts, MAX_HEARTS)
+	hearts = mini(hearts + amount, max_hearts)
+	hearts_changed.emit(hearts, max_hearts)
+
+
+func add_max_heart() -> bool:
+	if max_hearts >= HEART_CAP:
+		return false
+	max_hearts += 1
+	hearts = mini(hearts + 1, max_hearts)
+	hearts_changed.emit(hearts, max_hearts)
+	return true
+
+
+func add_ember() -> void:
+	ember = mini(ember + 1, 1)
+	loadout_changed.emit()
+
+
+func add_rapid() -> bool:
+	if rapid >= RAPID_CAP:
+		return false
+	rapid += 1
+	loadout_changed.emit()
+	return true
+
+
+func add_pierce() -> bool:
+	if pierce >= PIERCE_CAP:
+		return false
+	pierce += 1
+	loadout_changed.emit()
+	return true
+
+
+func add_burn() -> bool:
+	if burn >= 1:
+		return false
+	burn = 1
+	loadout_changed.emit()
+	return true
+
+
+func add_heavy() -> bool:
+	if heavy >= 1:
+		return false
+	heavy = 1
+	loadout_changed.emit()
+	return true
+
+
+func shot_damage() -> int:
+	return 1 + ember + heavy
 
 
 func win() -> void:

@@ -146,6 +146,8 @@ func _check_room_change() -> void:
 
 func _enter_room(room: Room, instant: bool) -> void:
 	current = room
+	for node in rooms.values():
+		(node as Room).set_active_doors(node == room)
 	camera.position_smoothing_enabled = not instant
 	camera.global_position = room.center_global()
 	ui.set_room_title(room.title())
@@ -218,8 +220,51 @@ func spawn_pickup(kind: Pickup.Kind, at: Vector2) -> void:
 func drop_from(kind: Enemy.Kind, at: Vector2) -> void:
 	if kind == Enemy.Kind.BOSS:
 		return
-	if Game.rng.randf() < 0.35:
+	if Game.rng.randf() >= 0.45:
+		return
+	var table := Game.rng.randf()
+	if table < 0.40:
 		spawn_pickup(Pickup.Kind.HEART, at)
+	elif table < 0.65:
+		spawn_pickup(Pickup.Kind.EMBER, at)
+	elif table < 0.85:
+		spawn_pickup(_roll_skill(), at)
+	elif Game.max_hearts < Game.HEART_CAP:
+		spawn_pickup(Pickup.Kind.MAX_HEART, at)
+	else:
+		spawn_pickup(Pickup.Kind.HEART, at)
+
+
+func roll_item() -> Pickup.Kind:
+	var pool: Array[Pickup.Kind] = [Pickup.Kind.EMBER]
+	if Game.hearts < Game.max_hearts:
+		pool.append(Pickup.Kind.HEART)
+	if Game.max_hearts < Game.HEART_CAP:
+		pool.append(Pickup.Kind.MAX_HEART)
+	if Game.pierce < Game.PIERCE_CAP:
+		pool.append(Pickup.Kind.PIERCE)
+	if Game.rapid < Game.RAPID_CAP:
+		pool.append(Pickup.Kind.RAPID)
+	if Game.heavy < 1:
+		pool.append(Pickup.Kind.HEAVY)
+	if Game.burn < 1:
+		pool.append(Pickup.Kind.BURN)
+	return pool[Game.rng.randi() % pool.size()]
+
+
+func _roll_skill() -> Pickup.Kind:
+	var pool: Array[Pickup.Kind] = []
+	if Game.pierce < Game.PIERCE_CAP:
+		pool.append(Pickup.Kind.PIERCE)
+	if Game.rapid < Game.RAPID_CAP:
+		pool.append(Pickup.Kind.RAPID)
+	if Game.heavy < 1:
+		pool.append(Pickup.Kind.HEAVY)
+	if Game.burn < 1:
+		pool.append(Pickup.Kind.BURN)
+	if pool.is_empty():
+		return Pickup.Kind.EMBER
+	return pool[Game.rng.randi() % pool.size()]
 
 
 func fall_from(src: Room) -> void:
