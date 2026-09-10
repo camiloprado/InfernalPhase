@@ -19,12 +19,12 @@ var _click_ms := -99999
 var _pick_frame := -1
 var _sworn := false
 const BABY_SHEET := "res://assets/sprites/baby.png"
-const CAIM_RECT := Rect2(340, 140, 200, 260)
-const LILITH_RECT := Rect2(740, 140, 200, 260)
-const BEBE_RECT := Rect2(540, 140, 200, 260)
-const BABY_DIFF_RECT := Rect2(300, 468, 300, 110)
-const NORMAL_DIFF_RECT := Rect2(680, 468, 300, 110)
-const CONFIRM_RECT := Rect2(490, 600, 300, 48)
+const PENITENT_RECT := Rect2(520, 72, 240, 230)
+const CAIM_RECT := Rect2(280, 318, 240, 78)
+const LILITH_RECT := Rect2(760, 318, 240, 78)
+const BABY_DIFF_RECT := Rect2(300, 448, 300, 100)
+const NORMAL_DIFF_RECT := Rect2(680, 448, 300, 100)
+const CONFIRM_RECT := Rect2(490, 580, 300, 48)
 
 
 func _ready() -> void:
@@ -46,12 +46,11 @@ func _ready() -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(dim)
 
-	_label(root, Vector2(0, 56), Vector2(1280, 36), "WHO WALKS THE FLOOR", Palette.BONE, 28)
-	_label(root, Vector2(0, 96), Vector2(1280, 24), "Click a name to select  ·  Click again or Space / E to swear in", Palette.UI_DIM, 15)
-	_caim_btn = _card(root, CAIM_RECT, "Caim", "same hearts, same fire", func() -> void: _on_body(Game.Body.CAIM), true)
-	_lilith_btn = _card(root, LILITH_RECT, "Lilith", "same hearts, same fire", func() -> void: _on_body(Game.Body.LILITH), false)
-	_bebe_card = _bebe_portrait(root, BEBE_RECT)
-	_label(root, Vector2(0, 440), Vector2(1280, 28), "DIFFICULTY", Palette.BONE, 20)
+	_label(root, Vector2(0, 28), Vector2(1280, 22), "Click a name  ·  Space / E to swear in", Palette.UI_DIM, 15)
+	_bebe_card = _penitent_face(root, PENITENT_RECT)
+	_caim_btn = _name_card(root, CAIM_RECT, "Caim", func() -> void: _on_body(Game.Body.CAIM))
+	_lilith_btn = _name_card(root, LILITH_RECT, "Lilith", func() -> void: _on_body(Game.Body.LILITH))
+	_label(root, Vector2(0, 412), Vector2(1280, 28), "DIFFICULTY", Palette.BONE, 20)
 	_baby_btn = _diff_card(root, BABY_DIFF_RECT, "Bebê Chorão", func() -> void: _on_diff(Game.Difficulty.BABY))
 	_normal_btn = _diff_card(root, NORMAL_DIFF_RECT, "Normal", func() -> void: _on_diff(Game.Difficulty.NORMAL))
 	_confirm_btn = _confirm_cta(root, CONFIRM_RECT)
@@ -73,55 +72,51 @@ func _label(parent: Node, pos: Vector2, size: Vector2, text: String, col: Color,
 	return lab
 
 
-func _card(parent: Node, rect: Rect2, caption: String, blurb: String, on_click: Callable, male: bool) -> Control:
+func _name_card(parent: Node, rect: Rect2, caption: String, on_click: Callable) -> Control:
 	var btn := _shell(parent, rect, on_click)
-	var path := "res://assets/sprites/player.png" if male else "res://assets/sprites/player_f.png"
+	_caption(btn, caption, "", (rect.size.y - 36.0) * 0.5)
+	return btn
+
+
+func _penitent_face(parent: Node, rect: Rect2) -> Control:
+	# Product face. Not a picker — Bebê Chorão stays a difficulty mode.
+	var frame := Control.new()
+	frame.position = rect.position
+	frame.size = rect.size
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chrome := StyleBoxFlat.new()
+	chrome.bg_color = Palette.VOID
+	chrome.set_border_width_all(2)
+	chrome.border_color = Palette.BONE
+	var panel := Panel.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel", chrome)
+	frame.add_child(panel)
+	var path := "res://assets/sprites/player.png"
 	var portrait := Sprites.cell(path, 4, 3, 0, 0)
+	if portrait == null:
+		portrait = Sprites.tex(BABY_SHEET)
 	if portrait:
 		var tr := TextureRect.new()
-		tr.position = Vector2(20, 16)
-		tr.size = Vector2(160, 160)
+		tr.position = Vector2(20, 12)
+		tr.size = Vector2(rect.size.x - 40.0, 168)
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tr.texture = portrait
-		btn.add_child(tr)
+		frame.add_child(tr)
 	else:
 		var art := Control.new()
-		art.position = Vector2(40, 28)
-		art.size = Vector2(120, 140)
+		art.position = Vector2(40, 16)
+		art.size = Vector2(rect.size.x - 80.0, 160)
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.set_meta("male", male)
-		art.draw.connect(func() -> void: _draw_body(art, male))
-		btn.add_child(art)
-	_caption(btn, caption, blurb, 180)
-	return btn
-
-
-func _bebe_portrait(parent: Node, rect: Rect2) -> Control:
-	var btn := _shell(parent, rect, func() -> void: _on_diff(Game.Difficulty.BABY))
-	btn.visible = false
-	var tr := TextureRect.new()
-	tr.position = Vector2(20, 16)
-	tr.size = Vector2(160, 160)
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tex := Sprites.tex(BABY_SHEET)
-	if tex:
-		tr.texture = tex
-	btn.add_child(tr)
-	if tr.texture == null:
-		var art := Control.new()
-		art.position = Vector2(40, 28)
-		art.size = Vector2(120, 140)
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.draw.connect(func() -> void: _draw_bebe(art))
-		btn.add_child(art)
-	_caption(btn, "Penitent", "", 184)
-	return btn
+		art.draw.connect(func() -> void: _draw_penitent(art, false))
+		frame.add_child(art)
+	_caption(frame, "Penitent", "", 186)
+	parent.add_child(frame)
+	return frame
 
 
 func _diff_card(parent: Node, rect: Rect2, caption: String, on_click: Callable) -> Control:
@@ -342,10 +337,6 @@ func _input(event: InputEvent) -> void:
 			_on_body(Game.Body.LILITH)
 			get_viewport().set_input_as_handled()
 			return
-	elif BEBE_RECT.has_point(pos):
-		_on_diff(Game.Difficulty.BABY)
-		get_viewport().set_input_as_handled()
-		return
 	if BABY_DIFF_RECT.has_point(pos):
 		_on_diff(Game.Difficulty.BABY)
 		get_viewport().set_input_as_handled()
@@ -392,8 +383,7 @@ func _refresh() -> void:
 	_caim_btn.visible = not baby
 	_lilith_btn.visible = not baby
 	if _bebe_card:
-		_bebe_card.visible = baby
-		_paint(_bebe_card, true)
+		_bebe_card.visible = true
 	_paint(_caim_btn, _body == Game.Body.CAIM)
 	_paint(_lilith_btn, _body == Game.Body.LILITH)
 	_paint(_baby_btn, baby)

@@ -90,11 +90,20 @@ func _on_hearts(current: int, maximum: int) -> void:
 	for c in hearts.get_children():
 		c.queue_free()
 	for i in maximum:
-		var pip := Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 0 if i < current else 1, 0)
+		# 0 full Bone+Ember · 1 empty hollow Ash · 2 hit Wound cracks
+		var col := 1
+		var state := HeartPip.EMPTY
+		if i < current:
+			col = 0
+			state = HeartPip.FULL
+		elif i == current and current < maximum:
+			col = 2
+			state = HeartPip.HIT
+		var pip := Sprites.cell("res://assets/sprites/hearts.png", 4, 1, col, 0)
 		if pip:
 			var h := TextureRect.new()
 			h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			h.custom_minimum_size = Vector2(28, 28)
+			h.custom_minimum_size = Vector2(36, 36)
 			h.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			h.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -102,10 +111,10 @@ func _on_hearts(current: int, maximum: int) -> void:
 			hearts.add_child(h)
 		else:
 			var h := HeartPip.new()
-			h.filled = i < current
-			h.custom_minimum_size = Vector2(28, 28)
+			h.state = state
+			h.custom_minimum_size = Vector2(36, 36)
 			hearts.add_child(h)
-	_pip(Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 22)
+	_pip(Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 28)
 	if Game.pierce > 0:
 		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 0, 0), 22)
 	if Game.rapid > 0:
@@ -151,7 +160,10 @@ func _update_boss_bar() -> void:
 
 
 class HeartPip extends Control:
-	var filled := true
+	const FULL := 0
+	const EMPTY := 1
+	const HIT := 2
+	var state := FULL
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -160,9 +172,19 @@ class HeartPip extends Control:
 		var s := size
 		var c := s * 0.5
 		var r := minf(s.x, s.y) * 0.42
-		if filled:
-			draw_circle(c, r, Palette.BONE)
-			draw_line(c + Vector2(-r * 0.55, -r * 0.1), c + Vector2(r * 0.5, r * 0.35), Palette.WOUND, 1.5)
-			draw_line(c + Vector2(-r * 0.15, -r * 0.55), c + Vector2(r * 0.2, r * 0.5), Palette.WOUND, 1.5)
-		else:
-			draw_circle(c, r, Palette.ASH)
+		match state:
+			HIT:
+				draw_circle(c, r, Palette.BONE_DIM)
+				draw_arc(c, r, 0.0, TAU, 18, Palette.ASH, 1.5, true)
+				draw_line(c + Vector2(-r * 0.7, -r * 0.15), c + Vector2(r * 0.65, r * 0.25), Palette.WOUND, 2.0)
+				draw_line(c + Vector2(-r * 0.1, -r * 0.7), c + Vector2(r * 0.15, r * 0.7), Palette.WOUND, 1.5)
+			EMPTY:
+				draw_arc(c, r, 0.0, TAU, 22, Palette.ASH, 2.5, true)
+			_:
+				draw_circle(c, r, Palette.BONE)
+				draw_colored_polygon(PackedVector2Array([
+					c + Vector2(0, -r * 0.42),
+					c + Vector2(r * 0.38, 0),
+					c + Vector2(0, r * 0.42),
+					c + Vector2(-r * 0.38, 0),
+				]), Palette.EMBER)

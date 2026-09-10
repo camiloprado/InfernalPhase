@@ -67,7 +67,7 @@ func _ready() -> void:
 			await get_tree().process_frame
 			await get_tree().process_frame
 			await get_tree().create_timer(0.2).timeout
-			_qa_shot("start", true)
+			_qa_shot("start", true, "start_card")
 			Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
 			pick.queue_free()
 		elif pick.has_signal("chosen"):
@@ -436,47 +436,54 @@ func _qa_proof() -> void:
 
 
 func _look_dump() -> void:
+	# Doors + HUD + start only. Pit / shots stills stay on the last PASS.
+	if camera:
+		camera.position_smoothing_enabled = false
+		if current:
+			camera.global_position = current.center_global()
+			camera.reset_smoothing()
+	if current:
+		# Ember lit seal on the north arch; south / east / west stay cracked-open.
+		current._set_door_blocked(Room.Dir.N, true)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.25).timeout
-	_qa_shot("doors", true)
-	_qa_shot("hud", true)
-	var origin := current.center_global()
-	var arts: Array[String] = ["player", "imp", "wretch", "cantor", "boss", "ember", "bone", "deflect"]
-	var cols: Array[Color] = [
-		Palette.EMBER, Palette.EMBER, Palette.BONE, Palette.BONE,
-		Palette.EMBER, Palette.EMBER, Palette.BONE, Palette.EMBER,
-	]
-	for i in arts.size():
-		spawn_bullet(
-			origin + Vector2(-280.0 + float(i) * 72.0, -40.0),
-			Vector2.RIGHT,
-			8.0,
-			arts[i] != "player",
-			cols[i],
-			6.0,
-			0.0,
-			8.0,
-			0.0,
-			0.0,
-			arts[i]
-		)
-	await get_tree().create_timer(0.35).timeout
-	_qa_shot("shots", true)
-	for n in projectiles.get_children():
-		if n is Bullet:
-			n.queue_free()
-	if player and current:
-		player.global_position = current.pit_global() + Vector2(118, 0)
-		camera.global_position = current.pit_global()
+	_qa_shot("doors", true, "doors")
+	if current:
+		current._set_door_blocked(Room.Dir.N, false)
+	# Mixed seals so the HUD crop shows full / hit / empty — combat numbers restore after.
+	var keep_h := Game.hearts
+	var keep_max := Game.max_hearts
+	Game.hearts = 2
+	Game.max_hearts = 4
+	Game.hearts_changed.emit(2, 4)
 	await get_tree().process_frame
-	await get_tree().create_timer(0.2).timeout
-	_qa_shot("pit", true)
+	await get_tree().create_timer(0.12).timeout
+	_qa_hud_crop()
+	Game.hearts = keep_h
+	Game.max_hearts = keep_max
+	Game.hearts_changed.emit(keep_h, keep_max)
 	if player:
 		player.global_position = rooms[Vector2i.ZERO].center_global()
-		camera.global_position = rooms[Vector2i.ZERO].center_global()
+		if camera:
+			camera.global_position = rooms[Vector2i.ZERO].center_global()
 
 
-func _qa_shot(shot_name: String, to_gate: bool = false) -> void:
+func _qa_hud_crop() -> void:
+	var tex := get_viewport().get_texture()
+	if tex == null:
+		return
+	var img := tex.get_image()
+	if img == null:
+		return
+	var w := img.get_width()
+	var h := mini(200, img.get_height())
+	var crop := img.get_region(Rect2i(0, 0, w, h))
+	_write_look("hud", crop)
+	crop.save_png("/workspace/gate/hud.png")
+	crop.save_png("/opt/cursor/artifacts/hud.png")
+
+
+func _qa_shot(shot_name: String, to_gate: bool = false, look_name: String = "") -> void:
 	var tex := get_viewport().get_texture()
 	if tex == null:
 		return
@@ -486,4 +493,13 @@ func _qa_shot(shot_name: String, to_gate: bool = false) -> void:
 	if to_gate:
 		DirAccess.make_dir_recursive_absolute("/workspace/gate")
 		img.save_png("/workspace/gate/%s.png" % shot_name)
+		if look_name != "":
+			_write_look(look_name, img)
 	img.save_png("/opt/cursor/artifacts/%s.png" % shot_name)
+
+
+func _write_look(look_name: String, img: Image) -> void:
+	DirAccess.make_dir_recursive_absolute("/workspace/gate/look")
+	img.save_png("/workspace/gate/look/look_%s.png" % look_name)
+	img.save_jpg("/workspace/gate/look/look_%s.jpg" % look_name, 0.84)
+	img.save_png("/opt/cursor/artifacts/look_%s.png" % look_name)

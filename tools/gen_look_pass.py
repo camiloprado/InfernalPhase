@@ -61,11 +61,13 @@ def circle_mask(h: int, w: int, cx: int, cy: int, r: int) -> np.ndarray:
 
 
 def arch_mask(h: int, w: int, cx: int, y0: int, y1: int, half: int) -> np.ndarray:
+    # Pointed gothic: jambs + curved lancet (t^1.35), not a Roman barrel or a roof triangle.
     yy, xx = np.ogrid[:h, :w]
-    spring = y0 + int((y1 - y0) * 0.36)
+    spring = y0 + int((y1 - y0) * 0.60)
     dx = np.abs(xx - cx)
     t = np.clip((spring - yy) / max(spring - y0, 1), 0, None)
-    maxw = np.where(yy >= spring, half, half * (1.0 - t * t) + 0.5)
+    crown = half * np.maximum(0.0, 1.0 - np.power(t, 1.35)) + 0.5
+    maxw = np.where(yy >= spring, half, crown)
     return (yy >= y0) & (yy <= y1) & (dx <= maxw)
 
 
@@ -105,83 +107,101 @@ def circle_fill(px: Image.Image, cx: int, cy: int, r: int, fill) -> None:
 
 
 def cracked_seal(cell: Image.Image, cx: int, cy: int, r: int, locked: bool, huge: bool) -> None:
-    rr = int(r * (1.35 if huge else 1.0))
+    # Circular fixture on the masonry. No void pupil (that read as an eye).
+    rr = int(r * (1.2 if huge else 1.0))
     if locked:
         circle_fill(cell, cx, cy, rr + 2, BONE)
         circle_fill(cell, cx, cy, rr, EMBER)
-        circle_fill(cell, cx, cy, max(2, rr // 5), VOID)
         return
-    circle_fill(cell, cx, cy, rr + 2, ASH_DARK)
+    circle_fill(cell, cx, cy, rr + 2, ASH)
     circle_fill(cell, cx, cy, rr, VOID)
-    ring(cell, cx, cy, rr + 1, max(rr - 3, 2), BONE_DIM)
-    for a_deg, span in ((20, 14), (140, 16), (250, 12)):
+    ring(cell, cx, cy, rr + 1, max(rr - 3, 2), ASH)
+    for a_deg, span in ((18, 10), (130, 12), (248, 9)):
         for p in range(-span, span + 1):
-            ang = math.radians(a_deg + p * 0.6)
+            ang = math.radians(a_deg + p * 0.7)
             x = int(cx + (rr + 1) * math.cos(ang))
             y = int(cy + (rr + 1) * math.sin(ang))
             put(cell, x, y, VOID)
             put(cell, x + 1, y, VOID)
-    for dx, dy in ((0, 0), (1, 1), (-1, 2), (2, -1), (-2, -2), (3, 1)):
+    for dx, dy in ((0, 0), (1, 1), (-1, 2), (2, -1), (-2, -1)):
         for t in range(-rr, rr):
             x = cx + t + dx
-            y = cy + int(t * 0.35) + dy
+            y = cy + int(t * 0.4) + dy
             if (x - cx) ** 2 + (y - cy) ** 2 <= (rr - 2) ** 2:
-                put(cell, x, y, WOUND if abs(t) % 5 < 2 else ASH_DARK)
+                put(cell, x, y, WOUND if abs(t) % 4 < 2 else ASH_DARK)
+
+
+def _masonry(a: np.ndarray, mask: np.ndarray) -> None:
+    h, w = mask.shape
+    yy, xx = np.ogrid[:h, :w]
+    paint_mask(a, mask, ASH)
+    course = 10
+    paint_mask(a, mask & (yy % course == 0), ASH_DARK)
+    stagger = ((yy // course) % 2) * 14
+    paint_mask(a, mask & (((xx + stagger) % 28) == 0), ASH_DARK)
+    paint_mask(a, mask & (((xx * 5 + yy * 9) % 21) == 0), ASH_DARK)
 
 
 def door_cell(kind: str, locked: bool) -> Image.Image:
-    w, h = 384, 512
+    # Landscape cell matches the in-game wall band (~200x92) so seals stay circular.
+    w, h = 384, 176
     cell = new(w, h)
     a = arr_of(cell)
-    cx, y0, y1 = 192, 28, 500
-    half = 148
-    inner_half = 96
-    inner_y0 = 86
+    cx, y0, y1 = 192, 4, 170
+    half = 168
+    inner_half = 114
+    inner_y0 = 48
     huge = kind == "start"
     ribs = 5 if huge else (4 if kind == "boss" else 3)
     if huge:
-        half = 156
-        inner_half = 88
-        inner_y0 = 70
+        half = 174
+        inner_half = 108
+        inner_y0 = 42
     outer = arch_mask(h, w, cx, y0, y1, half)
-    inner = arch_mask(h, w, cx, inner_y0, y1 - 10, inner_half)
+    inner = arch_mask(h, w, cx, inner_y0, y1 - 8, inner_half)
     masonry = outer if locked else (outer & ~inner)
-    paint_mask(a, masonry, ASH_DARK)
+    _masonry(a, masonry)
     paint_mask(a, outline(outer), BONE)
-    paint_mask(a, outline(inner) & outer, BONE)
+    paint_mask(a, outline(np.roll(outer, 1, 0) | np.roll(outer, -1, 0)) & outer, BONE_DIM)
+    if not locked:
+        paint_mask(a, outline(inner) & outer, BONE)
     for i in range(ribs):
         t = (i + 1) / (ribs + 1)
         x = int(cx - half + t * half * 2)
-        rib = masonry.copy()
-        rib[:, :] = False
         if 0 <= x < w:
+            rib = masonry.copy()
+            rib[:, :] = False
             rib[:, x] = masonry[:, x]
+            a[rib] = BONE_DIM
             if x + 1 < w:
-                a[rib] = BONE_DIM
                 extra = masonry.copy()
                 extra[:, :] = False
                 extra[:, x + 1] = masonry[:, x + 1]
-                a[extra] = ASH
-    # Sill.
+                a[extra] = ASH_DARK
     if 0 <= y1 < h:
-        sill = outer[y1]
-        a[y1, sill] = BONE
+        a[y1, outer[y1]] = BONE
         if y1 - 1 >= 0:
             a[y1 - 1, outer[y1 - 1]] = BONE_DIM
     cell.paste(from_arr(a))
-    seal_y = (inner_y0 + y1) // 2
-    seal_r = 54 if huge else (36 if kind == "boss" else (32 if kind == "npc" else 30))
+    # Open: circular cracked seal on the solid keystone. Locked: Ember disk on the slab.
+    seal_y = (y0 + inner_y0) // 2 + 2
+    if locked:
+        seal_y = (inner_y0 + y1) // 2
+    seal_r = 20 if huge else 16
+    if locked:
+        seal_r = 36 if huge else (28 if kind == "boss" else 24)
     cracked_seal(cell, cx, seal_y, seal_r, locked, huge)
     return cell
 
 
 def write_doors() -> None:
-    sheet = new(1536, 1024)
+    cw, ch = 384, 176
+    sheet = new(cw * 4, ch * 2)
     kinds = ["start", "combat", "npc", "boss"]
     for col, kind in enumerate(kinds):
         for row, locked in enumerate((False, True)):
             cell = door_cell(kind, locked)
-            sheet.paste(cell, (col * 384, row * 512), cell)
+            sheet.paste(cell, (col * cw, row * ch), cell)
     sheet.save(SPR / "doors.png")
 
 
@@ -227,29 +247,32 @@ def write_shots() -> None:
 
 
 def write_hearts() -> None:
-    sheet = new(128, 32)
-    filled = new(32, 32)
-    circle_fill(filled, 16, 16, 13, BONE)
-    ring(filled, 16, 16, 14, 12, BONE_DIM)
-    for t in range(-10, 11):
-        put(filled, 16 + t, 16 + t // 2, WOUND)
-        put(filled, 16 + t, 16 + t // 2 + 1, WOUND)
-        put(filled, 16 - t // 2, 16 + t, WOUND)
+    # 0 full Bone+Ember glyph · 1 empty hollow Ash · 2 hit Wound cracks · 3 shot glyph
+    sheet = new(256, 64)
+    filled = new(64, 64)
+    circle_fill(filled, 32, 32, 26, BONE)
+    ring(filled, 32, 32, 27, 24, BONE_DIM)
+    diamond(filled, 32, 32, 11, 8, EMBER, ASH_DARK)
+    diamond(filled, 32, 32, 4, 3, VOID)
     sheet.paste(filled, (0, 0), filled)
-    empty = new(32, 32)
-    circle_fill(empty, 16, 16, 13, ASH)
-    ring(empty, 16, 16, 14, 12, ASH_DARK)
-    sheet.paste(empty, (32, 0), empty)
-    cracked = new(32, 32)
-    circle_fill(cracked, 16, 16, 13, ASH_DARK)
-    ring(cracked, 16, 16, 14, 12, BONE_DIM)
-    for t in range(-9, 10):
-        put(cracked, 16 + t, 16, WOUND)
-    sheet.paste(cracked, (64, 0), cracked)
-    glyph = new(32, 32)
-    diamond(glyph, 16, 16, 12, 9, EMBER, BONE)
-    diamond(glyph, 16, 16, 4, 3, VOID)
-    sheet.paste(glyph, (96, 0), glyph)
+    empty = new(64, 64)
+    ring(empty, 32, 32, 26, 18, ASH)
+    ring(empty, 32, 32, 27, 25, ASH_DARK)
+    sheet.paste(empty, (64, 0), empty)
+    cracked = new(64, 64)
+    circle_fill(cracked, 32, 32, 26, BONE_DIM)
+    ring(cracked, 32, 32, 27, 24, ASH)
+    for t in range(-18, 19):
+        put(cracked, 32 + t, 32 + t // 3, WOUND)
+        put(cracked, 32 + t, 32 + t // 3 + 1, WOUND)
+        put(cracked, 32 + t // 2, 32 + t, WOUND)
+    for t in range(-10, 12):
+        put(cracked, 32 - t, 32 + t // 2 + 4, WOUND)
+    sheet.paste(cracked, (128, 0), cracked)
+    glyph = new(64, 64)
+    diamond(glyph, 32, 32, 22, 16, EMBER, BONE)
+    diamond(glyph, 32, 32, 7, 5, VOID)
+    sheet.paste(glyph, (192, 0), glyph)
     sheet.save(SPR / "hearts.png")
 
 
@@ -347,17 +370,31 @@ def write_env() -> None:
 
 
 def main() -> None:
+    import sys
+
     SPR.mkdir(parents=True, exist_ok=True)
     ENV.mkdir(parents=True, exist_ok=True)
-    write_doors()
-    write_shots()
-    write_hearts()
-    write_pit()
-    write_player(SPR / "player.png", False)
-    write_player(SPR / "player_f.png", True)
-    write_baby()
-    write_env()
-    print("look-pass sheets written")
+    only = set(sys.argv[1:])
+    # Default: doors + hearts only. Do not churn pit / shots / Penitent sheets.
+    if not only:
+        only = {"doors", "hearts"}
+    if "all" in only:
+        only = {"doors", "shots", "hearts", "pit", "player", "env"}
+    if "doors" in only:
+        write_doors()
+    if "shots" in only:
+        write_shots()
+    if "hearts" in only:
+        write_hearts()
+    if "pit" in only:
+        write_pit()
+    if "player" in only:
+        write_player(SPR / "player.png", False)
+        write_player(SPR / "player_f.png", True)
+        write_baby()
+    if "env" in only:
+        write_env()
+    print("look-pass sheets written:", ", ".join(sorted(only)))
 
 
 if __name__ == "__main__":

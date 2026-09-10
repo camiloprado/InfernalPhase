@@ -500,30 +500,30 @@ func _draw_door(node: Node2D) -> void:
 			dest_kind = (neighbors[dir] as Room).kind
 			break
 	var heavy := dest_kind == Kind.START
-	var col := Palette.ASH
-	var inlay := Palette.BONE
-	# Pointed gothic arch. No gray rect, no circular portal.
-	var span := 88.0 if heavy else 78.0
-	var rise := 40.0 if heavy else 34.0
+	var span := 94.0 if heavy else 86.0
+	var rise := 38.0 if heavy else 32.0
 	var pts := PackedVector2Array()
-	pts.append(Vector2(-span, 22.0))
-	pts.append(Vector2(-span, 4.0))
+	pts.append(Vector2(-span, 28.0))
+	pts.append(Vector2(-span, 6.0))
 	pts.append(Vector2(0.0, -rise))
-	pts.append(Vector2(span, 4.0))
-	pts.append(Vector2(span, 22.0))
-	node.draw_polyline(pts, col, 10.0 if heavy else 8.0, true)
-	node.draw_polyline(pts, inlay, 2.0, true)
+	pts.append(Vector2(span, 6.0))
+	pts.append(Vector2(span, 28.0))
+	# Ash masonry band + Bone inlay. No gray shield, no oval portal.
+	node.draw_polyline(pts, Palette.ASH, 14.0 if heavy else 12.0, true)
+	node.draw_polyline(pts, Palette.BONE, 2.0, true)
 	if heavy:
-		node.draw_line(Vector2(-span * 0.45, 18.0), Vector2(-span * 0.2, -rise * 0.35), inlay, 2.0)
-		node.draw_line(Vector2(span * 0.45, 18.0), Vector2(span * 0.2, -rise * 0.35), inlay, 2.0)
-	var seal_r := 16.0 if heavy else 9.0
+		node.draw_line(Vector2(-span * 0.4, 22.0), Vector2(-span * 0.18, -rise * 0.3), Palette.BONE_DIM, 2.0)
+		node.draw_line(Vector2(span * 0.4, 22.0), Vector2(span * 0.18, -rise * 0.3), Palette.BONE_DIM, 2.0)
+	var seal_c := Vector2(0.0, -rise * 0.15) if not blocked else Vector2.ZERO
+	var seal_r := 14.0 if heavy else 11.0
 	if blocked:
-		node.draw_circle(Vector2.ZERO, seal_r + 2.0, inlay)
-		node.draw_circle(Vector2.ZERO, seal_r, Palette.EMBER)
+		node.draw_circle(seal_c, seal_r + 2.0, Palette.BONE)
+		node.draw_circle(seal_c, seal_r, Palette.EMBER)
 	else:
-		node.draw_arc(Vector2.ZERO, seal_r, 0.4, PI - 0.2, 10, Palette.ASH_MID, 2.0, true)
-		node.draw_arc(Vector2.ZERO, seal_r, PI + 0.5, TAU - 0.3, 10, Palette.ASH_MID, 2.0, true)
-		node.draw_line(Vector2(-seal_r * 0.4, -2.0), Vector2(seal_r * 0.5, 4.0), Palette.WOUND, 1.5)
+		node.draw_circle(seal_c, seal_r + 1.0, Palette.ASH)
+		node.draw_circle(seal_c, seal_r - 2.0, Palette.VOID)
+		node.draw_arc(seal_c, seal_r, 0.35, PI - 0.4, 8, Palette.ASH, 2.0, true)
+		node.draw_line(seal_c + Vector2(-seal_r * 0.55, -2.0), seal_c + Vector2(seal_r * 0.5, 4.0), Palette.WOUND, 1.5)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:
