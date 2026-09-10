@@ -187,7 +187,7 @@ def door_cell(kind: str, locked: bool) -> Image.Image:
     seal_y = (y0 + inner_y0) // 2 + 2
     if locked:
         seal_y = (inner_y0 + y1) // 2
-    seal_r = 20 if huge else 16
+    seal_r = 26 if huge else 22
     if locked:
         seal_r = 36 if huge else (28 if kind == "boss" else 24)
     cracked_seal(cell, cx, seal_y, seal_r, locked, huge)

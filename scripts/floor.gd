@@ -439,6 +439,7 @@ func _look_dump() -> void:
 	# Doors + HUD + start only. Pit / shots stills stay on the last PASS.
 	if camera:
 		camera.position_smoothing_enabled = false
+		camera.zoom = Vector2.ONE
 		if current:
 			camera.global_position = current.center_global()
 			camera.reset_smoothing()
@@ -465,6 +466,7 @@ func _look_dump() -> void:
 	if player:
 		player.global_position = rooms[Vector2i.ZERO].center_global()
 		if camera:
+			camera.zoom = Vector2.ONE
 			camera.global_position = rooms[Vector2i.ZERO].center_global()
 
 
