@@ -23,6 +23,7 @@ var burn := false
 var _hit: Dictionary = {}
 var _shot_art := ""
 var _spr: AnimatedSprite2D
+var _core: Sprite2D
 var _base_scale := Vector2.ONE
 var _spin_rate := 0.0
 var _face_travel := true
@@ -108,25 +109,29 @@ func bind_shot(art: String) -> void:
 	if _spr:
 		_spr.queue_free()
 		_spr = null
+	if _core:
+		_core.queue_free()
+		_core = null
 	var row := _shot_row()
 	_spr = Sprites.actor(
 		SHOT_SHEET,
 		4,
 		8,
-		{"fly": {"row": row, "fps": 18.0, "loop": true}},
+		{"fly": {"row": row, "fps": 24.0, "loop": true}},
 		maxf(radius * 5.2, 24.0)
 	)
 	_pulse_phase = randf() * TAU
 	_configure_motion(row)
 	if _spr:
 		Sprites.ping_pong(_spr, &"fly")
-		Sprites.stagger(_spr, 18.0)
+		Sprites.stagger(_spr, 24.0)
 		_base_scale = _spr.scale
 		add_child(_spr)
 		if _face_travel:
 			_spr.rotation = _travel().angle()
 		else:
 			_spr.rotation = _pulse_phase
+		_bind_core()
 
 
 func _shot_row() -> int:
@@ -192,16 +197,41 @@ func _travel() -> Vector2:
 	return dir
 
 
+func _bind_core() -> void:
+	if _spr == null or _spr.sprite_frames == null:
+		return
+	if not _spr.sprite_frames.has_animation(&"fly"):
+		return
+	if _spr.sprite_frames.get_frame_count(&"fly") < 1:
+		return
+	_core = Sprite2D.new()
+	_core.texture = _spr.sprite_frames.get_frame_texture(&"fly", 0)
+	_core.centered = true
+	_core.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_core.z_index = 1
+	_core.modulate = Color(1.45, 1.05, 0.55, 0.55)
+	add_child(_core)
+
+
 func _animate_shot(delta: float) -> void:
-	var pulse := 1.0 + 0.09 * sin(age * 14.0 + _pulse_phase)
-	var flick := 0.86 + 0.14 * absf(sin(age * 17.0 + _pulse_phase * 0.7))
-	_spr.scale = _base_scale * pulse
-	_spr.modulate = Color(1.08 * flick, 0.96 * flick + 0.04, 0.88 * flick + 0.08, 1.0)
+	var beat := age * 18.0 + _pulse_phase
+	var flick := 0.68 + 0.32 * absf(sin(age * 22.0 + _pulse_phase))
+	_spr.modulate = Color(1.2 * flick, 0.92 * flick + 0.08, 0.7 * flick + 0.12, 1.0)
 	if _face_travel:
-		_spr.rotation = _travel().angle() + 0.14 * sin(age * 11.0 + _pulse_phase)
+		# Local +X is the trail. Stretch along travel, fatten the head.
+		var stretch := 1.0 + 0.26 * sin(beat)
+		var fat := 1.0 + 0.14 * sin(beat + PI * 0.5)
+		_spr.scale = Vector2(_base_scale.x * stretch, _base_scale.y * fat)
+		_spr.rotation = _travel().angle() + 0.22 * sin(age * 13.0 + _pulse_phase)
 	else:
+		_spr.scale = _base_scale * (1.0 + 0.16 * sin(beat))
 		_spr.rotation += _spin_rate * delta
-		_spr.position = Vector2.RIGHT.rotated(age * 9.0 + _pulse_phase) * 1.4
+		_spr.position = Vector2.RIGHT.rotated(age * 11.0 + _pulse_phase) * 2.0
+	if _core:
+		_core.rotation += 12.0 * delta
+		var c := 0.38 + 0.16 * sin(age * 24.0 + _pulse_phase)
+		_core.scale = Vector2.ONE * c
+		_core.modulate.a = 0.4 + 0.35 * absf(sin(age * 20.0 + _pulse_phase))
 
 
 func _draw() -> void:

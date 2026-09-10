@@ -237,9 +237,9 @@ func _sync_art(delta: float) -> void:
 			continue
 		var spr := n as AnimatedSprite2D
 		var phase := float(i) * 0.85
-		var pulse := 1.0 + 0.08 * sin(age * 12.0 + phase)
+		var pulse := 1.0 + 0.12 * sin(age * 14.0 + phase)
 		if hot:
-			pulse += 0.06 * sin(age * 20.0 + phase)
+			pulse += 0.10 * sin(age * 22.0 + phase)
 		if spr == _slam:
 			var diam := slam_r * 2.15
 			spr.scale = Vector2.ONE * (diam / 128.0) * pulse
