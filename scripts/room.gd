@@ -13,9 +13,10 @@ const DIR_VEC := {
 
 const DOOR_SHEET := "res://assets/sprites/doors.png"
 const ENV_SHEET := "res://assets/sprites/env.png"
-## Arch lip past the inner wall face. Depth on the wall axis is WALL + this (92px).
-## Inset from the gap ColorRect center toward the room is half of this (14px).
-const DOOR_REVEAL := 28.0
+## Arch lip past the inner wall face. Depth on the wall axis is WALL + this (167px).
+## Inset from the gap ColorRect center toward the room is half of this (51px).
+## Tall lancet (384×320 cell → 200×167) so it reads as a gothic arch, not a squat shield.
+const DOOR_REVEAL := 103.0
 
 var room_id: String = ""
 var grid := Vector2i.ZERO
@@ -455,9 +456,7 @@ func _apply_door_sprite(spr: Sprite2D, atlas: AtlasTexture, dir: int, rect: Rect
 	var cell := atlas.region.size
 	var opening := maxf(rect.size.x, rect.size.y)
 	var depth := Game.WALL + DOOR_REVEAL
-	# Width matches the 200px carved gap. Height matches the 64px wall plus
-	# a 28px crown so the frontal sheet sits on the masonry instead of
-	# standing ~100px into the floor.
+	# Uniform scale: 200×167 slot on a 384×320 cell (~0.521). Circles stay circles.
 	spr.scale = Vector2(
 		opening / maxf(cell.x, 1.0),
 		depth / maxf(cell.y, 1.0)
@@ -493,6 +492,13 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 	_door_art[dir] = art
 
 
+func set_door_sprites_visible(on: bool) -> void:
+	for dir in _door_art.keys():
+		var art: Node = _door_art[dir]
+		if art is CanvasItem:
+			(art as CanvasItem).visible = on
+
+
 func _draw_door(node: Node2D) -> void:
 	var blocked := bool(node.get_meta("blocked", false))
 	var dest_kind: Kind = Kind.COMBAT
@@ -501,31 +507,31 @@ func _draw_door(node: Node2D) -> void:
 			dest_kind = (neighbors[dir] as Room).kind
 			break
 	var heavy := dest_kind == Kind.START
-	var span := 94.0 if heavy else 86.0
-	var rise := 38.0 if heavy else 32.0
+	var span := 96.0 if heavy else 88.0
+	var rise := 58.0 if heavy else 52.0
 	var pts := PackedVector2Array()
-	pts.append(Vector2(-span, 28.0))
-	pts.append(Vector2(-span, 6.0))
+	pts.append(Vector2(-span, 42.0))
+	pts.append(Vector2(-span, 4.0))
 	pts.append(Vector2(0.0, -rise))
-	pts.append(Vector2(span, 6.0))
-	pts.append(Vector2(span, 28.0))
-	# Solid Ash masonry slab + Bone inlay. No gray shield, no punched oval.
-	node.draw_colored_polygon(pts, Palette.ASH_MID)
-	node.draw_polyline(pts, Palette.BONE, 3.0, true)
+	pts.append(Vector2(span, 4.0))
+	pts.append(Vector2(span, 42.0))
+	# Masonry lancet + thin Bone inlay. No Bone halo on the seal (that was the white oval).
+	node.draw_colored_polygon(pts, Palette.ASH)
+	node.draw_polyline(pts, Palette.BONE_DIM, 2.0, true)
 	if heavy:
-		node.draw_line(Vector2(-span * 0.4, 22.0), Vector2(-span * 0.18, -rise * 0.3), Palette.BONE_DIM, 2.0)
-		node.draw_line(Vector2(span * 0.4, 22.0), Vector2(span * 0.18, -rise * 0.3), Palette.BONE_DIM, 2.0)
-	var seal_c := Vector2(0.0, 8.0)
-	var seal_r := 22.0 if heavy else 18.0
+		node.draw_line(Vector2(-span * 0.35, 36.0), Vector2(-span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
+		node.draw_line(Vector2(span * 0.35, 36.0), Vector2(span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
+	var seal_c := Vector2(0.0, 14.0)
+	var seal_r := 26.0 if heavy else 22.0
 	if blocked:
-		node.draw_circle(seal_c, seal_r + 3.0, Palette.BONE)
+		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH_MID)
 		node.draw_circle(seal_c, seal_r, Palette.EMBER)
 	else:
-		node.draw_circle(seal_c, seal_r + 3.0, Palette.ASH)
+		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH)
 		node.draw_circle(seal_c, seal_r, Palette.VOID)
-		node.draw_arc(seal_c, seal_r - 1.0, 0.4, PI - 0.35, 10, Palette.ASH_MID, 2.5, true)
-		node.draw_line(seal_c + Vector2(seal_r * 0.2, -seal_r * 0.15), seal_c + Vector2(seal_r * 0.55, seal_r * 0.35), Palette.WOUND, 1.5)
-		node.draw_line(seal_c + Vector2(-seal_r * 0.45, seal_r * 0.1), seal_c + Vector2(-seal_r * 0.15, seal_r * 0.55), Palette.WOUND, 1.5)
+		node.draw_arc(seal_c, seal_r - 1.0, 0.35, 1.1, 8, Palette.ASH_MID, 2.0, true)
+		node.draw_line(seal_c + Vector2(seal_r * 0.55, -seal_r * 0.35), seal_c + Vector2(seal_r * 0.82, -seal_r * 0.05), Palette.WOUND, 1.5)
+		node.draw_line(seal_c + Vector2(-seal_r * 0.70, seal_r * 0.25), seal_c + Vector2(-seal_r * 0.40, seal_r * 0.55), Palette.WOUND, 1.5)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:

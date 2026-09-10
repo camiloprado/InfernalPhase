@@ -6,7 +6,7 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 
 | Surface | Old read | Locked read |
 | --- | --- | --- |
-| Doors | Circular portal on a gray rect; brown brick; chrome-edge crests | Gothic Ash arch, Bone inlay, Ember / cracked seal, transparent outside |
+| Doors | Circular portal on a gray rect; brown brick; chrome-edge crests | Tall Gothic Ash masonry lancet, chunky courses + voussoirs, circular Ember / cracked seal (no Bone halo), transparent outside |
 | Shots | Soft round Ember dots / tears | Ember diamond + Bone ring only, hard edges |
 | HUD | Diamond hearts, Ember frame crests, rect minimap | Bone seals, Ash/Bone frame, circular nodes, Ember diamond glyph |
 | Start | Gold chrome, cute Bebé as product face | Penitent (hooded, no face). Ember on one confirm CTA |
@@ -16,9 +16,9 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 ## What changed (files)
 
 - `scripts/palette.gd` — locked five colors. `EMBER_HOT` no longer gold. `WOUND` is the damage red.
-- `assets/sprites/doors.png` — gothic arches, First Gate heavier.
+- `assets/sprites/doors.png` — tall gothic masonry lancets (384×320 cells), First Gate heavier, circular Ember / cracked seals with no Bone halo.
 - `assets/sprites/shots.png` — diamond + ring rows only.
-- `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph.
+- `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph. Hit = rim chips, never a red X.
 - `assets/sprites/player.png` / `player_f.png` / `baby.png` — Penitent language.
 - `assets/env/pit.png` — Void mouth, Ash/Bone lip.
 - `assets/sprites/env.png` — Void / Ash, no brown brick band.

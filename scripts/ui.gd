@@ -103,7 +103,7 @@ func _on_hearts(current: int, maximum: int) -> void:
 		if pip:
 			var h := TextureRect.new()
 			h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			h.custom_minimum_size = Vector2(40, 40)
+			h.custom_minimum_size = Vector2(48, 48)
 			h.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			h.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -112,7 +112,7 @@ func _on_hearts(current: int, maximum: int) -> void:
 		else:
 			var h := HeartPip.new()
 			h.state = state
-			h.custom_minimum_size = Vector2(40, 40)
+			h.custom_minimum_size = Vector2(48, 48)
 			hearts.add_child(h)
 	_pip(Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 30)
 	if Game.pierce > 0:
@@ -176,17 +176,17 @@ class HeartPip extends Control:
 			HIT:
 				draw_circle(c, r, Palette.BONE_DIM)
 				draw_arc(c, r, 0.0, TAU, 18, Palette.ASH, 1.5, true)
-				# Irregular Wound fissures from the rim — not a slash-X.
-				draw_line(c + Vector2(r * 0.15, -r * 0.2), c + Vector2(r * 0.62, r * 0.28), Palette.WOUND, 2.0)
-				draw_line(c + Vector2(-r * 0.55, r * 0.05), c + Vector2(-r * 0.12, r * 0.58), Palette.WOUND, 1.5)
-				draw_line(c + Vector2(-r * 0.1, -r * 0.55), c + Vector2(r * 0.22, -r * 0.18), Palette.WOUND, 1.5)
+				# Short rim chips — never a crossing X.
+				draw_line(c + Vector2(r * 0.55, -r * 0.35), c + Vector2(r * 0.82, -r * 0.08), Palette.WOUND, 2.0)
+				draw_line(c + Vector2(-r * 0.75, r * 0.20), c + Vector2(-r * 0.42, r * 0.48), Palette.WOUND, 1.5)
+				draw_line(c + Vector2(-r * 0.18, r * 0.72), c + Vector2(r * 0.12, r * 0.88), Palette.WOUND, 1.5)
 			EMPTY:
 				draw_arc(c, r, 0.0, TAU, 22, Palette.ASH, 2.5, true)
 			_:
 				draw_circle(c, r, Palette.BONE)
 				draw_colored_polygon(PackedVector2Array([
-					c + Vector2(0, -r * 0.38),
-					c + Vector2(r * 0.34, 0),
-					c + Vector2(0, r * 0.38),
-					c + Vector2(-r * 0.34, 0),
+					c + Vector2(0, -r * 0.42),
+					c + Vector2(r * 0.38, 0),
+					c + Vector2(0, r * 0.42),
+					c + Vector2(-r * 0.38, 0),
 				]), Palette.EMBER)
