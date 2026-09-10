@@ -22,7 +22,7 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 - `assets/sprites/player.png` / `player_f.png` / `baby.png` — Penitent language.
 - `assets/env/pit.png` — Void mouth, Ash/Bone lip.
 - `assets/sprites/env.png` — Void / Ash, no brown brick band.
-- `scripts/room.gd` — Ash wall band, Void floor, gothic fallback, pit fallback without Ember rim.
+- `scripts/room.gd` — Ash wall band, Void floor, gothic fallback, throat faces into the room (crown on the outer wall), pit fallback without Ember rim.
 - `scripts/bullet.gd` — two silhouettes; pulse stays inside the shape.
 - `scripts/ui.gd` / `minimap.gd` / `run_pick.gd` / `player.gd` — HUD, start card, Penitent fallbacks.
 - `gate/` — full-res stills for doors, shots, HUD, start, pit.

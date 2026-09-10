@@ -434,17 +434,18 @@ func set_active_doors(on: bool) -> void:
 
 
 func _door_rotation(dir: int) -> float:
-	# doors.png is a south-facing portrait (crown = texture top / local -Y).
-	# Rotate so the crown faces into this room and the sill sits on the outer wall.
+	# doors.png: crown = texture top / local -Y, throat = texture bottom.
+	# Rotate so the throat faces into this room and the crown sits on the outer wall.
+	# (Crown-inward showed the filled back as a gray shield.)
 	match dir:
 		Dir.N:
-			return PI
-		Dir.S:
 			return 0.0
+		Dir.S:
+			return PI
 		Dir.E:
-			return -PI * 0.5
-		Dir.W:
 			return PI * 0.5
+		Dir.W:
+			return -PI * 0.5
 	return 0.0
 
 
@@ -515,21 +516,27 @@ func _draw_door(node: Node2D) -> void:
 	pts.append(Vector2(0.0, -rise))
 	pts.append(Vector2(span, 4.0))
 	pts.append(Vector2(span, 42.0))
-	# Masonry lancet + thin Bone inlay. No Bone halo on the seal (that was the white oval).
+	# Masonry lancet + Void throat + circular seal in the tympanum.
 	node.draw_colored_polygon(pts, Palette.ASH)
 	node.draw_polyline(pts, Palette.BONE_DIM, 2.0, true)
+	var throat := PackedVector2Array()
+	throat.append(Vector2(-span * 0.55, 42.0))
+	throat.append(Vector2(-span * 0.55, 10.0))
+	throat.append(Vector2(0.0, -rise * 0.15))
+	throat.append(Vector2(span * 0.55, 10.0))
+	throat.append(Vector2(span * 0.55, 42.0))
+	node.draw_colored_polygon(throat, Palette.VOID)
 	if heavy:
 		node.draw_line(Vector2(-span * 0.35, 36.0), Vector2(-span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
 		node.draw_line(Vector2(span * 0.35, 36.0), Vector2(span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
-	var seal_c := Vector2(0.0, 14.0)
-	var seal_r := 26.0 if heavy else 22.0
+	var seal_c := Vector2(0.0, -rise * 0.42)
+	var seal_r := 20.0 if heavy else 16.0
 	if blocked:
 		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH_MID)
 		node.draw_circle(seal_c, seal_r, Palette.EMBER)
 	else:
 		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH)
 		node.draw_circle(seal_c, seal_r, Palette.VOID)
-		node.draw_arc(seal_c, seal_r - 1.0, 0.35, 1.1, 8, Palette.ASH_MID, 2.0, true)
 		node.draw_line(seal_c + Vector2(seal_r * 0.55, -seal_r * 0.35), seal_c + Vector2(seal_r * 0.82, -seal_r * 0.05), Palette.WOUND, 1.5)
 		node.draw_line(seal_c + Vector2(-seal_r * 0.70, seal_r * 0.25), seal_c + Vector2(-seal_r * 0.40, seal_r * 0.55), Palette.WOUND, 1.5)
 

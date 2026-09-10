@@ -194,10 +194,11 @@ def door_cell(kind: str, locked: bool) -> Image.Image:
     outer = arch_mask(h, w, cx, y0, y1, half)
     _masonry(a, outer)
     _voussoirs(a, outer, cx, y0, half)
-    # Recessed pointed leaf — architecture, not a filled shield and not a round portal.
-    leaf = arch_mask(h, w, cx, y0 + 36, y1 - 8, max(half - 36, 10))
-    _masonry(a, leaf, dark=True)
-    paint_mask(a, outline(leaf) & outer, BONE_DIM)
+    # Pointed gothic throat — an archway, not a filled shield and not a round portal.
+    # Opening is a lancet (same family as the frame), sitting in the lower body.
+    throat = arch_mask(h, w, cx, y0 + 150, y1 - 6, max(half - 58, 12))
+    paint_mask(a, throat, VOID)
+    paint_mask(a, outline(throat) & outer, BONE_DIM)
     inlay = arch_mask(h, w, cx, y0 + 14, y1 - 6, max(half - 14, 8))
     paint_mask(a, outline(inlay) & outer, BONE_DIM)
     for i in range(ribs):
@@ -206,21 +207,21 @@ def door_cell(kind: str, locked: bool) -> Image.Image:
         for ox in (0, 1, 2):
             xx = x + ox
             if 0 <= xx < w:
-                col = outer[:, xx] & ~leaf[:, xx]
+                col = outer[:, xx] & ~throat[:, xx]
                 a[col, xx] = BONE_DIM if ox == 0 else (0x1A, 0x19, 0x18, 255)
     if 0 <= y1 < h:
         a[y1, outer[y1]] = ASH
         if y1 - 1 >= 0:
             a[y1 - 1, outer[y1 - 1]] = ASH_DARK
     cell.paste(from_arr(a))
-    # Seal on the lower face, large so it stays a circle at ~167px.
-    seal_y = 210
+    # Circular seal sits in the tympanum (masonry above the throat), not in the opening.
+    seal_y = 102
     if huge:
-        seal_r = 62 if locked else 56
+        seal_r = 48 if locked else 42
     elif kind == "boss":
-        seal_r = 56 if locked else 50
+        seal_r = 44 if locked else 38
     else:
-        seal_r = 52 if locked else 46
+        seal_r = 40 if locked else 36
     cracked_seal(cell, cx, seal_y, seal_r, locked, huge)
     return cell
 
