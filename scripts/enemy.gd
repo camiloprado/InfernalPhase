@@ -672,10 +672,13 @@ func _bind_tele_fx() -> void:
 		"res://assets/sprites/fx_tele.png",
 		4,
 		1,
-		{"pulse": {"row": 0, "fps": 8.0, "loop": true}},
+		{"pulse": {"row": 0, "fps": 14.0, "loop": true}},
 		78.0
 	)
 	if _tele_fx:
+		Sprites.ping_pong(_tele_fx, &"pulse")
+		Sprites.stagger(_tele_fx, 14.0)
+		_tele_fx.set_meta("base_scale", _tele_fx.scale)
 		_tele_fx.visible = false
 		_tele_fx.z_index = 4
 		add_child(_tele_fx)
@@ -687,6 +690,9 @@ func _tick_art(delta: float) -> void:
 		_tele_fx.visible = show
 		if show:
 			_tele_fx.global_position = tele_dest
+			var base: Vector2 = _tele_fx.get_meta("base_scale", _tele_fx.scale)
+			_tele_fx.scale = base * (1.0 + 0.1 * sin(Time.get_ticks_msec() * 0.014))
+			_tele_fx.modulate = Color(1.1, 0.92, 0.82, 0.85 + 0.15 * absf(sin(Time.get_ticks_msec() * 0.011)))
 			if _tele_fx.animation != &"pulse":
 				_tele_fx.play("pulse")
 	if not art or _sprite == null:

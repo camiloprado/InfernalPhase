@@ -77,7 +77,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if hot:
 		_try_hit()
-	_sync_art()
+	_sync_art(delta)
 	if not _has_art:
 		queue_redraw()
 
@@ -130,7 +130,7 @@ func _build_art() -> void:
 				SLAM_SHEET,
 				4,
 				2,
-				{"warn": {"row": 0, "fps": 8.0, "loop": true}, "hot": {"row": 1, "fps": 12.0, "loop": true}},
+				{"warn": {"row": 0, "fps": 10.0, "loop": true}, "hot": {"row": 1, "fps": 16.0, "loop": true}},
 				128.0
 			)
 			if _slam:
@@ -173,7 +173,7 @@ func _stamp_line(a: Vector2, b: Vector2, step: float, tall: float) -> void:
 			BEAM_SHEET,
 			4,
 			2,
-			{"warn": {"row": 0, "fps": 8.0, "loop": true}, "hot": {"row": 1, "fps": 12.0, "loop": true}},
+			{"warn": {"row": 0, "fps": 12.0, "loop": true}, "hot": {"row": 1, "fps": 16.0, "loop": true}},
 			tall
 		)
 		if spr == null:
@@ -189,7 +189,7 @@ func _stamp_ring(radius: float, count: int, tall: float) -> void:
 			WISP_SHEET,
 			4,
 			1,
-			{"burn": {"row": 0, "fps": 10.0, "loop": true}},
+			{"burn": {"row": 0, "fps": 14.0, "loop": true}},
 			tall
 		)
 		if spr == null:
@@ -203,6 +203,9 @@ func _add_anim(path: String, cols: int, rows: int, anims: Dictionary, tall: floa
 	if spr == null:
 		return null
 	spr.modulate = Color(1, 1, 1, 0.58)
+	Sprites.ping_pong_all(spr)
+	Sprites.stagger(spr)
+	spr.set_meta("base_scale", spr.scale)
 	add_child(spr)
 	_fx.append(spr)
 	return spr
@@ -214,6 +217,7 @@ func _play_warn() -> void:
 			var spr := n as AnimatedSprite2D
 			if spr.sprite_frames.has_animation("warn"):
 				spr.play("warn")
+			Sprites.stagger(spr)
 
 
 func _play_hot() -> void:
@@ -223,13 +227,34 @@ func _play_hot() -> void:
 			if spr.sprite_frames.has_animation("hot"):
 				spr.play("hot")
 			spr.modulate = Color(1.2, 0.78, 0.55, 1.0)
+			Sprites.stagger(spr)
 
 
-func _sync_art() -> void:
-	if _slam:
-		var diam := slam_r * 2.15
-		_slam.scale = Vector2.ONE * (diam / 128.0)
-		_slam.position = to_local(origin)
+func _sync_art(delta: float) -> void:
+	var i := 0
+	for n in _fx:
+		if not (n is AnimatedSprite2D):
+			continue
+		var spr := n as AnimatedSprite2D
+		var phase := float(i) * 0.85
+		var pulse := 1.0 + 0.08 * sin(age * 12.0 + phase)
+		if hot:
+			pulse += 0.06 * sin(age * 20.0 + phase)
+		if spr == _slam:
+			var diam := slam_r * 2.15
+			spr.scale = Vector2.ONE * (diam / 128.0) * pulse
+			spr.position = to_local(origin)
+			spr.rotation += delta * (1.25 if hot else 0.5)
+		else:
+			var base: Vector2 = spr.get_meta("base_scale", spr.scale)
+			spr.scale = base * pulse
+			if kind == Kind.RING:
+				spr.rotation += delta * 1.7
+			if hot:
+				spr.modulate.a = 0.86 + 0.14 * absf(sin(age * 16.0 + phase))
+			else:
+				spr.modulate.a = 0.48 + 0.14 * absf(sin(age * 9.0 + phase))
+		i += 1
 
 
 func _draw() -> void:

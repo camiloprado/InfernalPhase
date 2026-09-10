@@ -23,6 +23,10 @@ var burn := false
 var _hit: Dictionary = {}
 var _shot_art := ""
 var _spr: AnimatedSprite2D
+var _base_scale := Vector2.ONE
+var _spin_rate := 0.0
+var _face_travel := true
+var _pulse_phase := 0.0
 
 const SHOT_SHEET := "res://assets/sprites/shots.png"
 
@@ -94,7 +98,7 @@ func _physics_process(delta: float) -> void:
 			velocity = velocity.rotated(angular * delta)
 		global_position += velocity * delta
 	if _spr:
-		_spr.rotation = dir.angle()
+		_animate_shot(delta)
 	else:
 		queue_redraw()
 
@@ -109,12 +113,20 @@ func bind_shot(art: String) -> void:
 		SHOT_SHEET,
 		4,
 		8,
-		{"fly": {"row": row, "fps": 12.0, "loop": true}},
+		{"fly": {"row": row, "fps": 18.0, "loop": true}},
 		maxf(radius * 5.2, 24.0)
 	)
+	_pulse_phase = randf() * TAU
+	_configure_motion(row)
 	if _spr:
+		Sprites.ping_pong(_spr, &"fly")
+		Sprites.stagger(_spr, 18.0)
+		_base_scale = _spr.scale
 		add_child(_spr)
-		_spr.rotation = dir.angle()
+		if _face_travel:
+			_spr.rotation = _travel().angle()
+		else:
+			_spr.rotation = _pulse_phase
 
 
 func _shot_row() -> int:
@@ -154,18 +166,57 @@ func _shot_row() -> int:
 	return 1
 
 
+func _configure_motion(row: int) -> void:
+	# Orbs (ring, skull, ember, deflect) spin; bolts keep a travel heading plus a wobble.
+	match row:
+		2:
+			_face_travel = false
+			_spin_rate = 5.6
+		4:
+			_face_travel = false
+			_spin_rate = 3.4
+		5:
+			_face_travel = false
+			_spin_rate = 4.2
+		7:
+			_face_travel = false
+			_spin_rate = 8.0
+		_:
+			_face_travel = true
+			_spin_rate = 0.0
+
+
+func _travel() -> Vector2:
+	if not parametric and velocity.length_squared() > 4.0:
+		return velocity
+	return dir
+
+
+func _animate_shot(delta: float) -> void:
+	var pulse := 1.0 + 0.09 * sin(age * 14.0 + _pulse_phase)
+	var flick := 0.86 + 0.14 * absf(sin(age * 17.0 + _pulse_phase * 0.7))
+	_spr.scale = _base_scale * pulse
+	_spr.modulate = Color(1.08 * flick, 0.96 * flick + 0.04, 0.88 * flick + 0.08, 1.0)
+	if _face_travel:
+		_spr.rotation = _travel().angle() + 0.14 * sin(age * 11.0 + _pulse_phase)
+	else:
+		_spr.rotation += _spin_rate * delta
+		_spr.position = Vector2.RIGHT.rotated(age * 9.0 + _pulse_phase) * 1.4
+
+
 func _draw() -> void:
 	if _spr:
 		return
+	var pulse := 1.0 + 0.12 * sin(age * 16.0)
 	var glow := color.lightened(0.35)
 	glow.a = 0.35
 	if deflected:
 		glow = Palette.BONE
 		glow.a = 0.55
-		draw_arc(Vector2.ZERO, radius + 7.0, 0.0, TAU, 16, Palette.EMBER_HOT, 2.0, true)
-	draw_circle(Vector2.ZERO, radius + 4.0, glow)
-	draw_circle(Vector2.ZERO, radius, color)
-	draw_circle(Vector2.ZERO, maxf(radius * 0.35, 1.5), Palette.BONE if from_enemy else Palette.EMBER_HOT)
+		draw_arc(Vector2.ZERO, (radius + 7.0) * pulse, 0.0, TAU, 16, Palette.EMBER_HOT, 2.0, true)
+	draw_circle(Vector2.ZERO, (radius + 4.0) * pulse, glow)
+	draw_circle(Vector2.ZERO, radius * pulse, color)
+	draw_circle(Vector2.ZERO, maxf(radius * 0.35, 1.5) * pulse, Palette.BONE if from_enemy else Palette.EMBER_HOT)
 
 
 func deflect(from: Vector2) -> void:

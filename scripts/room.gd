@@ -13,6 +13,9 @@ const DIR_VEC := {
 
 const DOOR_SHEET := "res://assets/sprites/doors.png"
 const ENV_SHEET := "res://assets/sprites/env.png"
+## Arch lip past the inner wall face. Depth on the wall axis is WALL + this (92px).
+## Inset from the gap ColorRect center toward the room is half of this (14px).
+const DOOR_REVEAL := 28.0
 
 var room_id: String = ""
 var grid := Vector2i.ZERO
@@ -416,14 +419,8 @@ func _door_col(k: Kind) -> int:
 
 
 func _door_atlas(k: Kind, blocked: bool) -> AtlasTexture:
-	var at := Sprites.cell(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
-	if at == null:
-		return null
-	# 1px inset so a 90° rotate cannot sample the next sheet cell.
-	var r := at.region
-	if r.size.x > 2.0 and r.size.y > 2.0:
-		at.region = Rect2(r.position + Vector2(1, 1), r.size - Vector2(2, 2))
-	return at
+	# Opaque crop + 1px inset so padding cannot shove the arch off the opening.
+	return Sprites.cell_used(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
 
 
 func _door_inward(dir: int) -> Vector2:
@@ -467,39 +464,47 @@ func set_active_doors(on: bool) -> void:
 
 
 func _door_rotation(dir: int) -> float:
-	# doors.png is a south-facing portrait (crown = texture top).
-	# Rotation faces the arch into this room. Floor only shows these
-	# sprites while this room is the active phase.
+	# doors.png is a south-facing portrait (crown = texture top / local -Y).
+	# Rotate so the crown faces into this room and the sill sits on the outer wall.
 	match dir:
 		Dir.N:
 			return PI
 		Dir.S:
 			return 0.0
 		Dir.E:
-			return PI * 0.5
-		Dir.W:
 			return -PI * 0.5
+		Dir.W:
+			return PI * 0.5
 	return 0.0
+
+
+func _apply_door_sprite(spr: Sprite2D, atlas: AtlasTexture, dir: int, rect: Rect2) -> void:
+	spr.texture = atlas
+	spr.centered = true
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.rotation = _door_rotation(dir)
+	var cell := atlas.region.size
+	var opening := maxf(rect.size.x, rect.size.y)
+	var depth := Game.WALL + DOOR_REVEAL
+	# Width matches the 200px carved gap. Height matches the 64px wall plus
+	# a 28px crown so the frontal sheet sits on the masonry instead of
+	# standing ~100px into the floor.
+	spr.scale = Vector2(
+		opening / maxf(cell.x, 1.0),
+		depth / maxf(cell.y, 1.0)
+	)
+	spr.position = rect.position + rect.size * 0.5 + _door_inward(dir) * (DOOR_REVEAL * 0.5)
+	spr.set_meta("gap", rect)
+	spr.set_meta("dir", dir)
 
 
 func _add_door_art(dir: int, rect: Rect2) -> void:
 	var dest: Room = neighbors.get(dir)
 	var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, false)
 	if atlas:
-		var cell := atlas.region.size
 		var spr := Sprite2D.new()
 		spr.name = "DoorArt_%d" % dir
-		spr.texture = atlas
-		spr.centered = true
-		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		var opening := maxf(rect.size.x, rect.size.y)
-		var along := opening / maxf(cell.x, 1.0)
-		spr.scale = Vector2(along, along)
-		spr.rotation = _door_rotation(dir)
-		spr.position = rect.position + rect.size * 0.5
-		var depth := cell.y * along
-		var inset := maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
-		spr.position += _door_inward(dir) * inset
+		_apply_door_sprite(spr, atlas, dir, rect)
 		spr.z_index = 3
 		spr.visible = false
 		add_child(spr)
@@ -510,17 +515,7 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 	art.position = rect.position + rect.size * 0.5
 	art.z_index = 3
 	art.visible = false
-	var inward := Vector2.ZERO
-	match dir:
-		Dir.N:
-			inward = Vector2(0, 1)
-		Dir.S:
-			inward = Vector2(0, -1)
-		Dir.W:
-			inward = Vector2(1, 0)
-		Dir.E:
-			inward = Vector2(-1, 0)
-	art.position += inward * 36.0
+	art.position += _door_inward(dir) * (DOOR_REVEAL * 0.5)
 	art.set_meta("horiz", rect.size.x >= rect.size.y)
 	art.set_meta("blocked", false)
 	art.draw.connect(_draw_door.bind(art))
@@ -589,7 +584,10 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 			var dest: Room = neighbors.get(dir)
 			var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, blocked)
 			if atlas:
-				(art as Sprite2D).texture = atlas
+				var gap: Rect2 = (art as Sprite2D).get_meta("gap", Rect2())
+				if gap.size == Vector2.ZERO:
+					gap = Rect2(body.position - vis.size * 0.5, vis.size)
+				_apply_door_sprite(art as Sprite2D, atlas, dir, gap)
 			return
 		art.set_meta("blocked", blocked)
 		(art as Node2D).queue_redraw()

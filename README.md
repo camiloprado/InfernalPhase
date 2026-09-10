@@ -47,7 +47,7 @@ At the Threshold, pick **Caim** or **Lilith** (same hearts, speed, and fire rate
 
 The last pair stays highlighted on restart. HUD shows `Caim · Normal` or `Lilith · Normal`, or just **Bebê Chorão**.
 
-Four hearts (vessel drops can raise the cap to six). Hit = a short invuln blink, not a vacation. Trash enemies drop about half the time: brimstone hearts, ember (damage-up), rare vessel (max-heart), or a shot mod (pierce / rapid / heavy / burn). Drops pulse so they read on the ash floor. Only the **current room** draws and collides its door arches; a neighbor never stamps a second frame into the shared opening. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
+Four hearts (vessel drops can raise the cap to six). Hit = a short invuln blink, not a vacation. Trash enemies drop about half the time: brimstone hearts, ember (damage-up), rare vessel (max-heart), or a shot mod (pierce / rapid / heavy / burn). Drops pulse so they read on the ash floor. Only the **current room** draws and collides its door arches; a neighbor never stamps a second frame into the shared opening. Arches sit on the 64px wall ColorRect: width = the 200px opening, depth = 92px (`WALL` 64 + `DOOR_REVEAL` 28), inset 14px from the gap center toward the room. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
 
 The Threshold has a **buraco** (ember-rim pit sprite, not a reused floor tile). Step in and you **drop** — teleport to the deep south room. No heart loss on the drop. The boss RING special is a fire-wisp annulus with a safe inner disk and **no pit**.
 
@@ -58,7 +58,7 @@ Nine rooms on a grid:
 | Room | What |
 | --- | --- |
 | **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit that teleports to Deep |
-| Combat rooms | Ember Imps, Ring Wretches, Ash Cantors — pixel shot sprites (fireball / bone ring / violet bolt), not `_draw` orbs |
+| Combat rooms | Ember Imps, Ring Wretches, Ash Cantors — pixel shot sprites (fireball / bone ring / violet bolt) that cycle, spin, or pulse |
 | **The Concierge** | NPC room. Walk up. First visit grants a random item from the drop pool (heart, ember, vessel, or shot mod). Later visits are flavor. No shop. |
 | **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP (CROSS, DIAG, SLAM, LANES, RING). RING has no pit. |
 

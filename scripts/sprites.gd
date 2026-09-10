@@ -27,6 +27,80 @@ static func cell(path: String, cols: int, rows: int, col: int, row: int) -> Atla
 	return at
 
 
+## Crop a sheet cell to its opaque pixels so asymmetric padding cannot shift art.
+## 1px inset avoids sampling the next cell on rotate. Falls back to the full cell.
+static func cell_used(path: String, cols: int, rows: int, col: int, row: int) -> AtlasTexture:
+	var at := cell(path, cols, rows, col, row)
+	if at == null:
+		return null
+	var img: Image = null
+	if at.atlas:
+		img = at.atlas.get_image()
+	if img == null:
+		_inset_region(at, 1)
+		return at
+	var ir := Rect2i(Vector2i(int(at.region.position.x), int(at.region.position.y)), Vector2i(int(at.region.size.x), int(at.region.size.y)))
+	if ir.size.x < 2 or ir.size.y < 2:
+		return at
+	var used := img.get_region(ir).get_used_rect()
+	if used.size.x < 8 or used.size.y < 8:
+		_inset_region(at, 1)
+		return at
+	at.region = Rect2(at.region.position + Vector2(used.position), Vector2(used.size))
+	_inset_region(at, 1)
+	return at
+
+
+static func _inset_region(at: AtlasTexture, px: int) -> void:
+	var r := at.region
+	if r.size.x > float(px * 2) and r.size.y > float(px * 2):
+		at.region = Rect2(r.position + Vector2(px, px), r.size - Vector2(px * 2, px * 2))
+
+
+## Reverse the middle frames so a 4-stamp row reads as a flicker, not a freeze.
+static func ping_pong(spr: AnimatedSprite2D, anim: StringName = &"") -> void:
+	if spr == null or spr.sprite_frames == null:
+		return
+	var sf := spr.sprite_frames
+	if anim == StringName():
+		anim = spr.animation
+	if not sf.has_animation(anim):
+		return
+	var n := sf.get_frame_count(anim)
+	if n < 3:
+		return
+	for i in range(n - 2, 0, -1):
+		sf.add_frame(anim, sf.get_frame_texture(anim, i), sf.get_frame_duration(anim, i))
+
+
+static func ping_pong_all(spr: AnimatedSprite2D) -> void:
+	if spr == null or spr.sprite_frames == null:
+		return
+	for anim in spr.sprite_frames.get_animation_names():
+		ping_pong(spr, StringName(anim))
+
+
+## Fail-soft: missing frames just skip. Random start so a volley does not blink in lockstep.
+static func stagger(spr: AnimatedSprite2D, fps: float = -1.0) -> void:
+	if spr == null or spr.sprite_frames == null:
+		return
+	var anim := spr.animation
+	if not spr.sprite_frames.has_animation(anim):
+		var names := spr.sprite_frames.get_animation_names()
+		if names.is_empty():
+			return
+		anim = StringName(names[0])
+		spr.animation = anim
+	if fps > 0.0:
+		spr.sprite_frames.set_animation_speed(anim, fps)
+	spr.play(anim)
+	var n := spr.sprite_frames.get_frame_count(anim)
+	if n > 1:
+		spr.frame = randi() % n
+		spr.frame_progress = randf()
+	spr.speed_scale = randf_range(0.88, 1.18)
+
+
 static func actor(
 		path: String,
 		cols: int,
