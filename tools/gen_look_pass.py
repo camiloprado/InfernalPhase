@@ -16,11 +16,17 @@ VOID = (0x0B, 0x0C, 0x10, 255)
 VOID_DEEP = (0x04, 0x05, 0x07, 255)
 ASH = (0x5C, 0x5A, 0x56, 255)
 ASH_DARK = (0x3A, 0x39, 0x36, 255)
+ASH_MID = (0x4A, 0x48, 0x45, 255)
 BONE = (0xE6, 0xD9, 0xC3, 255)
 BONE_DIM = (0xB7, 0xAD, 0x9A, 255)
 EMBER = (0xE2, 0x5A, 0x1A, 255)
 WOUND = (0x7A, 0x1F, 0x1A, 255)
 CLEAR = (0, 0, 0, 0)
+
+# Portrait door cell — same atlas layout as the hell sheet (4×2 of 384×512)
+# so sprites.gd cell(path, 4, 2, col, row) keeps working. Uniform scale
+# opening/cell.x (~0.521) yields a 200×267 arch that sits on the wall band.
+DOOR_W, DOOR_H = 384, 512
 
 
 def new(w: int, h: int) -> Image.Image:
@@ -61,15 +67,36 @@ def circle_mask(h: int, w: int, cx: int, cy: int, r: int) -> np.ndarray:
     return (xx - cx) ** 2 + (yy - cy) ** 2 <= r * r
 
 
-def arch_mask(h: int, w: int, cx: int, y0: int, y1: int, half: int) -> np.ndarray:
-    # Tall pointed lancet: spring low, t^1.08 so the crown is a gothic point, not a house roof.
+def gothic_arch_mask(h: int, w: int, cx: int, y_top: int, y_bot: int, half: int) -> tuple[np.ndarray, int, int]:
+    """Equilateral lancet: r = 2*half so the head meets the jambs at full width.
+    Shallower rise made a brick rectangle with a spike on top (the house-roof FAIL)."""
     yy, xx = np.ogrid[:h, :w]
-    spring = y0 + int((y1 - y0) * 0.42)
+    head_rise = int(round(half * math.sqrt(3.0)))
+    max_rise = max(y_bot - y_top - 64, 48)
+    if head_rise > max_rise:
+        half = max(int(max_rise / math.sqrt(3.0)), 24)
+        head_rise = int(round(half * math.sqrt(3.0)))
+    spring = y_top + head_rise
+    r2 = float((2.0 * half) ** 2)
     dx = np.abs(xx - cx)
-    t = np.clip((spring - yy) / max(spring - y0, 1), 0, None)
-    crown = half * np.maximum(0.0, 1.0 - np.power(t, 1.08)) + 0.5
-    maxw = np.where(yy >= spring, half, crown)
-    return (yy >= y0) & (yy <= y1) & (dx <= maxw)
+    jambs = (yy >= spring) & (yy <= y_bot) & (dx <= half)
+    d1 = (xx - (cx - half)).astype(np.float64) ** 2 + (yy - spring).astype(np.float64) ** 2
+    d2 = (xx - (cx + half)).astype(np.float64) ** 2 + (yy - spring).astype(np.float64) ** 2
+    head = (yy >= y_top) & (yy < spring) & (d1 <= r2) & (d2 <= r2)
+    return jambs | head, spring, half
+
+
+def erode(mask: np.ndarray, px: int) -> np.ndarray:
+    acc = mask.copy()
+    for _ in range(max(px, 0)):
+        acc = (
+            acc
+            & np.roll(acc, 1, 0)
+            & np.roll(acc, -1, 0)
+            & np.roll(acc, 1, 1)
+            & np.roll(acc, -1, 1)
+        )
+    return acc
 
 
 def outline(mask: np.ndarray) -> np.ndarray:
@@ -78,14 +105,6 @@ def outline(mask: np.ndarray) -> np.ndarray:
     left = np.roll(mask, 1, 1)
     right = np.roll(mask, -1, 1)
     return mask & ~(up & down & left & right)
-
-
-def thick_lip(mask: np.ndarray, px: int) -> np.ndarray:
-    lip = outline(mask)
-    acc = lip.copy()
-    for _ in range(max(px, 1)):
-        acc = acc | np.roll(acc, 1, 0) | np.roll(acc, -1, 0) | np.roll(acc, 1, 1) | np.roll(acc, -1, 1)
-    return acc & mask
 
 
 def diamond(px: Image.Image, cx: int, cy: int, rx: int, ry: int, fill, edge=None) -> None:
@@ -116,22 +135,24 @@ def circle_fill(px: Image.Image, cx: int, cy: int, r: int, fill) -> None:
 
 
 def cracked_seal(cell: Image.Image, cx: int, cy: int, r: int, locked: bool, huge: bool) -> None:
-    # Same circular fixture locked or open. Locked = Ember disk. Open = dark Ash disk
-    # with Wound rim faults. No Void pupil (keyhole) and no Ember diamond on open.
-    rr = int(r * (1.08 if huge else 1.0))
+    """Circular fixture. Locked = Ember lit. Open = cracked Ash/Void, no Ember."""
+    rr = int(r * (1.10 if huge else 1.0))
     if locked:
-        circle_fill(cell, cx, cy, rr + 3, ASH_DARK)
+        circle_fill(cell, cx, cy, rr + 4, ASH_DARK)
         circle_fill(cell, cx, cy, rr, EMBER)
-        ring(cell, cx, cy, rr, max(rr - 5, 8), ASH_DARK)
+        ring(cell, cx, cy, rr, max(rr - 6, 8), ASH_DARK)
+        # Small brand glyph — still a circle, not a face.
+        diamond(cell, cx, cy, max(7, rr // 5), max(5, rr // 7), VOID)
+        diamond(cell, cx, cy, max(3, rr // 9), max(2, rr // 12), EMBER)
         return
-    circle_fill(cell, cx, cy, rr + 3, ASH)
-    circle_fill(cell, cx, cy, rr, ASH_DARK)
-    ring(cell, cx, cy, rr, max(rr - 6, 8), (0x22, 0x21, 0x1F, 255))
+    circle_fill(cell, cx, cy, rr + 4, ASH)
+    circle_fill(cell, cx, cy, rr, VOID)
+    ring(cell, cx, cy, rr, max(rr - 7, 8), ASH_DARK)
     _wound_rim_faults(cell, cx, cy, rr)
+    _wound_fissures(cell, cx, cy, rr)
 
 
 def _wound_rim_faults(px: Image.Image, cx: int, cy: int, r: int) -> None:
-    # Outer-band chips only. Never a diameter, never two lines crossing (that was the X).
     for a_deg, span, inward in ((28, 7, 0.24), (78, 8, 0.28), (168, 6, 0.22), (312, 7, 0.26)):
         ang = math.radians(a_deg)
         nx, ny = math.cos(ang), math.sin(ang)
@@ -146,81 +167,98 @@ def _wound_rim_faults(px: Image.Image, cx: int, cy: int, r: int) -> None:
                     put(px, x + 1, y, WOUND)
 
 
-def _masonry(a: np.ndarray, mask: np.ndarray, dark: bool = False) -> None:
-    # Huge Ash courses so brick survives ~200×167 game scale. Mortar is Void-dark
-    # so the arch reads as stacked stone, not a flat gray shield.
-    h, w = mask.shape
-    yy, xx = np.ogrid[:h, :w]
-    mortar = (0x12, 0x11, 0x10, 255)
-    face_c = (0x2E, 0x2D, 0x2A, 255) if dark else ASH
-    fill_c = (0x1C, 0x1B, 0x19, 255) if dark else ASH_DARK
-    paint_mask(a, mask, fill_c)
-    course = 28
-    face = mask & (yy % course > 3)
-    stagger = ((yy // course) % 2) * 30
-    joint = mask & (((xx + stagger) % 52) <= 2)
-    paint_mask(a, face & ~joint, face_c)
-    paint_mask(a, mask & ((yy % course <= 3) | joint), mortar)
-    paint_mask(a, mask & (((xx * 5 + yy * 9) % 31) == 0), fill_c)
+def _wound_fissures(px: Image.Image, cx: int, cy: int, r: int) -> None:
+    """Jagged Wound cracks. Not a diameter, not a crossing X."""
+    specs = ((38, 0.22, 0.92), (118, 0.30, 0.96), (205, 0.26, 0.90), (300, 0.24, 0.94))
+    for a_deg, t0, t1 in specs:
+        ang = math.radians(a_deg)
+        nx, ny = math.cos(ang), math.sin(ang)
+        tx, ty = -ny, nx
+        steps = max(int(r * (t1 - t0)), 4)
+        for i in range(steps):
+            t = t0 + (t1 - t0) * i / steps
+            wobble = 1.6 * math.sin(i * 0.7)
+            x = int(cx + t * r * nx + wobble * tx)
+            y = int(cy + t * r * ny + wobble * ty)
+            put(px, x, y, WOUND)
+            put(px, x + 1, y, WOUND)
+            put(px, x, y + 1, ASH_DARK)
 
 
-def _voussoirs(a: np.ndarray, outer: np.ndarray, cx: int, y0: int, half: int) -> None:
-    # Radiating wedge joints on the pointed head — the gothic-arch tell at game scale.
-    h, w = outer.shape
+def _masonry_frame(a: np.ndarray, frame: np.ndarray) -> None:
+    """Ash stone on the arch ring only. Mortar stays in-family — no brown brick."""
+    h, w = frame.shape
     yy, xx = np.ogrid[:h, :w]
-    spring = y0 + int((h - y0) * 0.42)
-    head = outer & (yy < spring)
-    for i in range(-7, 8):
-        ang = math.radians(90.0 + i * 11.0)
+    mortar = ASH_DARK
+    paint_mask(a, frame, ASH_MID)
+    course = 22
+    face = frame & (yy % course > 3)
+    stagger = ((yy // course) % 2) * 18
+    joint = frame & (((xx + stagger) % 40) <= 2)
+    paint_mask(a, face & ~joint, ASH)
+    paint_mask(a, frame & ((yy % course <= 3) | joint), mortar)
+    paint_mask(a, frame & (((xx * 5 + yy * 9) % 37) == 0), ASH_DARK)
+
+
+def _voussoirs(a: np.ndarray, frame: np.ndarray, cx: int, spring: int, y_top: int, half: int) -> None:
+    h, w = frame.shape
+    yy, xx = np.ogrid[:h, :w]
+    head = frame & (yy < spring)
+    for i in range(-8, 9):
+        ang = math.radians(90.0 + i * 10.0)
         vx, vy = math.cos(ang), -abs(math.sin(ang))
-        # Distance to the ray from (cx, y0+8).
         px = xx - cx
-        py = yy - (y0 + 8)
+        py = yy - (y_top + 10)
         cross = np.abs(px * vy - py * vx)
         along = px * vx + py * vy
-        ray = head & (along > 8) & (cross <= 1.6)
-        paint_mask(a, ray, (0x1A, 0x19, 0x18, 255))
+        ray = head & (along > 6) & (cross <= 1.4)
+        paint_mask(a, ray, ASH_DARK)
 
 
 def door_cell(kind: str, locked: bool) -> Image.Image:
-    # Flush wall-band lancet (~200×100). A Void throat read as a hallway notch;
-    # a squat filled slab read as a gray shield. Masonry face + huge circular seal.
-    w, h = 384, 192
+    """Gothic stone FRAME on transparent field + circular seal in the opening."""
+    w, h = DOOR_W, DOOR_H
     cell = new(w, h)
     a = arr_of(cell)
-    cx, y0, y1 = 192, 6, 186
-    half = 168
-    huge = kind == "start"
-    ribs = 5 if huge else (4 if kind == "boss" else 3)
-    if huge:
-        half = 172
-    outer = arch_mask(h, w, cx, y0, y1, half)
-    _masonry(a, outer)
-    _voussoirs(a, outer, cx, y0, half)
-    inlay = arch_mask(h, w, cx, y0 + 12, y1 - 8, max(half - 16, 8))
-    paint_mask(a, outline(inlay) & outer, BONE_DIM)
-    for i in range(ribs):
-        t = (i + 1) / (ribs + 1)
-        x = int(cx - half + t * half * 2)
-        for ox in (0, 1, 2):
-            xx = x + ox
-            if 0 <= xx < w:
-                col = outer[:, xx]
-                a[col, xx] = BONE_DIM if ox == 0 else (0x1A, 0x19, 0x18, 255)
-    if 0 <= y1 < h:
-        a[y1, outer[y1]] = ASH
-        if y1 - 1 >= 0:
-            a[y1 - 1, outer[y1 - 1]] = ASH_DARK
+    cx = w // 2
+    huge = kind in ("start", "boss")
+    half = 152 if huge else 140
+    y_top, y_bot = 16, h - 12
+    stone = 42 if huge else 34
+    outer, spring, half = gothic_arch_mask(h, w, cx, y_top, y_bot, half)
+    inner = erode(outer, stone)
+    frame = outer & ~inner
+    _masonry_frame(a, frame)
+    _voussoirs(a, frame, cx, spring, y_top, half)
+    # Thin Bone inlay on inner soffit and outer drip.
+    paint_mask(a, outline(outer) & outer, BONE_DIM)
+    paint_mask(a, outline(inner) & frame, BONE)
+    # Sill — arch sits on the Ash wall band.
+    yy, xx = np.ogrid[:h, :w]
+    sill = frame & (yy >= y_bot - 14)
+    paint_mask(a, sill, ASH)
+    paint_mask(a, sill & (yy >= y_bot - 4), ASH_DARK)
+    paint_mask(a, sill & (yy == y_bot - 14), BONE_DIM)
+    ribs = 5 if kind == "start" else (4 if kind == "boss" else 0)
+    if ribs:
+        for i in range(ribs):
+            t = (i + 1) / (ribs + 1)
+            x = int(cx - half + t * half * 2)
+            for ox in (0, 1):
+                xx_ = x + ox
+                if 0 <= xx_ < w:
+                    col = frame[:, xx_]
+                    a[col, xx_] = BONE_DIM if ox == 0 else ASH_DARK
     cell.paste(from_arr(a))
-    # Huge circular seal on the wall-band face (lower 2/3). No Bone halo.
-    seal_y = 118
-    seal_r = 52 if huge else (48 if kind == "boss" else 44)
+    # Seal in the opening, lower-center so it reads on the wall band not the point.
+    seal_y = spring + int((y_bot - spring) * 0.38)
+    seal_r = 62 if kind == "start" else (56 if kind == "boss" else 48)
     cracked_seal(cell, cx, seal_y, seal_r, locked, huge)
     return cell
 
 
 def write_doors() -> None:
-    cw, ch = 384, 192
+    cw, ch = DOOR_W, DOOR_H
     sheet = new(cw * 4, ch * 2)
     kinds = ["start", "combat", "npc", "boss"]
     for col, kind in enumerate(kinds):
@@ -272,8 +310,7 @@ def write_shots() -> None:
 
 
 def write_hearts() -> None:
-    # 0 full Bone + Ember glyph · 1 empty hollow Ash · 2 hit Wound rim faults · 3 shot glyph
-    # Hit faults stay in the outer band — no diameter, no crossing X.
+    # 0 full Bone + Ember glyph · 1 empty hollow Ash · 2 hit Wound cracks · 3 shot glyph
     sheet = new(256, 64)
     filled = new(64, 64)
     circle_fill(filled, 32, 32, 28, BONE)
@@ -281,15 +318,19 @@ def write_hearts() -> None:
     diamond(filled, 32, 32, 12, 8, EMBER, ASH_DARK)
     diamond(filled, 32, 32, 4, 3, VOID)
     sheet.paste(filled, (0, 0), filled)
+
     empty = new(64, 64)
     ring(empty, 32, 32, 28, 20, ASH)
     ring(empty, 32, 32, 28, 26, ASH_DARK)
     sheet.paste(empty, (64, 0), empty)
+
     cracked = new(64, 64)
     circle_fill(cracked, 32, 32, 28, BONE)
     ring(cracked, 32, 32, 28, 25, BONE_DIM)
     _wound_rim_faults(cracked, 32, 32, 28)
+    _wound_fissures(cracked, 32, 32, 28)
     sheet.paste(cracked, (128, 0), cracked)
+
     glyph = new(64, 64)
     diamond(glyph, 32, 32, 22, 16, EMBER, BONE)
     diamond(glyph, 32, 32, 7, 5, VOID)
@@ -298,17 +339,28 @@ def write_hearts() -> None:
 
 
 def write_pit() -> None:
-    # Filled Void-deep disk (darker than the floor) + thick Ash rim + thin Bone hairline.
-    # A 12px Bone hoop on VOID read as a white circle on black.
+    """Void hole, thin Ash lip, 1px Bone hairline. Outside alpha 0 — no gray fringe."""
     n = 1024
     a = np.zeros((n, n, 4), dtype=np.uint8)
     yy, xx = np.ogrid[:n, :n]
     d2 = (xx - n // 2) ** 2 + (yy - n // 2) ** 2
-    bone, ash, shade, hole = 400, 376, 318, 292
-    paint_mask(a, (d2 <= bone * bone) & (d2 > ash * ash), BONE)
-    paint_mask(a, (d2 <= ash * ash) & (d2 > shade * shade), ASH)
-    paint_mask(a, (d2 <= shade * shade) & (d2 > hole * hole), ASH_DARK)
+    # Radii in px. At 0.30 scale: outer ~114px, lip ~11px, hole ~103px.
+    bone, ash, shade, hole = 380, 377, 360, 348
     paint_mask(a, d2 <= hole * hole, VOID_DEEP)
+    paint_mask(a, (d2 <= shade * shade) & (d2 > hole * hole), ASH_DARK)
+    paint_mask(a, (d2 <= ash * ash) & (d2 > shade * shade), ASH)
+    paint_mask(a, (d2 <= bone * bone) & (d2 > ash * ash), BONE)
+    # Faint ritual ticks on the lip — still Ash/Bone, not lava.
+    cx = cy = n // 2
+    for i in range(12):
+        ang = math.radians(i * 30.0)
+        x = int(cx + 365 * math.cos(ang))
+        y = int(cy + 365 * math.sin(ang))
+        for ox in range(-1, 2):
+            for oy in range(-1, 2):
+                px, py = x + ox, y + oy
+                if 0 <= px < n and 0 <= py < n and a[py, px, 3] > 0:
+                    a[py, px] = BONE_DIM
     from_arr(a).save(ENV / "pit.png")
 
 
@@ -398,9 +450,8 @@ def main() -> None:
     SPR.mkdir(parents=True, exist_ok=True)
     ENV.mkdir(parents=True, exist_ok=True)
     only = set(sys.argv[1:])
-    # Default: doors + hearts + pit. Do not churn shots / Penitent sheets.
     if not only:
-        only = {"doors", "hearts", "pit"}
+        only = {"doors", "hearts", "pit", "shots"}
     if "all" in only:
         only = {"doors", "shots", "hearts", "pit", "player", "env"}
     if "doors" in only:

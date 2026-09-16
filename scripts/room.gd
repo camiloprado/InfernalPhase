@@ -13,9 +13,8 @@ const DIR_VEC := {
 
 const DOOR_SHEET := "res://assets/sprites/doors.png"
 const ENV_SHEET := "res://assets/sprites/env.png"
-## Arch lip past the inner wall face. Depth on the wall axis is WALL + this (100px).
-## Inset from the gap ColorRect center toward the room is half of this (18px).
-## Flush wall-band lancet (384×192 cell → 200×100). No hallway throat.
+## Arch lip past the inner wall face. Fallback art uses WALL + this (100px).
+## Portrait sheet cells (384×512) scale uniformly to the 200px opening (~267px deep).
 const DOOR_REVEAL := 36.0
 
 var room_id: String = ""
@@ -149,12 +148,17 @@ func _owns_door(dir: int) -> bool:
 
 
 func _build_geometry() -> void:
-	var floor_r := ColorRect.new()
-	floor_r.color = _floor_color()
-	floor_r.size = size
-	floor_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	floor_r.z_index = -8
-	add_child(floor_r)
+	# Node2D fill (not ColorRect) so pit PNG transparency composites onto Void
+	# instead of the viewport checkerboard. Same canvas as the pit Sprite2D.
+	var floor_n := Node2D.new()
+	floor_n.name = "FloorFill"
+	floor_n.z_index = -8
+	var floor_col := _floor_color()
+	floor_n.draw.connect(func () -> void:
+		floor_n.draw_rect(Rect2(Vector2.ZERO, size), floor_col)
+	)
+	add_child(floor_n)
+	floor_n.queue_redraw()
 	var floor_tex := Sprites.cell(ENV_SHEET, 3, 5, 0, theme)
 	if floor_tex:
 		var tiled := TextureRect.new()
@@ -165,7 +169,7 @@ func _build_geometry() -> void:
 		tiled.size = size
 		tiled.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tiled.modulate = Color(1, 1, 1, 0.35)
-		floor_r.add_child(tiled)
+		floor_n.add_child(tiled)
 	_scatter_decals()
 
 	var grid_n := Node2D.new()
@@ -388,8 +392,8 @@ func _door_col(k: Kind) -> int:
 
 
 func _door_atlas(k: Kind, blocked: bool) -> AtlasTexture:
-	# Full landscape cell (not used-rect crop) so the circular seal stays circular
-	# when scaled onto the 200×92 wall band.
+	# Full portrait cell (not used-rect crop) so the circular seal stays circular
+	# when scaled uniformly onto the 200px opening.
 	return Sprites.cell(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
 
 
@@ -455,13 +459,14 @@ func _apply_door_sprite(spr: Sprite2D, atlas: AtlasTexture, dir: int, rect: Rect
 	spr.rotation = _door_rotation(dir)
 	var cell := atlas.region.size
 	var opening := maxf(rect.size.x, rect.size.y)
-	var depth := Game.WALL + DOOR_REVEAL
-	# Uniform scale: 200×100 slot on a 384×192 cell (~0.521). Circles stay circles.
-	spr.scale = Vector2(
-		opening / maxf(cell.x, 1.0),
-		depth / maxf(cell.y, 1.0)
-	)
-	spr.position = rect.position + rect.size * 0.5 + _door_inward(dir) * (DOOR_REVEAL * 0.5)
+	# Uniform scale from cell width → 200px opening. Portrait 384×512 becomes
+	# ~200×267 and sits on the wall: outer face flush, crown into the room.
+	var along := opening / maxf(cell.x, 1.0)
+	spr.scale = Vector2(along, along)
+	spr.position = rect.position + rect.size * 0.5
+	var depth := cell.y * along
+	var inset := maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
+	spr.position += _door_inward(dir) * inset
 	spr.set_meta("gap", rect)
 	spr.set_meta("dir", dir)
 
@@ -483,8 +488,8 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 	art.position = rect.position + rect.size * 0.5
 	art.z_index = 3
 	art.visible = false
+	art.rotation = _door_rotation(dir)
 	art.position += _door_inward(dir) * (DOOR_REVEAL * 0.5)
-	art.set_meta("horiz", rect.size.x >= rect.size.y)
 	art.set_meta("blocked", false)
 	art.draw.connect(_draw_door.bind(art))
 	add_child(art)
@@ -506,33 +511,42 @@ func _draw_door(node: Node2D) -> void:
 		if _door_art[dir] == node and neighbors.has(dir):
 			dest_kind = (neighbors[dir] as Room).kind
 			break
-	var heavy := dest_kind == Kind.START
-	var span := 96.0 if heavy else 88.0
-	var rise := 58.0 if heavy else 52.0
-	var pts := PackedVector2Array()
-	pts.append(Vector2(-span, 42.0))
-	pts.append(Vector2(-span, 4.0))
-	pts.append(Vector2(0.0, -rise))
-	pts.append(Vector2(span, 4.0))
-	pts.append(Vector2(span, 42.0))
-	# Masonry lancet + circular Ember / cracked seal. No Void hallway throat.
-	node.draw_colored_polygon(pts, Palette.ASH)
-	node.draw_polyline(pts, Palette.BONE_DIM, 2.0, true)
+	var heavy := dest_kind == Kind.START or dest_kind == Kind.BOSS
+	var span := 78.0 if heavy else 70.0
+	var rise := 118.0 if heavy else 104.0
+	var spring := 8.0
+	# Gothic frame (hollow) — stone ring + Bone inlay, not a filled gray slab.
+	var outer := PackedVector2Array()
+	outer.append(Vector2(-span, 52.0))
+	outer.append(Vector2(-span, spring))
+	outer.append(Vector2(0.0, -rise))
+	outer.append(Vector2(span, spring))
+	outer.append(Vector2(span, 52.0))
+	var inset := 16.0
+	var inner := PackedVector2Array()
+	inner.append(Vector2(-span + inset, 48.0))
+	inner.append(Vector2(-span + inset, spring + 6.0))
+	inner.append(Vector2(0.0, -rise + inset + 8.0))
+	inner.append(Vector2(span - inset, spring + 6.0))
+	inner.append(Vector2(span - inset, 48.0))
+	node.draw_colored_polygon(outer, Palette.ASH)
+	node.draw_colored_polygon(inner, Palette.VOID)
+	node.draw_polyline(outer, Palette.BONE_DIM, 2.0, true)
+	node.draw_polyline(inner, Palette.BONE, 2.0, true)
 	if heavy:
-		node.draw_line(Vector2(-span * 0.35, 36.0), Vector2(-span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
-		node.draw_line(Vector2(span * 0.35, 36.0), Vector2(span * 0.12, -rise * 0.35), Palette.BONE_DIM, 2.0)
-	var seal_c := Vector2(0.0, 10.0)
-	var seal_r := 24.0 if heavy else 20.0
+		node.draw_line(Vector2(-span * 0.4, 44.0), Vector2(-span * 0.18, -rise * 0.35), Palette.BONE_DIM, 2.0)
+		node.draw_line(Vector2(span * 0.4, 44.0), Vector2(span * 0.18, -rise * 0.35), Palette.BONE_DIM, 2.0)
+	var seal_c := Vector2(0.0, 6.0)
+	var seal_r := 26.0 if heavy else 22.0
 	if blocked:
 		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH_MID)
 		node.draw_circle(seal_c, seal_r, Palette.EMBER)
 	else:
 		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH)
-		node.draw_circle(seal_c, seal_r, Palette.ASH_MID)
-		# Outer-band Wound faults — same circular seal, cracked, no Ember, no X.
+		node.draw_circle(seal_c, seal_r, Palette.VOID)
 		for a in [0.48, 1.22, 2.93, 5.45]:
 			var inward := Vector2.from_angle(a)
-			node.draw_line(seal_c + inward * (seal_r * 0.72), seal_c + inward * seal_r, Palette.WOUND, 2.0)
+			node.draw_line(seal_c + inward * (seal_r * 0.55), seal_c + inward * seal_r, Palette.WOUND, 2.0)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:
@@ -586,7 +600,16 @@ func add_pit(dest: Room = null) -> void:
 	has_pit = true
 	pit_dest = dest
 	pit_center = size * 0.5 + Vector2(220, 80)
+	# Opaque Void disk under the sprite. The hell pit PNG had gray partial-alpha
+	# outside the crater (checkerboard leftover); a Node2D underlay + opaque
+	# mouth means transparency never punches through to the viewport.
+	var under := Node2D.new()
+	under.name = "PitUnderlay"
+	under.z_index = -6
+	under.position = pit_center
+	add_child(under)
 	var spr := Sprite2D.new()
+	spr.name = "PitSprite"
 	if ResourceLoader.exists(PIT_SHEET):
 		var loaded: Variant = ResourceLoader.load(PIT_SHEET)
 		if loaded is Texture2D:
@@ -594,21 +617,26 @@ func add_pit(dest: Room = null) -> void:
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = pit_center
-	spr.scale = Vector2(0.36, 0.36)
+	spr.scale = Vector2(0.30, 0.30)
 	spr.z_index = -5
 	add_child(spr)
-	# Sheet is 1024px at 0.36 scale (~369px). Trigger the Void-deep mouth.
-	pit_radius = 96.0
+	# 1024px sheet at 0.30 (~307px). Trigger the Void mouth, not the Ash lip.
+	pit_radius = 88.0
 	if spr.texture:
-		pit_radius = maxf(float(spr.texture.get_width()) * spr.scale.x * 0.28, 88.0)
+		pit_radius = maxf(float(spr.texture.get_width()) * spr.scale.x * 0.33, 80.0)
+	var mouth := pit_radius
+	under.draw.connect(func () -> void:
+		under.draw_circle(Vector2.ZERO, mouth, Palette.VOID_DEEP)
+	)
+	under.queue_redraw()
 	if spr.texture == null:
 		var hole := Node2D.new()
 		hole.z_index = -5
 		hole.position = pit_center
 		hole.draw.connect(func () -> void:
 			hole.draw_circle(Vector2.ZERO, 78.0, Palette.VOID_DEEP)
-			hole.draw_arc(Vector2.ZERO, 84.0, 0.0, TAU, 32, Palette.ASH_MID, 10.0, true)
-			hole.draw_arc(Vector2.ZERO, 90.0, 0.0, TAU, 32, Palette.ASH, 8.0, true)
+			hole.draw_arc(Vector2.ZERO, 84.0, 0.0, TAU, 32, Palette.ASH_MID, 6.0, true)
+			hole.draw_arc(Vector2.ZERO, 90.0, 0.0, TAU, 32, Palette.ASH, 4.0, true)
 			hole.draw_arc(Vector2.ZERO, 94.0, 0.0, TAU, 32, Palette.BONE, 2.0, true)
 		)
 		add_child(hole)

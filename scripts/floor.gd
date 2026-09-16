@@ -501,7 +501,7 @@ func _qa_hud_crop() -> void:
 
 
 func _qa_pit_still() -> void:
-	# Close plate: Void-deep disk + thick Ash rim + Bone hairline + player on the lip.
+	# Close plate: Void-deep mouth + thin Ash/Bone lip + player on the lip.
 	# Doors and HUD hidden so this cannot be read as a doors / hoop still.
 	var start: Room = rooms.get(Vector2i.ZERO)
 	if start == null or player == null or camera == null or not start.has_pit:

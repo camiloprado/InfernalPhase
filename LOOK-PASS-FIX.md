@@ -6,26 +6,20 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 
 | Surface | Old read | Locked read |
 | --- | --- | --- |
-| Doors | Circular portal on a gray rect; brown brick; chrome-edge crests | Tall Gothic Ash masonry lancet, chunky courses + voussoirs, circular Ember / cracked seal (no Bone halo), transparent outside |
-| Shots | Soft round Ember dots / tears | Ember diamond + Bone ring only, hard edges |
-| HUD | Diamond hearts, Ember frame crests, rect minimap | Bone seals, Ash/Bone frame, circular nodes, Ember diamond glyph |
-| Start | Gold chrome, cute Bebé as product face | Penitent (hooded, no face). Ember on one confirm CTA |
-| Pit | Gray halo, Ember rim; white hoop on black | Void-deep filled disk, thick Ash rim, thin Bone hairline |
+| Doors | Hell pixel skull / lava crests; then a landscape brick house-roof on a gray slab | Portrait gothic Ash **frame** (equilateral lancet), Bone inlay, circular Ember / cracked-Ash seal, transparent outside **and** inside the opening |
+| Shots | Soft round Ember dots / fireball orbs | Ember diamond + Bone ring only, hard edges |
+| HUD | Horned molten hearts; diamond X-hearts | Circular Bone seals. Full = Bone + Ember glyph. Hit = Wound cracks. Empty = hollow Ash ring |
+| Pit | Lava crater PNG with gray partial-alpha (checkerboard leftover) outside the rim | Void-deep filled mouth, thin Ash lip, 1px Bone hairline, **alpha 0** outside. Node2D floor + Void underlay so transparency cannot punch to the viewport |
 | Palette | Gold heat `#FFBA08`, brown-black ash | Void / Ash / Bone / Ember / Wound only |
 
 ## What changed (files)
 
-- `scripts/palette.gd` — locked five colors. `EMBER_HOT` no longer gold. `WOUND` is the damage red.
-- `assets/sprites/doors.png` — flush gothic masonry lancets (384×192 cells) on the wall band, circular Ember / cracked seals, no hallway throat.
-- `assets/env/pit.png` — Void-deep filled disk, thick Ash rim, thin Bone hairline.
+- `assets/sprites/doors.png` — 4×2 of **384×512** gothic frames (same atlas layout as before). Locked row = Ember seal. Open row = cracked Ash/Void, no Ember, no demonic face.
+- `scripts/room.gd` — uniform scale `opening / cell.x` so the portrait arch sits on the 64px wall and rises into the room (~200×267). Floor fill is a Node2D Void rect (not a Control ColorRect). Pit has an opaque Void underlay disk under the sprite.
+- `assets/env/pit.png` — opaque Void hole, thin Ash/Bone lip, corners alpha 0 (the hell sheet had gray `216,216,216,105` in the corners).
 - `assets/sprites/shots.png` — diamond + ring rows only.
-- `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph. Hit = rim chips, never a red X.
-- `assets/sprites/player.png` / `player_f.png` / `baby.png` — Penitent language.
-- `assets/sprites/env.png` — Void / Ash, no brown brick band.
-- `scripts/room.gd` — Ash wall band, Void floor, flush gothic fallback, pit fallback with Void-deep fill + Ash/Bone rim.
-- `scripts/bullet.gd` — two silhouettes; pulse stays inside the shape.
-- `scripts/ui.gd` / `minimap.gd` / `run_pick.gd` / `player.gd` — HUD, start card, Penitent fallbacks.
-- `gate/` — full-res stills for doors, shots, HUD, start, pit.
+- `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph.
+- `tools/gen_look_pass.py` — source for the sheets.
 
 ## Not in this pass
 
