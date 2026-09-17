@@ -673,6 +673,8 @@ func _qa_combat_still(display_imp: Enemy) -> void:
 		player.global_position = start.center_global()
 		_enter_room(start, true)
 		camera.global_position = start.center_global()
+	if player:
+		player.set_physics_process(true)
 
 
 func _spawn_look_shots() -> void:
