@@ -160,19 +160,8 @@ func _build_geometry() -> void:
 	add_child(floor_n)
 	floor_n.queue_redraw()
 	Sprites.require(ENV_SHEET)
-	var floor_tex := Sprites.cell(ENV_SHEET, 3, 5, 0, theme)
-	if floor_tex == null:
-		Sprites.fail(ENV_SHEET, "env cell theme=%s" % theme)
-	if floor_tex:
-		var tiled := TextureRect.new()
-		tiled.texture = floor_tex
-		tiled.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		tiled.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tiled.stretch_mode = TextureRect.STRETCH_TILE
-		tiled.size = size
-		tiled.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tiled.modulate = Color(1, 1, 1, 0.35)
-		floor_n.add_child(tiled)
+	# Combat floors are a Void field. Do not tile env.png dungeon/checker
+	# cells (Isaac brick stripes). Quiet cathedral: fill + ritual circle.
 	_scatter_decals()
 
 	var grid_n := Node2D.new()
@@ -252,7 +241,7 @@ func _draw_floor(node: Node2D) -> void:
 		Kind.NPC:
 			node.draw_rect(Rect2(s.x * 0.5 - 70, s.y * 0.5 - 40, 140, 90), Color(Palette.ASH_MID.r, Palette.ASH_MID.g, Palette.ASH_MID.b, 0.85))
 		Kind.COMBAT:
-			pass
+			_draw_sigil(node, s * 0.5, 78.0)
 
 
 func _draw_sigil(node: Node2D, c: Vector2, r: float) -> void:
@@ -340,25 +329,8 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 
 
 func _scatter_decals() -> void:
-	var decal := Sprites.cell(ENV_SHEET, 3, 5, 2, theme)
-	if decal == null:
-		return
-	var layer := Node2D.new()
-	layer.z_index = -7
-	add_child(layer)
-	var n := 3 if theme == 0 else (7 if theme == 4 else 5)
-	var w := Game.WALL
-	for i in n:
-		var s := Sprite2D.new()
-		s.texture = decal
-		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		s.centered = true
-		s.position = Vector2(
-			w + 90.0 + float((i * 197 + theme * 17) % int(size.x - w * 2.0 - 80.0)),
-			w + 70.0 + float((i * 131 + theme * 40) % int(size.y - w * 2.0 - 80.0))
-		)
-		s.modulate.a = 0.7
-		layer.add_child(s)
+	# No hell-tile skulls / dungeon stamps. Floor is Void + sigil only.
+	pass
 
 
 func _door_col(k: Kind) -> int:

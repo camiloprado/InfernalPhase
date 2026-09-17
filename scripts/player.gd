@@ -75,31 +75,24 @@ func rebind_visual() -> void:
 			true
 		)
 	else:
-		# Caim: ~32px top-down Penitent, 4 dirs × 4 walk frames. Own sheet.
+		# Caim: masculine adult body on the Lilith 4×3 idle/walk/attack grid.
+		# player.png — not female-v2, not bebe, not a hooded/void Penitent.
 		_sheet = Sprites.actor(
 			"res://assets/sprites/player.png",
 			4,
-			4,
+			3,
 			{
-				"idle_d": {"row": 0, "fps": 3.0, "loop": true, "count": 1},
-				"walk_d": {"row": 0, "fps": 8.0, "loop": true},
-				"idle_r": {"row": 1, "fps": 3.0, "loop": true, "count": 1},
-				"walk_r": {"row": 1, "fps": 8.0, "loop": true},
-				"idle_u": {"row": 2, "fps": 3.0, "loop": true, "count": 1},
-				"walk_u": {"row": 2, "fps": 8.0, "loop": true},
-				"idle_l": {"row": 3, "fps": 3.0, "loop": true, "count": 1},
-				"walk_l": {"row": 3, "fps": 8.0, "loop": true},
+				"idle": {"row": 0, "fps": 5.0, "loop": true},
+				"walk": {"row": 1, "fps": 8.0, "loop": true},
+				"attack": {"row": 2, "fps": 14.0, "loop": false},
 			},
-			32.0,
+			96.0,
 			true
 		)
 	if _sheet:
 		add_child(_sheet)
 		_sheet.animation_finished.connect(_on_sheet_finished)
-		if Game.body == Game.Body.CAIM:
-			_sheet.play("idle_d")
-		else:
-			_sheet.play("idle")
+		_sheet.play("idle")
 
 
 func has_pixel() -> bool:
@@ -179,7 +172,7 @@ func _shoot() -> void:
 			shot.pierce_left = Game.pierce
 			shot.burn = Game.burn > 0
 	if _sheet:
-		_sheet.play(_caim_anim(false) if Game.body == Game.Body.CAIM else "attack")
+		_sheet.play("attack")
 
 
 func take_hit(_source: Node = null) -> void:
@@ -214,17 +207,6 @@ func _on_hurt_body(body: Node) -> void:
 		take_hit(body)
 
 
-func _caim_dir() -> String:
-	var v := velocity if velocity.length() > 24.0 else aim
-	if absf(v.x) >= absf(v.y):
-		return "r" if v.x >= 0.0 else "l"
-	return "d" if v.y >= 0.0 else "u"
-
-
-func _caim_anim(walking: bool) -> String:
-	return ("walk_%s" if walking else "idle_%s") % _caim_dir()
-
-
 func _sync_sheet() -> void:
 	if Game.is_baby() and _baby:
 		_baby.visible = not blink
@@ -234,10 +216,7 @@ func _sync_sheet() -> void:
 	if _sheet == null:
 		return
 	_sheet.visible = not blink
-	if Game.body != Game.Body.CAIM:
-		_sheet.flip_h = aim.x < 0.0
-	else:
-		_sheet.flip_h = false
+	_sheet.flip_h = aim.x < 0.0
 	if i_timer > 0.0 and not blink:
 		_sheet.modulate = Color(1.7, 0.55, 0.2)
 	elif Game.burn > 0:
@@ -246,24 +225,15 @@ func _sync_sheet() -> void:
 		_sheet.modulate = Color(1.18, 0.82, 0.55)
 	else:
 		_sheet.modulate = Color.WHITE
-	if Game.body != Game.Body.CAIM:
-		if _sheet.animation == &"attack" and _sheet.is_playing():
-			return
-		var want := "walk" if velocity.length() > 24.0 else "idle"
-		if _sheet.animation != want:
-			_sheet.play(want)
+	if _sheet.animation == &"attack" and _sheet.is_playing():
 		return
-	var walking := velocity.length() > 24.0
-	var want_c := _caim_anim(walking)
-	if _sheet.animation != want_c:
-		_sheet.play(want_c)
+	var want := "walk" if velocity.length() > 24.0 else "idle"
+	if _sheet.animation != want:
+		_sheet.play(want)
 
 
 func _on_sheet_finished() -> void:
 	if _sheet == null:
-		return
-	if Game.body == Game.Body.CAIM:
-		_sheet.play(_caim_anim(velocity.length() > 24.0))
 		return
 	if _sheet.animation == &"attack":
 		_sheet.play("walk" if velocity.length() > 24.0 else "idle")

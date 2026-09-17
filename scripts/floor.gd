@@ -335,6 +335,11 @@ func fall_from(src: Room, dest: Room = null) -> void:
 		Game.say("Ash gives. You catch the rim.", 1.5)
 		return
 	player.global_position = land.landing_global()
+	player.z_index = 8
+	player.rebind_visual()
+	player.aim = Vector2.DOWN
+	player.velocity = Vector2.ZERO
+	player._sync_sheet()
 	Game.shake.emit(9.0)
 	Game.say("The floor gives way.", 1.6)
 	_enter_room(land, false)
@@ -475,7 +480,7 @@ func _pixel_wire_log(imp: Enemy = null) -> void:
 		24.0
 	)
 	var player_sheet := 1 if player != null and player.has_pixel() else 0
-	var player_body := 1 if Sprites.is_character_body(player_path, 4, 4) else 0
+	var player_body := 1 if Sprites.is_character_body(player_path, 4, 3) else 0
 	if Game.body == Game.Body.LILITH:
 		player_body = 1 if Sprites.is_character_body("res://assets/sprites/player_f.png") else 0
 	var caim_own := 1 if Sprites.is_caim_own_body() else 0
@@ -565,8 +570,8 @@ func _look_dump() -> void:
 		camera.zoom = Vector2.ONE
 		camera.global_position = current.center_global()
 		camera.reset_smoothing()
-	# Lilith: player-female-v2 → player_f.png. Caim stays on the generated
-	# top-down male walker (player.png) — never the female or baby atlas.
+	# Lilith: player-female-v2 → player_f.png. Caim is the masculine 4×3
+	# Lilith-grid body on player.png — never female, baby, diamond, or void-hood.
 	Game.body = Game.Body.LILITH
 	if player:
 		player.rebind_visual()
@@ -651,6 +656,11 @@ func _qa_combat_still(display_imp: Enemy) -> void:
 	if display_imp and is_instance_valid(display_imp):
 		display_imp.visible = false
 	player.global_position = east.center_global() + Vector2(-70, 40)
+	player.z_index = 8
+	player.rebind_visual()
+	player.aim = Vector2.DOWN
+	player.velocity = Vector2.ZERO
+	player._sync_sheet()
 	_enter_room(east, true)
 	camera.position_smoothing_enabled = false
 	camera.zoom = Vector2.ONE

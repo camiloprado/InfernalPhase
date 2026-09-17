@@ -80,15 +80,15 @@ static func require_gameplay() -> void:
 		fail("res://assets/sprites/shots.png", "look cell want 64x64")
 	# In-world Caim / Lilith / Bebê must be pixel bodies, not look-pass
 	# Penitent diamonds (12 geometric frames, ~5 Bone/Ash/Ember colors).
-	if not is_character_body("res://assets/sprites/player.png", 4, 4):
+	if not is_character_body("res://assets/sprites/player.png", 4, 3):
 		fail("res://assets/sprites/player.png", "penitent geometry / not a character body")
 	if not is_character_body("res://assets/sprites/player_f.png"):
 		fail("res://assets/sprites/player_f.png", "penitent geometry / not a character body")
 	if not is_character_body("res://assets/sprites/baby.png", 1, 1):
 		fail("res://assets/sprites/baby.png", "penitent geometry / not a character body")
-	# Gate FAIL if Caim is the look-pass diamond, Lilith, or Bebê.
+	# Gate FAIL if Caim is void-hood 4×4, look-pass diamond, Lilith, or Bebê.
 	if not is_caim_own_body():
-		fail("res://assets/sprites/player.png", "caim reused female/bebe/diamond")
+		fail("res://assets/sprites/player.png", "caim reused female/bebe/diamond/void-hood")
 
 
 static func sheet_exists(path: String) -> bool:
@@ -103,6 +103,20 @@ static func disk_md5(path: String) -> String:
 	return ""
 
 
+static func is_void_hood(path: String) -> bool:
+	# Pointed Ash hood / void-face Penitent lived on a square 4×4 sheet
+	# (1044×1044). Male-from-Lilith Caim is a landscape 4×3 (1280×720).
+	var t := tex(path)
+	if t == null:
+		return true
+	var w := t.get_width()
+	var h := t.get_height()
+	if w < 8 or h < 8:
+		return true
+	var ratio := float(w) / float(h)
+	return ratio > 0.82 and ratio < 1.22
+
+
 static func is_caim_own_body() -> bool:
 	var caim := "res://assets/sprites/player.png"
 	var lilith := "res://assets/sprites/player_f.png"
@@ -112,7 +126,9 @@ static func is_caim_own_body() -> bool:
 	var c := disk_md5(baby)
 	if a.is_empty() or a == b or a == c:
 		return false
-	return is_character_body(caim, 4, 4)
+	if is_void_hood(caim):
+		return false
+	return is_character_body(caim, 4, 3)
 
 
 static func is_character_body(path: String, cols: int = 4, rows: int = 3) -> bool:
