@@ -549,12 +549,16 @@ func _look_dump() -> void:
 	Game.body = Game.Body.LILITH
 	if player:
 		player.rebind_visual()
+	if ui:
+		ui.set_walker(Game.walker_label(), "")
 	await get_tree().process_frame
 	await get_tree().create_timer(0.2).timeout
 	_qa_shot("f5_threshold_lilith", true, "f5_threshold_lilith")
 	Game.body = Game.Body.CAIM
 	if player:
 		player.rebind_visual()
+	if ui:
+		ui.set_walker(Game.walker_label(), "")
 	_qa_shot("doors", true, "doors")
 	_spawn_look_shots()
 	await get_tree().create_timer(0.35).timeout
