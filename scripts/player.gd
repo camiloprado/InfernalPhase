@@ -60,8 +60,9 @@ func rebind_visual() -> void:
 			_baby.scale = Vector2.ONE * (72.0 / maxf(h, 1.0))
 			_baby.visible = true
 		return
-	# Body pixel sheets (player-female-v2 → player_f / player). Never the
-	# look-pass Penitent diamond atlas. 96px so F5 reads limbs, not a blob.
+	# Caim: generated male coat-and-pistol body (`player.png`). Lilith:
+	# player-female-v2 (`player_f.png`). Never Penitent diamonds, never
+	# reuse female/baby as a Caim stand-in. 96px so F5 reads limbs.
 	var path := "res://assets/sprites/player_f.png" if Game.body == Game.Body.LILITH else "res://assets/sprites/player.png"
 	_sheet = Sprites.actor(
 		path,

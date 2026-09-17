@@ -559,7 +559,8 @@ func _look_dump() -> void:
 		camera.zoom = Vector2.ONE
 		camera.global_position = current.center_global()
 		camera.reset_smoothing()
-	# Lilith uses player-female-v2 → player_f.png (body sheet, not Penitent diamond).
+	# Lilith: player-female-v2 → player_f.png. Caim stays on the male
+	# coat sheet (player.png) — never swap in the female or baby atlas.
 	Game.body = Game.Body.LILITH
 	if player:
 		player.rebind_visual()
