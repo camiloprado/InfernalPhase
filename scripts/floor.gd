@@ -559,8 +559,8 @@ func _look_dump() -> void:
 		camera.zoom = Vector2.ONE
 		camera.global_position = current.center_global()
 		camera.reset_smoothing()
-	# Lilith: player-female-v2 → player_f.png. Caim stays on the male
-	# coat sheet (player.png) — never swap in the female or baby atlas.
+	# Lilith: player-female-v2 → player_f.png. Caim stays on the generated
+	# top-down male walker (player.png) — never the female or baby atlas.
 	Game.body = Game.Body.LILITH
 	if player:
 		player.rebind_visual()

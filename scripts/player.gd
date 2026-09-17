@@ -60,9 +60,9 @@ func rebind_visual() -> void:
 			_baby.scale = Vector2.ONE * (72.0 / maxf(h, 1.0))
 			_baby.visible = true
 		return
-	# Caim: generated male coat-and-pistol body (`player.png`). Lilith:
-	# player-female-v2 (`player_f.png`). Never Penitent diamonds, never
-	# reuse female/baby as a Caim stand-in. 96px so F5 reads limbs.
+	# Caim: top-down Penitent male walker (`player.png`), generated — never
+	# Lilith/female-v2 and never Bebê. Lilith: player-female-v2 (`player_f.png`).
+	# Never look-pass Penitent diamonds. 96px so F5 reads a body, not a blob.
 	var path := "res://assets/sprites/player_f.png" if Game.body == Game.Body.LILITH else "res://assets/sprites/player.png"
 	_sheet = Sprites.actor(
 		path,
