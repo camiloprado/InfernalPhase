@@ -384,6 +384,9 @@ func _on_won() -> void:
 func _qa_proof() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
+	var display_imp := _spawn_look_imp()
+	await get_tree().process_frame
+	_pixel_wire_log(display_imp)
 	var origin := current.center_global()
 	var arts: Array[String] = ["player", "imp", "wretch", "cantor", "boss", "ember", "bone", "deflect"]
 	var cols: Array[Color] = [
@@ -439,6 +442,8 @@ func _qa_proof() -> void:
 	_qa_shot("qa_pit_landing")
 	print("QA_PIT src=", src_id, " dest=", current.room_id if current else "?", " before=", before, " after=", player.global_position, " dest_ok=", dest != null)
 	print("QA_CONCIERGE ", grant)
+	if display_imp and is_instance_valid(display_imp):
+		display_imp.queue_free()
 	get_tree().quit()
 
 
@@ -468,23 +473,40 @@ func _pixel_wire_log(imp: Enemy = null) -> void:
 		{"fly": {"row": 0, "fps": 8.0, "loop": true}},
 		24.0
 	)
-	var player_actor := player != null and player.has_pixel()
+	var player_sheet := 1 if player != null and player.has_pixel() else 0
 	var door_spr := 0
 	if current:
 		for dir in current._door_art.keys():
 			if current._door_art[dir] is Sprite2D:
 				door_spr = 1
 				break
+	var enemy_art := 1 if imp and imp.art else 0
+	if enemy_art == 0:
+		for n in actors.get_children():
+			if n is Enemy and (n as Enemy).art:
+				enemy_art = 1
+				break
+	var doors := 1 if door_cell != null and door_spr == 1 else 0
+	var hearts := 1 if heart_cell != null else 0
+	var ok := 1 if player_sheet == 1 and enemy_art == 1 and doors == 1 and hearts == 1 else 0
+	print(
+		"QA_ASSERT player_sheet=", player_sheet,
+		" enemy_art=", enemy_art,
+		" doors=", doors,
+		" hearts=", hearts,
+		" src=", Sprites.src_of(player_path),
+		" ok=", ok
+	)
 	print(
 		"PIXEL_WIRE player_tex=", _tex_size(Sprites.tex(player_path)),
 		" src=", Sprites.src_of(player_path),
-		" player_sheet=", 1 if player_actor else 0,
+		" player_sheet=", player_sheet,
 		" doors_cell=", 1 if door_cell else 0,
-		" hearts_cell=", 1 if heart_cell else 0,
+		" hearts_cell=", hearts,
 		" shots_actor=", 1 if shot_actor else 0,
 		" door_sprite=", door_spr,
 		" imp_tex=", _tex_size(Sprites.tex("res://assets/characters/imp/walk_vanilla.png")),
-		" imp_art=", 1 if imp and imp.art else 0,
+		" imp_art=", enemy_art,
 		" rl_player=", 1 if ResourceLoader.exists(player_path) else 0
 	)
 	if shot_actor:

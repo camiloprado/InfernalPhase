@@ -233,6 +233,7 @@ func _draw() -> void:
 	if Game.is_baby() and _baby and _baby.visible:
 		return
 	if _sheet:
+		# Penitent PNG is a hooded Bone diamond. Polygons below are bind-fail only.
 		return
 	if Game.is_baby():
 		var pts := PackedVector2Array([
