@@ -46,19 +46,19 @@ func _bind_icon() -> void:
 func _tex() -> Texture2D:
 	match kind:
 		Kind.HEART:
-			return Sprites.cell("res://assets/sprites/pickups.png", 3, 1, 0, 0)
+			return Sprites.require_cell("res://assets/sprites/pickups.png", 3, 1, 0, 0)
 		Kind.EMBER:
-			return Sprites.cell("res://assets/sprites/pickups.png", 3, 1, 1, 0)
+			return Sprites.require_cell("res://assets/sprites/pickups.png", 3, 1, 1, 0)
 		Kind.MAX_HEART:
-			return Sprites.cell("res://assets/sprites/pickups.png", 3, 1, 2, 0)
+			return Sprites.require_cell("res://assets/sprites/pickups.png", 3, 1, 2, 0)
 		Kind.PIERCE:
-			return Sprites.cell("res://assets/sprites/skills.png", 4, 1, 0, 0)
+			return Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 0, 0)
 		Kind.RAPID:
-			return Sprites.cell("res://assets/sprites/skills.png", 4, 1, 1, 0)
+			return Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 1, 0)
 		Kind.HEAVY:
-			return Sprites.cell("res://assets/sprites/skills.png", 4, 1, 2, 0)
+			return Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 2, 0)
 		Kind.BURN:
-			return Sprites.cell("res://assets/sprites/skills.png", 4, 1, 3, 0)
+			return Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 3, 0)
 	return null
 
 
@@ -116,6 +116,9 @@ static func apply(p_kind: Kind) -> String:
 
 
 func _draw() -> void:
+	# Glow under the bound icon only. No vector loot if the sheet missed.
+	if _icon == null or _icon.texture == null:
+		return
 	var pulse := 0.55 + 0.45 * sin(_age * 6.2)
 	var bob := Vector2(0, sin(_age * 3.4) * 4.0)
 	var glow := Palette.EMBER_HOT
@@ -130,40 +133,3 @@ func _draw() -> void:
 			glow = Palette.BONE
 	glow.a = 0.22 + 0.28 * pulse
 	draw_circle(bob, 22.0 + pulse * 8.0, glow)
-	if _icon and _icon.texture:
-		return
-	var ring := glow
-	ring.a = 0.85
-	draw_arc(bob, 16.0 + pulse * 3.0, 0.0, TAU, 28, ring, 2.4, true)
-	_draw_fallback(bob)
-
-
-func _draw_fallback(bob: Vector2) -> void:
-	match kind:
-		Kind.HEART, Kind.MAX_HEART:
-			var s := 11.0
-			var pts := PackedVector2Array([
-				bob + Vector2(0, s * 0.9),
-				bob + Vector2(-s * 0.85, -s * 0.05),
-				bob + Vector2(-s * 0.35, -s * 0.7),
-				bob + Vector2(0, -s * 0.25),
-				bob + Vector2(s * 0.35, -s * 0.7),
-				bob + Vector2(s * 0.85, -s * 0.05),
-			])
-			draw_colored_polygon(pts, Palette.HELL_RED if kind == Kind.HEART else Palette.BONE)
-			draw_circle(bob + Vector2(-3, -2), 2.0, Palette.EMBER_HOT)
-		Kind.EMBER:
-			draw_circle(bob, 8.0, Palette.EMBER)
-			draw_circle(bob + Vector2(0, -3), 3.0, Palette.EMBER_HOT)
-		Kind.PIERCE:
-			draw_colored_polygon(PackedVector2Array([
-				bob + Vector2(0, -11), bob + Vector2(4, 8), bob + Vector2(-4, 8),
-			]), Palette.BONE)
-		Kind.RAPID:
-			draw_circle(bob + Vector2(-6, 0), 4.0, Palette.EMBER_HOT)
-			draw_circle(bob + Vector2(6, 0), 4.0, Palette.EMBER_HOT)
-		Kind.HEAVY:
-			draw_circle(bob, 9.0, Palette.BLOOD)
-		Kind.BURN:
-			draw_circle(bob, 8.0, Palette.EMBER)
-			draw_arc(bob, 11.0, 0.4, PI + 0.4, 10, Palette.EMBER_HOT, 2.0, true)

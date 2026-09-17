@@ -19,8 +19,9 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 - `assets/env/pit.png` — opaque Void hole, thin Ash/Bone lip, outside-lip pixels opaque Void `#0B0C10` (the hell sheet had gray `216,216,216,105` in the corners; alpha-0 corners punched the F5 checkerboard).
 - `assets/sprites/shots.png` — diamond + ring rows only.
 - `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph.
-- `scripts/sprites.gd` — look sheets load from PNG bytes on `res://` (not only an OS absolute path) so a missing `.ctex` cannot blank F5 into vector fallbacks. Doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64; wrong cell sizes are rejected after a disk retry. Imps / boss go through `Sprites.tex` too.
+- `scripts/sprites.gd` — look sheets load from PNG bytes on `res://` (not only an OS absolute path) so a missing `.ctex` cannot blank F5. Doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64; wrong cell sizes are rejected after a disk retry. Imps / boss / player / cantor / wretch / concierge go through `Sprites.tex` too. A miss prints `SPRITE_BIND FAIL` and asserts. No gameplay-actor `_draw` geometry.
+- `assets/sprites/player.png`, `player_f.png`, `baby.png`, `env.png` — restored pixel character / env atlases (look-pass diamond generators must not overwrite them).
 
 ## Not in this pass
 
-Enemy character sheets, boss VFX tiles, Concierge / cantor / wretch placeholders, pickup sheets. Those keep fail-soft sprites; combat HUD and projectiles follow the brief.
+Boss VFX tiles (`fx_beam`, `fx_slam`, `fx_wisp`, `fx_tele`) may still fail-soft to telegraph `_draw` if those FX sheets miss — documented in `hazard.gd`. Start-card Penitent chrome stays UI, not a floor actor.

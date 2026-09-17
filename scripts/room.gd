@@ -159,7 +159,10 @@ func _build_geometry() -> void:
 	)
 	add_child(floor_n)
 	floor_n.queue_redraw()
+	Sprites.require(ENV_SHEET)
 	var floor_tex := Sprites.cell(ENV_SHEET, 3, 5, 0, theme)
+	if floor_tex == null:
+		Sprites.fail(ENV_SHEET, "env cell theme=%s" % theme)
 	if floor_tex:
 		var tiled := TextureRect.new()
 		tiled.texture = floor_tex
@@ -230,29 +233,8 @@ func _paint_gap(rect: Rect2, dir: int) -> void:
 	add_child(hole)
 	if not _owns_door(dir):
 		return
-	if Sprites.tex(DOOR_SHEET):
-		return
-	var jamb_a := ColorRect.new()
-	var jamb_b := ColorRect.new()
-	jamb_a.color = Palette.BONE
-	jamb_b.color = Palette.BONE
-	jamb_a.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	jamb_b.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	jamb_a.z_index = -5
-	jamb_b.z_index = -5
-	const JAMB := 8.0
-	if rect.size.x >= rect.size.y:
-		jamb_a.size = Vector2(JAMB, rect.size.y)
-		jamb_b.size = Vector2(JAMB, rect.size.y)
-		jamb_a.position = rect.position
-		jamb_b.position = Vector2(rect.position.x + rect.size.x - JAMB, rect.position.y)
-	else:
-		jamb_a.size = Vector2(rect.size.x, JAMB)
-		jamb_b.size = Vector2(rect.size.x, JAMB)
-		jamb_a.position = rect.position
-		jamb_b.position = Vector2(rect.position.x, rect.position.y + rect.size.y - JAMB)
-	add_child(jamb_a)
-	add_child(jamb_b)
+	# Arch art is doors.png. No ColorRect jamb fallback if the sheet missed.
+	Sprites.require(DOOR_SHEET)
 
 
 func _draw_floor(node: Node2D) -> void:
@@ -474,27 +456,16 @@ func _apply_door_sprite(spr: Sprite2D, atlas: AtlasTexture, dir: int, rect: Rect
 func _add_door_art(dir: int, rect: Rect2) -> void:
 	var dest: Room = neighbors.get(dir)
 	var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, false)
-	if atlas:
-		var spr := Sprite2D.new()
-		spr.name = "DoorArt_%d" % dir
-		_apply_door_sprite(spr, atlas, dir, rect)
-		spr.z_index = 3
-		spr.visible = false
-		add_child(spr)
-		_door_art[dir] = spr
+	if atlas == null:
+		Sprites.fail(DOOR_SHEET, "door atlas kind=%s" % (dest.kind if dest else Kind.COMBAT))
 		return
-	var art := Node2D.new()
-	art.name = "DoorArt_%d" % dir
-	art.position = rect.position + rect.size * 0.5
-	art.z_index = 3
-	art.visible = false
-	art.rotation = _door_rotation(dir)
-	art.position += _door_inward(dir) * (DOOR_REVEAL * 0.5)
-	art.set_meta("blocked", false)
-	art.draw.connect(_draw_door.bind(art))
-	add_child(art)
-	art.queue_redraw()
-	_door_art[dir] = art
+	var spr := Sprite2D.new()
+	spr.name = "DoorArt_%d" % dir
+	_apply_door_sprite(spr, atlas, dir, rect)
+	spr.z_index = 3
+	spr.visible = false
+	add_child(spr)
+	_door_art[dir] = spr
 
 
 func set_door_sprites_visible(on: bool) -> void:
@@ -502,51 +473,6 @@ func set_door_sprites_visible(on: bool) -> void:
 		var art: Node = _door_art[dir]
 		if art is CanvasItem:
 			(art as CanvasItem).visible = on
-
-
-func _draw_door(node: Node2D) -> void:
-	var blocked := bool(node.get_meta("blocked", false))
-	var dest_kind: Kind = Kind.COMBAT
-	for dir in _door_art.keys():
-		if _door_art[dir] == node and neighbors.has(dir):
-			dest_kind = (neighbors[dir] as Room).kind
-			break
-	var heavy := dest_kind == Kind.START or dest_kind == Kind.BOSS
-	var span := 78.0 if heavy else 70.0
-	var rise := 118.0 if heavy else 104.0
-	var spring := 8.0
-	# Gothic frame (hollow) — stone ring + Bone inlay, not a filled gray slab.
-	var outer := PackedVector2Array()
-	outer.append(Vector2(-span, 52.0))
-	outer.append(Vector2(-span, spring))
-	outer.append(Vector2(0.0, -rise))
-	outer.append(Vector2(span, spring))
-	outer.append(Vector2(span, 52.0))
-	var inset := 16.0
-	var inner := PackedVector2Array()
-	inner.append(Vector2(-span + inset, 48.0))
-	inner.append(Vector2(-span + inset, spring + 6.0))
-	inner.append(Vector2(0.0, -rise + inset + 8.0))
-	inner.append(Vector2(span - inset, spring + 6.0))
-	inner.append(Vector2(span - inset, 48.0))
-	node.draw_colored_polygon(outer, Palette.ASH)
-	node.draw_colored_polygon(inner, Palette.VOID)
-	node.draw_polyline(outer, Palette.BONE_DIM, 2.0, true)
-	node.draw_polyline(inner, Palette.BONE, 2.0, true)
-	if heavy:
-		node.draw_line(Vector2(-span * 0.4, 44.0), Vector2(-span * 0.18, -rise * 0.35), Palette.BONE_DIM, 2.0)
-		node.draw_line(Vector2(span * 0.4, 44.0), Vector2(span * 0.18, -rise * 0.35), Palette.BONE_DIM, 2.0)
-	var seal_c := Vector2(0.0, 6.0)
-	var seal_r := 26.0 if heavy else 22.0
-	if blocked:
-		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH_MID)
-		node.draw_circle(seal_c, seal_r, Palette.EMBER)
-	else:
-		node.draw_circle(seal_c, seal_r + 2.0, Palette.ASH)
-		node.draw_circle(seal_c, seal_r, Palette.VOID)
-		for a in [0.48, 1.22, 2.93, 5.45]:
-			var inward := Vector2.from_angle(a)
-			node.draw_line(seal_c + inward * (seal_r * 0.55), seal_c + inward * seal_r, Palette.WOUND, 2.0)
 
 
 func _set_door_blocked(dir: int, blocked: bool) -> void:
@@ -566,28 +492,20 @@ func _set_door_blocked(dir: int, blocked: bool) -> void:
 	vis.visible = false
 	if _door_seals.has(dir):
 		(_door_seals[dir] as ColorRect).visible = false
-	if _door_art.has(dir):
-		var art: Node = _door_art[dir]
-		if art is Sprite2D:
-			var dest: Room = neighbors.get(dir)
-			var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, blocked)
-			if atlas:
-				var gap: Rect2 = (art as Sprite2D).get_meta("gap", Rect2())
-				if gap.size == Vector2.ZERO:
-					gap = Rect2(body.position - vis.size * 0.5, vis.size)
-				_apply_door_sprite(art as Sprite2D, atlas, dir, gap)
+	if _door_art.has(dir) and _door_art[dir] is Sprite2D:
+		var dest: Room = neighbors.get(dir)
+		var atlas := _door_atlas(dest.kind if dest else Kind.COMBAT, blocked)
+		if atlas == null:
+			Sprites.fail(DOOR_SHEET, "blocked atlas dir=%s" % dir)
 			return
-		art.set_meta("blocked", blocked)
-		(art as Node2D).queue_redraw()
+		var art := _door_art[dir] as Sprite2D
+		var gap: Rect2 = art.get_meta("gap", Rect2())
+		if gap.size == Vector2.ZERO:
+			gap = Rect2(body.position - vis.size * 0.5, vis.size)
+		_apply_door_sprite(art, atlas, dir, gap)
 		return
-	if not _owns_door(dir):
-		return
-	vis.visible = blocked
-	vis.color = Palette.ASH
-	if _door_seals.has(dir):
-		var seal: ColorRect = _door_seals[dir]
-		seal.visible = false
-		seal.color = Palette.EMBER
+	if _owns_door(dir):
+		Sprites.fail(DOOR_SHEET, "missing Sprite2D door art dir=%s" % dir)
 
 
 func landing_global() -> Vector2:
@@ -610,7 +528,7 @@ func add_pit(dest: Room = null) -> void:
 	add_child(under)
 	var spr := Sprite2D.new()
 	spr.name = "PitSprite"
-	spr.texture = Sprites.tex(PIT_SHEET)
+	spr.texture = Sprites.require(PIT_SHEET)
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = pit_center
@@ -632,18 +550,6 @@ func add_pit(dest: Room = null) -> void:
 		under.draw_circle(Vector2.ZERO, mouth, Palette.VOID_DEEP)
 	)
 	under.queue_redraw()
-	if spr.texture == null:
-		var hole := Node2D.new()
-		hole.z_index = -5
-		hole.position = pit_center
-		hole.draw.connect(func () -> void:
-			hole.draw_circle(Vector2.ZERO, 78.0, Palette.VOID_DEEP)
-			hole.draw_arc(Vector2.ZERO, 84.0, 0.0, TAU, 32, Palette.ASH_MID, 6.0, true)
-			hole.draw_arc(Vector2.ZERO, 90.0, 0.0, TAU, 32, Palette.ASH, 4.0, true)
-			hole.draw_arc(Vector2.ZERO, 94.0, 0.0, TAU, 32, Palette.BONE, 2.0, true)
-		)
-		add_child(hole)
-		hole.queue_redraw()
 	var area := Area2D.new()
 	area.name = "EnvPit"
 	area.collision_layer = 0

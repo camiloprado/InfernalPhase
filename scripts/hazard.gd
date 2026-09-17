@@ -1,6 +1,9 @@
 class_name Hazard
 extends Node2D
 ## Telegraphed area attack used by The Infernal Phase.
+##
+## FX-only: if fx_beam / fx_slam / fx_wisp miss, `_draw` paints telegraph
+## bars / nova / ring. That is hazard FX, not a gameplay-actor fallback.
 
 enum Kind { CROSS, DIAG, SLAM, LANES, RING }
 

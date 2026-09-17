@@ -456,8 +456,12 @@ def main() -> None:
     only = set(sys.argv[1:])
     if not only:
         only = {"doors", "hearts", "pit", "shots"}
-    if "all" in only:
-        only = {"doors", "shots", "hearts", "pit", "player", "env"}
+    blocked = {"player", "env", "baby"} & only
+    if blocked or "all" in only:
+        raise SystemExit(
+            "refusing to overwrite pixel character/env sheets with look-pass "
+            "geometry. Allowed: doors hearts pit shots."
+        )
     if "doors" in only:
         write_doors()
     if "shots" in only:
@@ -466,12 +470,6 @@ def main() -> None:
         write_hearts()
     if "pit" in only:
         write_pit()
-    if "player" in only:
-        write_player(SPR / "player.png", False)
-        write_player(SPR / "player_f.png", True)
-        write_baby()
-    if "env" in only:
-        write_env()
     print("look-pass sheets written:", ", ".join(sorted(only)))
 
 

@@ -1,9 +1,34 @@
 class_name Sprites
 extends RefCounted
-## Slice a cols×rows PNG. Never abort the tree if a sheet is missing.
-## Prefer PNG bytes on disk (res:// and OS path) so a missing or stale
-## `.godot/imported/*.ctex` cannot blank F5 into vector fallbacks. Imported
-## CompressedTexture2D is the fallback when the GPU cannot take ImageTexture.
+## Slice a cols×rows PNG. Gameplay sheets must bind; never mask a miss with
+## vector `_draw`. Prefer PNG bytes on disk (res:// and OS path) so a missing
+## or stale `.godot/imported/*.ctex` cannot blank F5. Imported CompressedTexture2D
+## is used only when ImageTexture is unusable on the GPU.
+##
+## Hazard FX (fx_beam / fx_slam / fx_wisp / fx_tele / fx_ring) may stay
+## fail-soft — those are telegraphs, not actors. Documented in hazard.gd.
+
+const GAMEPLAY_SHEETS: PackedStringArray = [
+	"res://assets/sprites/player.png",
+	"res://assets/sprites/player_f.png",
+	"res://assets/sprites/baby.png",
+	"res://assets/sprites/cantor.png",
+	"res://assets/sprites/wretch.png",
+	"res://assets/sprites/concierge.png",
+	"res://assets/sprites/pickups.png",
+	"res://assets/sprites/skills.png",
+	"res://assets/sprites/shots.png",
+	"res://assets/sprites/hearts.png",
+	"res://assets/sprites/doors.png",
+	"res://assets/sprites/env.png",
+	"res://assets/env/pit.png",
+	"res://assets/characters/imp/walk_vanilla.png",
+	"res://assets/characters/imp/attack_vanilla.png",
+	"res://assets/characters/boss/idle.png",
+	"res://assets/characters/boss/move.png",
+	"res://assets/characters/boss/fire.png",
+	"res://assets/characters/boss/lightning.png",
+]
 
 static var _tex_cache: Dictionary = {}
 static var _src_cache: Dictionary = {}
@@ -18,6 +43,41 @@ static func tex(path: String) -> Texture2D:
 	if t:
 		_tex_cache[path] = t
 	return t
+
+
+static func fail(path: String, detail: String = "") -> void:
+	var src := src_of(path) if not path.is_empty() else "none"
+	var msg := "SPRITE_BIND FAIL path=%s src=%s" % [path, src]
+	if not detail.is_empty():
+		msg += " detail=" + detail
+	push_error(msg)
+	printerr(msg)
+	assert(false, msg)
+
+
+static func require(path: String) -> Texture2D:
+	var t := tex(path)
+	if not _usable(t):
+		fail(path, "texture missing or 0x0")
+	return t
+
+
+static func require_cell(path: String, cols: int, rows: int, col: int, row: int) -> AtlasTexture:
+	var at := cell(path, cols, rows, col, row)
+	if at == null:
+		fail(path, "cell %sx%s @ %s,%s" % [cols, rows, col, row])
+	return at
+
+
+static func require_gameplay() -> void:
+	for path in GAMEPLAY_SHEETS:
+		require(path)
+	if cell("res://assets/sprites/doors.png", 4, 2, 0, 0) == null:
+		fail("res://assets/sprites/doors.png", "look cell want 384x512")
+	if cell("res://assets/sprites/hearts.png", 4, 1, 0, 0) == null:
+		fail("res://assets/sprites/hearts.png", "look cell want 64x64")
+	if cell("res://assets/sprites/shots.png", 4, 8, 0, 0) == null:
+		fail("res://assets/sprites/shots.png", "look cell want 64x64")
 
 
 static func sheet_exists(path: String) -> bool:
@@ -270,14 +330,21 @@ static func actor(
 		cols: int,
 		rows: int,
 		anims: Dictionary,
-		target_h: float
+		target_h: float,
+		required: bool = false
 	) -> AnimatedSprite2D:
 	var sheet := _sheet_for_grid(path, cols, rows)
 	if sheet == null or cols < 1 or rows < 1:
+		if required:
+			fail(path, "actor sheet missing cols=%s rows=%s" % [cols, rows])
+		elif sheet == null:
+			push_warning("SPRITE_BIND FX miss path=%s (hazard FX may stay vector)" % path)
 		return null
 	var fw := float(sheet.get_width()) / float(cols)
 	var fh := float(sheet.get_height()) / float(rows)
 	if fw < 1.0 or fh < 1.0:
+		if required:
+			fail(path, "actor cell %sx%s" % [fw, fh])
 		return null
 	var sf := SpriteFrames.new()
 	for anim_name in anims:

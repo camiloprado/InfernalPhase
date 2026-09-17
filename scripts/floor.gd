@@ -48,6 +48,7 @@ var _fall_cd := 0.0
 func _ready() -> void:
 	add_to_group("floor")
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	Sprites.require_gameplay()
 	Game.reset_run()
 	Game.shake.connect(_on_shake)
 	Game.died.connect(_on_died)
@@ -497,6 +498,9 @@ func _pixel_wire_log(imp: Enemy = null) -> void:
 		" src=", Sprites.src_of(player_path),
 		" ok=", ok
 	)
+	if ok != 1:
+		push_error("QA_ASSERT FAIL player_sheet=%s enemy_art=%s doors=%s hearts=%s" % [player_sheet, enemy_art, doors, hearts])
+		printerr("QA_ASSERT FAIL ok=0")
 	print(
 		"PIXEL_WIRE player_tex=", _tex_size(Sprites.tex(player_path)),
 		" src=", Sprites.src_of(player_path),

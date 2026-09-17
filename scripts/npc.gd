@@ -26,7 +26,8 @@ func _ready() -> void:
 			"idle": {"row": 0, "fps": 3.5, "loop": true},
 			"talk": {"row": 1, "fps": 6.0, "loop": true},
 		},
-		108.0
+		108.0,
+		true
 	)
 	if _sprite:
 		add_child(_sprite)
@@ -65,20 +66,6 @@ func _on_body(body: Node) -> void:
 
 
 func _draw() -> void:
+	# Desk shadow only. Concierge body is concierge.png — no skeleton fallback.
 	if _sprite:
 		draw_circle(Vector2(0, 28), 40.0, Color(0, 0, 0, 0.28))
-		return
-	# Desk
-	draw_rect(Rect2(-46, 10, 92, 28), Palette.ASH_MID)
-	draw_rect(Rect2(-50, 8, 100, 6), Palette.BONE_DIM)
-	# Skeleton concierge
-	draw_circle(Vector2(0, -28), 14.0, Palette.BONE)
-	draw_circle(Vector2(-5, -30), 2.4, Palette.VOID)
-	draw_circle(Vector2(5, -30), 2.4, Palette.VOID)
-	draw_arc(Vector2(0, -24), 5.0, 0.2, PI - 0.2, 8, Palette.VOID, 1.5, true)
-	draw_rect(Rect2(-11, -14, 22, 28), Palette.BONE_DIM)
-	draw_rect(Rect2(-18, -8, 8, 22), Palette.BONE)
-	draw_rect(Rect2(10, -8, 8, 22), Palette.BONE)
-	draw_circle(Vector2(0, -44), 4.0, Palette.EMBER)
-	draw_line(Vector2(-22, -6), Vector2(-34, 8), Palette.BONE_DIM, 3.0)
-	draw_line(Vector2(22, -6), Vector2(38, -2), Palette.BONE_DIM, 3.0)

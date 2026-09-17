@@ -82,7 +82,6 @@ func setup(
 		add_child(_shape)
 	_shape.shape = circle
 	bind_shot(p_art)
-	queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
@@ -100,8 +99,6 @@ func _physics_process(delta: float) -> void:
 		global_position += velocity * delta
 	if _spr:
 		_animate_shot(delta)
-	else:
-		queue_redraw()
 
 
 func bind_shot(art: String) -> void:
@@ -118,7 +115,8 @@ func bind_shot(art: String) -> void:
 		4,
 		8,
 		{"fly": {"row": row, "fps": 24.0, "loop": true}},
-		maxf(radius * 5.2, 24.0)
+		maxf(radius * 5.2, 24.0),
+		true
 	)
 	_pulse_phase = randf() * TAU
 	_configure_motion(row)
@@ -220,29 +218,6 @@ func _animate_shot(delta: float) -> void:
 	if _core:
 		_core.queue_free()
 		_core = null
-
-
-func _draw() -> void:
-	if _spr:
-		return
-	var pulse := 1.0 + 0.10 * sin(age * 16.0)
-	var use_ring := from_enemy and (
-		_shot_art == "wretch" or _shot_art == "cantor" or _shot_art == "bone"
-		or color.is_equal_approx(Palette.BONE) or color.is_equal_approx(Palette.ROBE_LIGHT)
-	)
-	if deflected:
-		use_ring = false
-	if use_ring:
-		draw_arc(Vector2.ZERO, (radius + 4.0) * pulse, 0.0, TAU, 20, Palette.BONE, 3.0, true)
-		return
-	var r := (radius + 5.0) * pulse
-	var pts := PackedVector2Array([
-		Vector2(r, 0.0),
-		Vector2(0.0, r * 0.7),
-		Vector2(-r, 0.0),
-		Vector2(0.0, -r * 0.7),
-	])
-	draw_colored_polygon(pts, Palette.EMBER)
 
 
 func deflect(from: Vector2) -> void:

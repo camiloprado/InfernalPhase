@@ -530,8 +530,8 @@ func _setup_art() -> void:
 
 func _setup_imp_art() -> void:
 	loadout = _pick_loadout()
-	var walk := _tex("res://assets/characters/imp/walk_%s.png" % loadout)
-	var atk := _tex("res://assets/characters/imp/attack_%s.png" % loadout)
+	var walk := Sprites.require("res://assets/characters/imp/walk_%s.png" % loadout)
+	var atk := Sprites.require("res://assets/characters/imp/attack_%s.png" % loadout)
 	if walk == null or atk == null:
 		return
 	var frames := SpriteFrames.new()
@@ -547,10 +547,10 @@ func _setup_imp_art() -> void:
 
 
 func _setup_boss_art() -> void:
-	var idle := _tex("res://assets/characters/boss/idle.png")
-	var move := _tex("res://assets/characters/boss/move.png")
-	var fire := _tex("res://assets/characters/boss/fire.png")
-	var bolt := _tex("res://assets/characters/boss/lightning.png")
+	var idle := Sprites.require("res://assets/characters/boss/idle.png")
+	var move := Sprites.require("res://assets/characters/boss/move.png")
+	var fire := Sprites.require("res://assets/characters/boss/fire.png")
+	var bolt := Sprites.require("res://assets/characters/boss/lightning.png")
 	if idle == null:
 		return
 	var frames := SpriteFrames.new()
@@ -578,7 +578,7 @@ func _setup_boss_art() -> void:
 
 
 func _setup_sheet_art(path: String, target_h: float, anims: Dictionary) -> void:
-	var node := Sprites.actor(path, 4, 2, anims, target_h)
+	var node := Sprites.actor(path, 4, 2, anims, target_h, true)
 	if node == null:
 		return
 	_sprite.sprite_frames = node.sprite_frames
@@ -720,6 +720,8 @@ func _tick_art(delta: float) -> void:
 
 
 func _draw_art_fx() -> void:
+	# HP pip is HUD. Teleport tell is FX-only (fx_tele.png); ring geometry is
+	# last-resort FX if that sheet missed — never a body fallback.
 	if kind == Kind.BOSS and tele_wind > 0.0 and _tele_fx == null:
 		var dest := to_local(tele_dest)
 		var pulse := 0.55 + 0.45 * sin(visual_rot * 8.0)
@@ -733,73 +735,7 @@ func _draw_art_fx() -> void:
 
 
 func _draw() -> void:
-	if art:
-		_draw_art_fx()
-		return
-	var col := _color()
-	if flash > 0.0:
-		col = col.lerp(Palette.BONE, flash)
-	draw_circle(Vector2.ZERO, radius + 8.0, Color(col.r, col.g, col.b, 0.16))
-	match kind:
-		Kind.IMP:
-			var pts := PackedVector2Array([
-				Vector2(0, -radius - 4),
-				Vector2(radius, radius * 0.7),
-				Vector2(0, radius * 0.25),
-				Vector2(-radius, radius * 0.7),
-			])
-			draw_colored_polygon(pts, col)
-			draw_circle(Vector2(-4, -2), 2.2, Palette.EMBER_HOT)
-			draw_circle(Vector2(4, -2), 2.2, Palette.EMBER_HOT)
-		Kind.WRETCH:
-			draw_circle(Vector2.ZERO, radius + 10.0, Color(Palette.BONE.r, Palette.BONE.g, Palette.BONE.b, 0.38))
-			draw_circle(Vector2.ZERO, radius + 3.0, Palette.BONE_DIM)
-			draw_circle(Vector2.ZERO, radius - 5.0, Palette.VOID)
-			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 36, Palette.BONE, 9.0, true)
-			draw_arc(Vector2.ZERO, radius - 6.0, 0.0, TAU, 28, Palette.EMBER_HOT, 3.0, true)
-			for i in 6:
-				var a := visual_rot + i * TAU / 6.0
-				var tip := Vector2.RIGHT.rotated(a) * radius
-				draw_line(tip * 0.2, tip, Palette.EMBER_HOT, 2.6)
-				draw_circle(tip, 6.5, Palette.BONE)
-				draw_circle(tip, 2.4, Palette.EMBER_HOT)
-			draw_circle(Vector2.ZERO, 8.0, Palette.EMBER)
-			draw_circle(Vector2.ZERO, 3.5, Palette.EMBER_HOT)
-		Kind.CULTIST:
-			var robe := PackedVector2Array([
-				Vector2(0, -radius - 2),
-				Vector2(radius * 0.85, radius),
-				Vector2(0, radius * 0.7),
-				Vector2(-radius * 0.85, radius),
-			])
-			draw_colored_polygon(robe, Palette.ROBE_LIGHT if intro else col)
-			var outline := robe.duplicate()
-			outline.append(robe[0])
-			draw_polyline(outline, Palette.BONE, 2.0, true)
-			draw_circle(Vector2(0, -radius * 0.35), 7.0, Palette.BONE)
-			draw_circle(Vector2(-2.5, -radius * 0.4), 1.6, Palette.VOID)
-			draw_circle(Vector2(2.5, -radius * 0.4), 1.6, Palette.VOID)
-			draw_circle(Vector2(0, -radius - 6.0), 3.0, Palette.EMBER_HOT)
-		Kind.BOSS:
-			draw_circle(Vector2.ZERO, radius, Palette.VOID)
-			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 40, col, 6.0, true)
-			draw_arc(Vector2.ZERO, radius * 0.62, visual_rot, visual_rot + TAU, 5, Palette.EMBER, 3.5, true)
-			for i in 5:
-				var a := visual_rot + i * TAU / 5.0
-				draw_circle(Vector2.RIGHT.rotated(a) * (radius * 0.55), 5.5, Palette.EMBER_HOT)
-			draw_circle(Vector2.ZERO, 8.0, Palette.HELL_RED)
-			draw_circle(Vector2.ZERO, 3.0, Palette.EMBER_HOT)
-			if tele_wind > 0.0:
-				var dest := to_local(tele_dest)
-				var pulse := 0.55 + 0.45 * sin(visual_rot * 8.0)
-				draw_arc(dest, 28.0 + pulse * 10.0, 0.0, TAU, 24, Palette.EMBER_HOT, 4.0, true)
-				draw_circle(dest, 7.0, Palette.BONE)
-				draw_arc(Vector2.ZERO, radius + 12.0, 0.0, TAU, 28, Palette.EMBER_HOT, 3.0, true)
-	# hp pip
-	if kind != Kind.BOSS and hp < max_hp:
-		var w := radius * 2.0
-		draw_rect(Rect2(-w * 0.5, -radius - 10, w, 3), Palette.VOID)
-		draw_rect(Rect2(-w * 0.5, -radius - 10, w * (float(hp) / float(max_hp)), 3), Palette.EMBER)
+	_draw_art_fx()
 
 
 func _color() -> Color:

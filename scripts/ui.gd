@@ -92,37 +92,30 @@ func _on_hearts(current: int, maximum: int) -> void:
 	for i in maximum:
 		# 0 full Bone+Ember · 1 empty hollow Ash · 2 hit Wound cracks
 		var col := 1
-		var state := HeartPip.EMPTY
 		if i < current:
 			col = 0
-			state = HeartPip.FULL
 		elif i == current and current < maximum:
 			col = 2
-			state = HeartPip.HIT
-		var pip := Sprites.cell("res://assets/sprites/hearts.png", 4, 1, col, 0)
-		if pip:
-			var h := TextureRect.new()
-			h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			h.custom_minimum_size = Vector2(48, 48)
-			h.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			h.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			h.texture = pip
-			hearts.add_child(h)
-		else:
-			var h := HeartPip.new()
-			h.state = state
-			h.custom_minimum_size = Vector2(48, 48)
-			hearts.add_child(h)
-	_pip(Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 30)
+		var pip := Sprites.require_cell("res://assets/sprites/hearts.png", 4, 1, col, 0)
+		if pip == null:
+			continue
+		var h := TextureRect.new()
+		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.custom_minimum_size = Vector2(48, 48)
+		h.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		h.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		h.texture = pip
+		hearts.add_child(h)
+	_pip(Sprites.require_cell("res://assets/sprites/hearts.png", 4, 1, 3, 0), 30)
 	if Game.pierce > 0:
-		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 0, 0), 22)
+		_pip(Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 0, 0), 22)
 	if Game.rapid > 0:
-		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 1, 0), 22)
+		_pip(Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 1, 0), 22)
 	if Game.heavy > 0:
-		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 2, 0), 22)
+		_pip(Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 2, 0), 22)
 	if Game.burn > 0:
-		_pip(Sprites.cell("res://assets/sprites/skills.png", 4, 1, 3, 0), 22)
+		_pip(Sprites.require_cell("res://assets/sprites/skills.png", 4, 1, 3, 0), 22)
 
 
 func _pip(tex: Texture2D, px: int) -> void:
@@ -157,36 +150,3 @@ func _update_boss_bar() -> void:
 		return
 	boss_bar.max_value = boss.max_hp
 	boss_bar.value = boss.hp
-
-
-class HeartPip extends Control:
-	const FULL := 0
-	const EMPTY := 1
-	const HIT := 2
-	var state := FULL
-
-	func _ready() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _draw() -> void:
-		var s := size
-		var c := s * 0.5
-		var r := minf(s.x, s.y) * 0.42
-		match state:
-			HIT:
-				draw_circle(c, r, Palette.BONE)
-				draw_arc(c, r, 0.0, TAU, 18, Palette.BONE_DIM, 1.5, true)
-				# Outer-band Wound faults only — no diameter, no X.
-				for a in [0.48, 1.22, 2.93, 5.45]:
-					var inward := Vector2.from_angle(a)
-					draw_line(c + inward * (r * 0.72), c + inward * r, Palette.WOUND, 2.2)
-			EMPTY:
-				draw_arc(c, r, 0.0, TAU, 22, Palette.ASH, 2.5, true)
-			_:
-				draw_circle(c, r, Palette.BONE)
-				draw_colored_polygon(PackedVector2Array([
-					c + Vector2(0, -r * 0.42),
-					c + Vector2(r * 0.38, 0),
-					c + Vector2(0, r * 0.42),
-					c + Vector2(-r * 0.38, 0),
-				]), Palette.EMBER)

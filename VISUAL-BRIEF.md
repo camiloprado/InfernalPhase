@@ -39,6 +39,16 @@ Hard edges, readable at 16–24px+. Animation stays inside those two shapes. No 
 
 Default face is the **Penitent**: hooded, no face, Bone diamond top-down, 4–6px Ember brand. Void field, Bone type. Ember only on the one confirm CTA. Bebê Chorão stays a difficulty **mode** (deflect). It is not the product face.
 
+## Actors (F5 floor)
+
+Combat actors bind pixel sheets. Do not replace these PNGs with Penitent diamonds or vector `_draw` geometry. A miss is `SPRITE_BIND FAIL`, not a polygon.
+
+- Caim / Lilith: `assets/sprites/player.png`, `player_f.png`
+- Bebê Chorão sprite: `assets/sprites/baby.png`
+- Imp / boss: `assets/characters/imp/`, `assets/characters/boss/`
+- Wretch / cantor / concierge: `assets/sprites/wretch.png`, `cantor.png`, `concierge.png`
+- Env tiles: `assets/sprites/env.png`
+
 ## Pit
 
 Void hole, thin Ash / Bone lip, opaque Void `#0B0C10` outside the lip (never viewport-clear / checkerboard). One clear QA frame.

@@ -53,13 +53,12 @@ func rebind_visual() -> void:
 		_sheet.queue_free()
 		_sheet = null
 	if Game.is_baby():
-		var loaded := Sprites.tex(BABY_SHEET)
+		var loaded := Sprites.require(BABY_SHEET)
 		if loaded:
 			_baby.texture = loaded
 			var h := float(loaded.get_height())
 			_baby.scale = Vector2.ONE * (48.0 / maxf(h, 1.0))
 			_baby.visible = true
-		queue_redraw()
 		return
 	var path := "res://assets/sprites/player_f.png" if Game.body == Game.Body.LILITH else "res://assets/sprites/player.png"
 	_sheet = Sprites.actor(
@@ -71,12 +70,12 @@ func rebind_visual() -> void:
 			"walk": {"row": 1, "fps": 8.0, "loop": true},
 			"attack": {"row": 2, "fps": 14.0, "loop": false},
 		},
-		48.0
+		48.0,
+		true
 	)
 	if _sheet:
 		add_child(_sheet)
 		_sheet.animation_finished.connect(_on_sheet_finished)
-	queue_redraw()
 
 
 func has_pixel() -> bool:
@@ -124,7 +123,6 @@ func _physics_process(delta: float) -> void:
 		_shoot()
 
 	_sync_sheet()
-	queue_redraw()
 
 
 func _shoot() -> void:
@@ -176,7 +174,6 @@ func take_hit(_source: Node = null) -> void:
 		from = (global_position - (_source as Node2D).global_position).normalized()
 	knockback = from * 280.0
 	Game.hurt(1)
-	queue_redraw()
 
 
 func _on_hurt_area(area: Area2D) -> void:
@@ -194,6 +191,11 @@ func _on_hurt_body(body: Node) -> void:
 
 
 func _sync_sheet() -> void:
+	if Game.is_baby() and _baby:
+		_baby.visible = not blink
+		_baby.modulate.a = 0.0 if blink else 1.0
+		_baby.flip_h = aim.x < -0.15
+		return
 	if _sheet == null:
 		return
 	_sheet.visible = not blink
@@ -220,60 +222,3 @@ func _on_sheet_finished() -> void:
 		_sheet.play("walk" if velocity.length() > 24.0 else "idle")
 
 
-func _draw() -> void:
-	if blink:
-		if _baby:
-			_baby.modulate.a = 0.0
-		if _sheet:
-			_sheet.visible = false
-		return
-	if _baby:
-		_baby.modulate.a = 1.0
-		_baby.flip_h = aim.x < -0.15
-	if Game.is_baby() and _baby and _baby.visible:
-		return
-	if _sheet:
-		# Penitent PNG is a hooded Bone diamond. Polygons below are bind-fail only.
-		return
-	if Game.is_baby():
-		var pts := PackedVector2Array([
-			Vector2(0, -16),
-			Vector2(11, 0),
-			Vector2(0, 16),
-			Vector2(-11, 0),
-		])
-		draw_colored_polygon(pts, Palette.BONE)
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(0, -16),
-			Vector2(8, -6),
-			Vector2(-8, -6),
-		]), Palette.ASH)
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(0, -2),
-			Vector2(3, 3),
-			Vector2(0, 8),
-			Vector2(-3, 3),
-		]), Palette.EMBER)
-		return
-	var rx := 12.0 if Game.body == Game.Body.LILITH else 14.0
-	var ry := 18.0 if Game.body == Game.Body.LILITH else 16.0
-	var body_col := Palette.BONE
-	if i_timer > 0.0:
-		body_col = Palette.WOUND
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(0, -ry),
-		Vector2(rx, 0),
-		Vector2(0, ry),
-		Vector2(-rx, 0),
-	]), body_col)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(0, -ry),
-		Vector2(rx * 0.7, -ry * 0.2),
-		Vector2(-rx * 0.7, -ry * 0.2),
-	]), Palette.ASH)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(0, -2),
-		Vector2(3, 2),
-		Vector2(0, 7),
-		Vector2(-3, 2),
-	]), Palette.EMBER)

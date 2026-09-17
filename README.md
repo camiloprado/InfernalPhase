@@ -2,7 +2,7 @@
 
 One infernal floor. No campaign. You walk a small graph of hell-rooms, dodge patterned bullets, and either kill **The Infernal Phase** or get filed as ash and start over.
 
-Top-down move-and-shoot in the Binding of Isaac room style, with Undertale-ish bullet patterns and short dark-humor lines. Ember Imps and **The Infernal Phase** use character sheets (`assets/characters/imp/`, `assets/characters/boss/`). Cantors, wretches, cultists, and the Concierge stay as placeholder shapes until those folders get art. Hell palette locked in `VISUAL-BRIEF.md`: Void `#0B0C10`, Ash `#5C5A56`, Bone `#E6D9C3`, Ember `#E25A1A` (accent), Wound `#7A1F1A`. See `LOOK-PASS-FIX.md` for the look-pass delta.
+Top-down move-and-shoot in the Binding of Isaac room style, with Undertale-ish bullet patterns and short dark-humor lines. Caim / Lilith, Bebê Chorão, Ember Imps, Ring Wretches, Ash Cantors, the Concierge, and **The Infernal Phase** bind pixel character sheets. Doors, hearts, shots, and the pit keep the locked Bone / Ash / Ember look. Hell palette in `VISUAL-BRIEF.md`: Void `#0B0C10`, Ash `#5C5A56`, Bone `#E6D9C3`, Ember `#E25A1A` (accent), Wound `#7A1F1A`. See `LOOK-PASS-FIX.md` for the look-pass delta.
 
 ## Open in Godot 4
 
@@ -14,11 +14,11 @@ rm -rf .godot
 godot --path . --import
 ```
 
-Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine. **F5 still binds pixel sheets from the PNG bytes** (`res://` FileAccess + `load_png_from_buffer`) so a missing import cache cannot collapse the floor into vector placeholders. Imps and the boss use the same `Sprites.tex` path — they no longer require `ResourceLoader.exists` (that stays false until `.ctex` exists). Look cells stay locked: doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64. `--qa-look` / `--qa-proof` print `QA_ASSERT player_sheet= enemy_art= doors= hearts= ok=` so a diamond Penitent or robe cantor can be checked as a sheet bind (`ok=1`), not a `_draw` fallback.
+Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine. **F5 binds pixel sheets from the PNG bytes** (`res://` FileAccess + `load_png_from_buffer`). A missing sheet prints `SPRITE_BIND FAIL` and asserts — it does **not** fall back to vector diamonds, robes, or gothic frames. Look cells stay locked: doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64. `--qa-look` / `--qa-proof` print `QA_ASSERT player_sheet= enemy_art= doors= hearts= ok=` so a missing Caim coat or robe cantor is a bind miss (`ok=0`), not a `_draw` mask.
 3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
 4. Press **F5** (or Run Project).
 
-Floors, walls, and doors use `assets/sprites/env.png` and `doors.png` (gothic Ash arches, Bone inlay, Ember / cracked seals). Caim and Lilith share **Penitent** language on `player.png` / `player_f.png` (hooded Bone diamond, no face, 4–6px Ember brand). Bebê Chorão is a difficulty **mode** (enemy shots deflect); its sprite is the same Penitent language on `baby.png`, not a cute face. Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, and pickups use the matching files in `assets/sprites/`. If a sheet is missing, the old drawn placeholder still shows.
+Floors use `assets/sprites/env.png` (pixel tiles) over a Void fill. Doors are `doors.png` (gothic Ash arches, Bone inlay, Ember / cracked seals). Caim and Lilith are the coat-and-pistol sheets on `player.png` / `player_f.png`. Bebê Chorão is a difficulty **mode** (enemy shots deflect); its sprite is `baby.png`. Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, pickups, and shots use `assets/sprites/`. If a gameplay sheet is missing, the load errors — no drawn placeholder.
 
 The main scene is `scenes/floor.tscn`.
 
