@@ -339,9 +339,13 @@ def write_hearts() -> None:
 
 
 def write_pit() -> None:
-    """Void hole, thin Ash lip, 1px Bone hairline. Outside alpha 0 — no gray fringe."""
+    """Void hole, thin Ash lip, 1px Bone hairline.
+    Outside the lip is opaque Void (#0B0C10), not alpha 0. A transparent
+    sprite quad punches the editor F5 viewport checkerboard.
+    """
     n = 1024
     a = np.zeros((n, n, 4), dtype=np.uint8)
+    a[:, :] = VOID
     yy, xx = np.ogrid[:n, :n]
     d2 = (xx - n // 2) ** 2 + (yy - n // 2) ** 2
     # Radii in px. At 0.30 scale: outer ~114px, lip ~11px, hole ~103px.

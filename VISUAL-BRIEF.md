@@ -41,4 +41,4 @@ Default face is the **Penitent**: hooded, no face, Bone diamond top-down, 4–6p
 
 ## Pit
 
-Void hole, thin Ash / Bone lip, transparent outside the lip. One clear QA frame.
+Void hole, thin Ash / Bone lip, opaque Void `#0B0C10` outside the lip (never viewport-clear / checkerboard). One clear QA frame.

@@ -148,8 +148,8 @@ func _owns_door(dir: int) -> bool:
 
 
 func _build_geometry() -> void:
-	# Node2D fill (not ColorRect) so pit PNG transparency composites onto Void
-	# instead of the viewport checkerboard. Same canvas as the pit Sprite2D.
+	# Node2D fill (not ColorRect) so any leftover pit-sprite alpha composites
+	# onto Void instead of the viewport clear. Same canvas as PitSprite.
 	var floor_n := Node2D.new()
 	floor_n.name = "FloorFill"
 	floor_n.z_index = -8
@@ -600,9 +600,9 @@ func add_pit(dest: Room = null) -> void:
 	has_pit = true
 	pit_dest = dest
 	pit_center = size * 0.5 + Vector2(220, 80)
-	# Opaque Void disk under the sprite. The hell pit PNG had gray partial-alpha
-	# outside the crater (checkerboard leftover); a Node2D underlay + opaque
-	# mouth means transparency never punches through to the viewport.
+	# Opaque Void under the FULL sprite quad. The sheet is 1024px at 0.30
+	# (~307px). A mouth-radius disk (~88px) left the lip-outside texels
+	# uncovered; those alpha-0 pixels punch the editor F5 checkerboard.
 	var under := Node2D.new()
 	under.name = "PitUnderlay"
 	under.z_index = -6
@@ -620,12 +620,18 @@ func add_pit(dest: Room = null) -> void:
 	spr.scale = Vector2(0.30, 0.30)
 	spr.z_index = -5
 	add_child(spr)
-	# 1024px sheet at 0.30 (~307px). Trigger the Void mouth, not the Ash lip.
+	# Trigger the Void mouth, not the Ash lip / sprite quad.
 	pit_radius = 88.0
+	var half := Vector2(1024.0, 1024.0) * spr.scale * 0.5
 	if spr.texture:
+		half = Vector2(float(spr.texture.get_width()), float(spr.texture.get_height())) * spr.scale * 0.5
 		pit_radius = maxf(float(spr.texture.get_width()) * spr.scale.x * 0.33, 80.0)
+	# 1px pad so nearest-filter edge samples stay on the opaque underlay.
+	half += Vector2.ONE
 	var mouth := pit_radius
+	var cover := half
 	under.draw.connect(func () -> void:
+		under.draw_rect(Rect2(-cover, cover * 2.0), Palette.VOID)
 		under.draw_circle(Vector2.ZERO, mouth, Palette.VOID_DEEP)
 	)
 	under.queue_redraw()
