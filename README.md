@@ -14,7 +14,7 @@ rm -rf .godot
 godot --path . --import
 ```
 
-Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine. Combat look sheets (doors, hearts, shots, pit) also load from the PNG on disk at F5 so a leftover hell `.ctex` cannot keep the old art.
+Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine. **F5 still binds pixel sheets from the PNG bytes** (`res://` FileAccess + `load_png_from_buffer`) so a missing import cache cannot collapse the floor into vector placeholders. Imps and the boss use the same `Sprites.tex` path — they no longer require `ResourceLoader.exists` (that stays false until `.ctex` exists). Look cells stay locked: doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64.
 3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
 4. Press **F5** (or Run Project).
 

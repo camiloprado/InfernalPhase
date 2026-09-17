@@ -79,6 +79,12 @@ func rebind_visual() -> void:
 	queue_redraw()
 
 
+func has_pixel() -> bool:
+	if Game.is_baby():
+		return _baby != null and _baby.texture != null
+	return _sheet != null
+
+
 func _physics_process(delta: float) -> void:
 	if Game.is_dead or Game.is_won:
 		velocity = Vector2.ZERO

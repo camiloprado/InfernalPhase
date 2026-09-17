@@ -1,10 +1,12 @@
 class_name Sprites
 extends RefCounted
 ## Slice a cols×rows PNG. Never abort the tree if a sheet is missing.
-## Look sheets (doors / hearts / shots / pit) load from the PNG on disk so a
-## stale `.godot/imported/*.ctex` cannot keep hell art after a sheet replace.
+## Prefer PNG bytes on disk (res:// and OS path) so a missing or stale
+## `.godot/imported/*.ctex` cannot blank F5 into vector fallbacks. Imported
+## CompressedTexture2D is the fallback when the GPU cannot take ImageTexture.
 
 static var _tex_cache: Dictionary = {}
+static var _src_cache: Dictionary = {}
 
 
 static func tex(path: String) -> Texture2D:
@@ -18,43 +20,126 @@ static func tex(path: String) -> Texture2D:
 	return t
 
 
-static func _load_png(path: String) -> Texture2D:
-	# Editor / F5: read the PNG bytes. ResourceLoader.load() can return a
-	# CompressedTexture2D whose .ctex is an older hell sheet at the same path.
+static func sheet_exists(path: String) -> bool:
+	return not path.is_empty() and tex(path) != null
+
+
+static func src_of(path: String) -> String:
+	return String(_src_cache.get(path, "none"))
+
+
+static func _png_paths(path: String) -> PackedStringArray:
+	var out: PackedStringArray = PackedStringArray()
+	if not path.is_empty():
+		out.append(path)
 	var abs := ProjectSettings.globalize_path(path)
-	if FileAccess.file_exists(abs):
-		var img := Image.load_from_file(abs)
-		if img and img.get_width() > 0 and img.get_height() > 0:
-			return ImageTexture.create_from_image(img)
-	if ResourceLoader.exists(path):
-		var loaded: Variant = ResourceLoader.load(path)
-		if loaded is Texture2D:
+	if not abs.is_empty() and abs != path:
+		out.append(abs)
+		var slashed := abs.replace("\\", "/")
+		if slashed != abs:
+			out.append(slashed)
+		var backed := abs.replace("/", "\\")
+		if backed != abs:
+			out.append(backed)
+	return out
+
+
+static func _usable(t: Texture2D) -> bool:
+	return t != null and t.get_width() > 0 and t.get_height() > 0
+
+
+static func _ensure_rgba(img: Image) -> void:
+	if img.get_format() != Image.FORMAT_RGBA8:
+		img.convert(Image.FORMAT_RGBA8)
+
+
+static func _texture_from_image(img: Image) -> Texture2D:
+	if img == null or img.get_width() < 1 or img.get_height() < 1:
+		return null
+	_ensure_rgba(img)
+	var tex := ImageTexture.create_from_image(img)
+	if _usable(tex):
+		return tex
+	return null
+
+
+static func _image_from_bytes(bytes: PackedByteArray) -> Image:
+	if bytes.size() < 8:
+		return null
+	var img := Image.new()
+	if img.load_png_from_buffer(bytes) != OK:
+		return null
+	if img.get_width() < 1 or img.get_height() < 1:
+		return null
+	return img
+
+
+static func _image_from_disk(path: String) -> Image:
+	# Read PNG bytes through the project FS (res://) and the OS path.
+	# FileAccess.file_exists(absolute) is false on some Windows editor setups,
+	# and Image.load_from_file(abs) never runs — F5 then has no sheet at all
+	# if .ctex is missing or ResourceLoader.exists is still false.
+	for p in _png_paths(path):
+		var is_res := p.begins_with("res://") or p.begins_with("user://")
+		if not is_res and not FileAccess.file_exists(p):
+			continue
+		var bytes := FileAccess.get_file_as_bytes(p)
+		if bytes.size() >= 8:
+			var from_buf := _image_from_bytes(bytes)
+			if from_buf:
+				return from_buf
+		if not is_res and not FileAccess.file_exists(p):
+			continue
+		var img := Image.new()
+		if img.load(p) == OK and img.get_width() > 0 and img.get_height() > 0:
+			return img
+		var loaded := Image.load_from_file(p)
+		if loaded and loaded.get_width() > 0 and loaded.get_height() > 0:
 			return loaded
 	return null
 
 
+static func _texture_from_import(path: String) -> Texture2D:
+	# Missing .ctex makes exists() false; disk bytes already handled that.
+	# Use the importer only when it actually has a texture to give us.
+	if not ResourceLoader.exists(path):
+		return null
+	var loaded: Variant = ResourceLoader.load(path)
+	if loaded is Texture2D and _usable(loaded):
+		return loaded
+	return null
+
+
+static func _load_png(path: String) -> Texture2D:
+	# Disk PNG wins when it actually produced a GPU texture. That bypasses a
+	# leftover hell .ctex at the same res:// path. If ImageTexture is unusable
+	# (width 0 on some GL Compatibility GPUs), fall through to the importer.
+	var disk_img := _image_from_disk(path)
+	var disk_tex: Texture2D = null
+	if disk_img:
+		disk_tex = _texture_from_image(disk_img)
+	if _usable(disk_tex):
+		_src_cache[path] = "disk"
+		return disk_tex
+	var imported := _texture_from_import(path)
+	if _usable(imported):
+		_src_cache[path] = "import"
+		return imported
+	if _usable(disk_tex):
+		_src_cache[path] = "disk"
+		return disk_tex
+	_src_cache[path] = "none"
+	return null
+
+
 static func cell(path: String, cols: int, rows: int, col: int, row: int) -> AtlasTexture:
-	var sheet := tex(path)
+	var sheet := _sheet_for_grid(path, cols, rows)
 	if sheet == null or cols < 1 or rows < 1:
 		return null
 	var fw := float(sheet.get_width()) / float(cols)
 	var fh := float(sheet.get_height()) / float(rows)
 	if fw < 1.0 or fh < 1.0:
 		return null
-	# Locked look cells. A stale hell ctex with the same path but a different
-	# sheet size must not be sliced as gothic / Bone / diamond art.
-	if path.ends_with("doors.png") and cols == 4 and rows == 2:
-		if absf(fw - 384.0) > 1.0 or absf(fh - 512.0) > 1.0:
-			push_warning("LOOK_WIRE reject doors cell %sx%s (want 384x512)" % [fw, fh])
-			return null
-	if path.ends_with("hearts.png") and cols == 4 and rows == 1:
-		if absf(fw - 64.0) > 1.0 or absf(fh - 64.0) > 1.0:
-			push_warning("LOOK_WIRE reject hearts cell %sx%s (want 64x64)" % [fw, fh])
-			return null
-	if path.ends_with("shots.png") and cols == 4 and rows == 8:
-		if absf(fw - 64.0) > 1.0 or absf(fh - 64.0) > 1.0:
-			push_warning("LOOK_WIRE reject shots cell %sx%s (want 64x64)" % [fw, fh])
-			return null
 	var at := AtlasTexture.new()
 	at.atlas = sheet
 	at.filter_clip = true
@@ -136,6 +221,50 @@ static func stagger(spr: AnimatedSprite2D, fps: float = -1.0) -> void:
 	spr.speed_scale = randf_range(0.88, 1.18)
 
 
+static func _look_cell_size(path: String, cols: int, rows: int) -> Vector2:
+	if path.ends_with("doors.png") and cols == 4 and rows == 2:
+		return Vector2(384, 512)
+	if path.ends_with("hearts.png") and cols == 4 and rows == 1:
+		return Vector2(64, 64)
+	if path.ends_with("shots.png") and cols == 4 and rows == 8:
+		return Vector2(64, 64)
+	return Vector2.ZERO
+
+
+static func _matches_look(sheet: Texture2D, path: String, cols: int, rows: int) -> bool:
+	if not _usable(sheet) or cols < 1 or rows < 1:
+		return false
+	var want := _look_cell_size(path, cols, rows)
+	if want == Vector2.ZERO:
+		return true
+	var fw := float(sheet.get_width()) / float(cols)
+	var fh := float(sheet.get_height()) / float(rows)
+	return absf(fw - want.x) <= 1.0 and absf(fh - want.y) <= 1.0
+
+
+static func _sheet_for_grid(path: String, cols: int, rows: int) -> Texture2D:
+	var sheet := tex(path)
+	if _matches_look(sheet, path, cols, rows):
+		return sheet
+	# Cached import may be a leftover hell sheet. Re-read PNG bytes once.
+	_tex_cache.erase(path)
+	var disk_img := _image_from_disk(path)
+	if disk_img:
+		var disk_tex := _texture_from_image(disk_img)
+		if _matches_look(disk_tex, path, cols, rows):
+			_tex_cache[path] = disk_tex
+			_src_cache[path] = "disk"
+			return disk_tex
+	if _usable(sheet):
+		var fw := float(sheet.get_width()) / float(cols)
+		var fh := float(sheet.get_height()) / float(rows)
+		var want := _look_cell_size(path, cols, rows)
+		if want != Vector2.ZERO:
+			push_warning("LOOK_WIRE reject %s cell %sx%s (want %sx%s)" % [path.get_file(), fw, fh, want.x, want.y])
+			return null
+	return sheet
+
+
 static func actor(
 		path: String,
 		cols: int,
@@ -143,17 +272,13 @@ static func actor(
 		anims: Dictionary,
 		target_h: float
 	) -> AnimatedSprite2D:
-	var sheet := tex(path)
+	var sheet := _sheet_for_grid(path, cols, rows)
 	if sheet == null or cols < 1 or rows < 1:
 		return null
 	var fw := float(sheet.get_width()) / float(cols)
 	var fh := float(sheet.get_height()) / float(rows)
 	if fw < 1.0 or fh < 1.0:
 		return null
-	if path.ends_with("shots.png") and cols == 4 and rows == 8:
-		if absf(fw - 64.0) > 1.0 or absf(fh - 64.0) > 1.0:
-			push_warning("LOOK_WIRE reject shots actor %sx%s (want 64x64)" % [fw, fh])
-			return null
 	var sf := SpriteFrames.new()
 	for anim_name in anims:
 		var spec: Dictionary = anims[anim_name]

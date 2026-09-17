@@ -452,8 +452,43 @@ func _look_wire_log() -> void:
 		" hearts=", _tex_size(h),
 		" shots=", _tex_size(s),
 		" pit=", _tex_size(p),
-		" disk=1"
+		" disk=1 src_doors=", Sprites.src_of("res://assets/sprites/doors.png"),
+		" src_hearts=", Sprites.src_of("res://assets/sprites/hearts.png")
 	)
+
+
+func _pixel_wire_log(imp: Enemy = null) -> void:
+	var player_path := "res://assets/sprites/player.png"
+	var door_cell := Sprites.cell("res://assets/sprites/doors.png", 4, 2, 0, 0)
+	var heart_cell := Sprites.cell("res://assets/sprites/hearts.png", 4, 1, 0, 0)
+	var shot_actor := Sprites.actor(
+		"res://assets/sprites/shots.png",
+		4,
+		8,
+		{"fly": {"row": 0, "fps": 8.0, "loop": true}},
+		24.0
+	)
+	var player_actor := player != null and player.has_pixel()
+	var door_spr := 0
+	if current:
+		for dir in current._door_art.keys():
+			if current._door_art[dir] is Sprite2D:
+				door_spr = 1
+				break
+	print(
+		"PIXEL_WIRE player_tex=", _tex_size(Sprites.tex(player_path)),
+		" src=", Sprites.src_of(player_path),
+		" player_sheet=", 1 if player_actor else 0,
+		" doors_cell=", 1 if door_cell else 0,
+		" hearts_cell=", 1 if heart_cell else 0,
+		" shots_actor=", 1 if shot_actor else 0,
+		" door_sprite=", door_spr,
+		" imp_tex=", _tex_size(Sprites.tex("res://assets/characters/imp/walk_vanilla.png")),
+		" imp_art=", 1 if imp and imp.art else 0,
+		" rl_player=", 1 if ResourceLoader.exists(player_path) else 0
+	)
+	if shot_actor:
+		shot_actor.free()
 
 
 func _tex_size(t: Texture2D) -> String:
@@ -479,8 +514,10 @@ func _look_dump() -> void:
 		ui.hint.visible = true
 	if player and current:
 		player.global_position = current.center_global() + Vector2(-40, 36)
+	var display_imp: Enemy = _spawn_look_imp()
 	await get_tree().process_frame
 	await get_tree().create_timer(0.25).timeout
+	_pixel_wire_log(display_imp)
 	_qa_shot("f5_threshold", true, "f5_threshold")
 	_qa_shot("doors", true, "doors")
 	_spawn_look_shots()
@@ -521,6 +558,50 @@ func _look_dump() -> void:
 		if camera:
 			camera.zoom = Vector2.ONE
 			camera.global_position = rooms[Vector2i.ZERO].center_global()
+	await _qa_combat_still(display_imp)
+	if display_imp and is_instance_valid(display_imp):
+		display_imp.queue_free()
+
+
+func _spawn_look_imp() -> Enemy:
+	if player == null:
+		return null
+	var imp: Enemy = _enemy_scene.instantiate()
+	actors.add_child(imp)
+	imp.configure(Enemy.Kind.IMP, player.global_position + Vector2(92, 16))
+	imp.set_physics_process(false)
+	return imp
+
+
+func _qa_combat_still(display_imp: Enemy) -> void:
+	var east: Room = rooms.get(Vector2i(1, 0))
+	if east == null or player == null or camera == null:
+		return
+	if display_imp and is_instance_valid(display_imp):
+		display_imp.visible = false
+	player.global_position = east.center_global() + Vector2(-70, 40)
+	_enter_room(east, true)
+	camera.position_smoothing_enabled = false
+	camera.zoom = Vector2.ONE
+	camera.global_position = east.center_global()
+	camera.reset_smoothing()
+	if ui:
+		ui.visible = true
+	east.set_door_sprites_visible(true)
+	await get_tree().process_frame
+	await get_tree().create_timer(0.35).timeout
+	var live_imp: Enemy = null
+	for n in actors.get_children():
+		if n is Enemy and (n as Enemy).kind == Enemy.Kind.IMP and (n as Enemy).alive:
+			live_imp = n
+			break
+	_pixel_wire_log(live_imp)
+	_qa_shot("f5_combat", true, "f5_combat")
+	var start: Room = rooms.get(Vector2i.ZERO)
+	if start:
+		player.global_position = start.center_global()
+		_enter_room(start, true)
+		camera.global_position = start.center_global()
 
 
 func _spawn_look_shots() -> void:

@@ -598,7 +598,7 @@ func _pick_loadout() -> String:
 	for lo in IMP_LOADOUTS:
 		var walk_p := "res://assets/characters/imp/walk_%s.png" % lo
 		var atk_p := "res://assets/characters/imp/attack_%s.png" % lo
-		if ResourceLoader.exists(walk_p) and ResourceLoader.exists(atk_p):
+		if Sprites.sheet_exists(walk_p) and Sprites.sheet_exists(atk_p):
 			ok.append(lo)
 	if ok.is_empty():
 		return "vanilla"
@@ -606,9 +606,7 @@ func _pick_loadout() -> String:
 
 
 func _tex(path: String) -> Texture2D:
-	if not ResourceLoader.exists(path):
-		return null
-	return load(path) as Texture2D
+	return Sprites.tex(path)
 
 
 func _slice_dirs(frames: SpriteFrames, tex: Texture2D, prefix: String, fps: float) -> void:
