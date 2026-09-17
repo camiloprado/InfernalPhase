@@ -78,10 +78,44 @@ static func require_gameplay() -> void:
 		fail("res://assets/sprites/hearts.png", "look cell want 64x64")
 	if cell("res://assets/sprites/shots.png", 4, 8, 0, 0) == null:
 		fail("res://assets/sprites/shots.png", "look cell want 64x64")
+	# In-world Caim / Lilith / Bebê must be pixel bodies, not look-pass
+	# Penitent diamonds (12 geometric frames, ~5 Bone/Ash/Ember colors).
+	if not is_character_body("res://assets/sprites/player.png"):
+		fail("res://assets/sprites/player.png", "penitent geometry / not a character body")
+	if not is_character_body("res://assets/sprites/player_f.png"):
+		fail("res://assets/sprites/player_f.png", "penitent geometry / not a character body")
+	if not is_character_body("res://assets/sprites/baby.png", 1, 1):
+		fail("res://assets/sprites/baby.png", "penitent geometry / not a character body")
 
 
 static func sheet_exists(path: String) -> bool:
 	return not path.is_empty() and tex(path) != null
+
+
+static func is_character_body(path: String, cols: int = 4, rows: int = 3) -> bool:
+	# Penitent look-pass cells are 3–8 unique colors. A walk body has hundreds.
+	var t := tex(path)
+	if t == null:
+		return false
+	var img := t.get_image()
+	if img == null:
+		return false
+	var cw := maxi(img.get_width() / maxi(cols, 1), 1)
+	var ch := maxi(img.get_height() / maxi(rows, 1), 1)
+	var seen: Dictionary = {}
+	var y := 0
+	while y < ch:
+		var x := 0
+		while x < cw:
+			var c := img.get_pixel(x, y)
+			if c.a > 0.08:
+				var key := int(c.r * 31.0) * 10000 + int(c.g * 31.0) * 100 + int(c.b * 31.0)
+				seen[key] = true
+				if seen.size() >= 80:
+					return true
+			x += 1
+		y += 1
+	return false
 
 
 static func src_of(path: String) -> String:

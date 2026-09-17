@@ -57,9 +57,11 @@ func rebind_visual() -> void:
 		if loaded:
 			_baby.texture = loaded
 			var h := float(loaded.get_height())
-			_baby.scale = Vector2.ONE * (48.0 / maxf(h, 1.0))
+			_baby.scale = Vector2.ONE * (72.0 / maxf(h, 1.0))
 			_baby.visible = true
 		return
+	# Body pixel sheets (player-female-v2 → player_f / player). Never the
+	# look-pass Penitent diamond atlas. 96px so F5 reads limbs, not a blob.
 	var path := "res://assets/sprites/player_f.png" if Game.body == Game.Body.LILITH else "res://assets/sprites/player.png"
 	_sheet = Sprites.actor(
 		path,
@@ -70,7 +72,7 @@ func rebind_visual() -> void:
 			"walk": {"row": 1, "fps": 8.0, "loop": true},
 			"attack": {"row": 2, "fps": 14.0, "loop": false},
 		},
-		48.0,
+		96.0,
 		true
 	)
 	if _sheet:

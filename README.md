@@ -18,7 +18,7 @@ Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs 
 3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
 4. Press **F5** (or Run Project).
 
-Floors use `assets/sprites/env.png` (pixel tiles) over a Void fill. Doors are `doors.png` (gothic Ash arches, Bone inlay, Ember / cracked seals). **Caim** is the coat-and-pistol walk sheet `player.png`. **Lilith** is `player_f.png` (female 4×3 body sheet — not a Penitent diamond). Bebê Chorão is a difficulty **mode** (enemy shots deflect); its sprite is `baby.png` (from `bebe_sprite`). Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, pickups, and shots use `assets/sprites/`. If a gameplay sheet is missing, the load errors — no drawn placeholder.
+Floors use `assets/sprites/env.png` (pixel tiles) over a Void fill. Doors are `doors.png` (gothic Ash arches, Bone inlay, Ember / cracked seals). **Caim** and **Lilith** are the `player-female-v2` 4×3 body sheet (`player.png` / `player_f.png`) — not the look-pass Penitent diamond. A male Caim sheet is not on disk yet, so Caim temporarily shares the female body. Bebê Chorão is a difficulty **mode**; its sprite is `baby.png` (from `bebe_sprite`). Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, pickups, and shots use `assets/sprites/`. If a gameplay sheet is missing, the load errors — no drawn placeholder. A Penitent-geometry player/baby atlas also fails bind (`is_character_body`).
 
 The main scene is `scenes/floor.tscn`.
 
