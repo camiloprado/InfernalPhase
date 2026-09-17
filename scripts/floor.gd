@@ -545,6 +545,16 @@ func _look_dump() -> void:
 	await get_tree().create_timer(0.25).timeout
 	_pixel_wire_log(display_imp)
 	_qa_shot("f5_threshold", true, "f5_threshold")
+	# Lilith uses player-female-v2 → player_f.png (body sheet, not Penitent diamond).
+	Game.body = Game.Body.LILITH
+	if player:
+		player.rebind_visual()
+	await get_tree().process_frame
+	await get_tree().create_timer(0.2).timeout
+	_qa_shot("f5_threshold_lilith", true, "f5_threshold_lilith")
+	Game.body = Game.Body.CAIM
+	if player:
+		player.rebind_visual()
 	_qa_shot("doors", true, "doors")
 	_spawn_look_shots()
 	await get_tree().create_timer(0.35).timeout
