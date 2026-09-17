@@ -475,9 +475,10 @@ func _pixel_wire_log(imp: Enemy = null) -> void:
 		24.0
 	)
 	var player_sheet := 1 if player != null and player.has_pixel() else 0
-	var player_body := 1 if Sprites.is_character_body(player_path) else 0
+	var player_body := 1 if Sprites.is_character_body(player_path, 4, 4) else 0
 	if Game.body == Game.Body.LILITH:
 		player_body = 1 if Sprites.is_character_body("res://assets/sprites/player_f.png") else 0
+	var caim_own := 1 if Sprites.is_caim_own_body() else 0
 	var door_spr := 0
 	if current:
 		for dir in current._door_art.keys():
@@ -492,10 +493,11 @@ func _pixel_wire_log(imp: Enemy = null) -> void:
 				break
 	var doors := 1 if door_cell != null and door_spr == 1 else 0
 	var hearts := 1 if heart_cell != null else 0
-	var ok := 1 if player_sheet == 1 and player_body == 1 and enemy_art == 1 and doors == 1 and hearts == 1 else 0
+	var ok := 1 if player_sheet == 1 and player_body == 1 and caim_own == 1 and enemy_art == 1 and doors == 1 and hearts == 1 else 0
 	print(
 		"QA_ASSERT player_sheet=", player_sheet,
 		" player_body=", player_body,
+		" caim_own=", caim_own,
 		" enemy_art=", enemy_art,
 		" doors=", doors,
 		" hearts=", hearts,
@@ -503,7 +505,7 @@ func _pixel_wire_log(imp: Enemy = null) -> void:
 		" ok=", ok
 	)
 	if ok != 1:
-		push_error("QA_ASSERT FAIL player_sheet=%s player_body=%s enemy_art=%s doors=%s hearts=%s" % [player_sheet, player_body, enemy_art, doors, hearts])
+		push_error("QA_ASSERT FAIL player_sheet=%s player_body=%s caim_own=%s enemy_art=%s doors=%s hearts=%s" % [player_sheet, player_body, caim_own, enemy_art, doors, hearts])
 		printerr("QA_ASSERT FAIL ok=0")
 	print(
 		"PIXEL_WIRE player_tex=", _tex_size(Sprites.tex(player_path)),
@@ -544,13 +546,16 @@ func _look_dump() -> void:
 		ui.hint.visible = true
 	if player and current:
 		player.global_position = current.center_global() + Vector2(-40, 36)
+		player.aim = Vector2.DOWN
+		player.velocity = Vector2.ZERO
+		player._sync_sheet()
 	var display_imp: Enemy = _spawn_look_imp()
 	await get_tree().process_frame
 	await get_tree().create_timer(0.25).timeout
 	_pixel_wire_log(display_imp)
 	_qa_shot("f5_threshold", true, "f5_threshold")
 	if camera and player:
-		camera.zoom = Vector2(2.4, 2.4)
+		camera.zoom = Vector2(4.0, 4.0)
 		camera.global_position = player.global_position
 		camera.reset_smoothing()
 	await get_tree().process_frame
@@ -570,7 +575,7 @@ func _look_dump() -> void:
 	await get_tree().create_timer(0.2).timeout
 	_qa_shot("f5_threshold_lilith", true, "f5_threshold_lilith")
 	if camera and player:
-		camera.zoom = Vector2(2.4, 2.4)
+		camera.zoom = Vector2(4.0, 4.0)
 		camera.global_position = player.global_position
 		camera.reset_smoothing()
 	await get_tree().process_frame

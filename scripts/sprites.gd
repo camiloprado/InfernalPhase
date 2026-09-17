@@ -80,16 +80,39 @@ static func require_gameplay() -> void:
 		fail("res://assets/sprites/shots.png", "look cell want 64x64")
 	# In-world Caim / Lilith / Bebê must be pixel bodies, not look-pass
 	# Penitent diamonds (12 geometric frames, ~5 Bone/Ash/Ember colors).
-	if not is_character_body("res://assets/sprites/player.png"):
+	if not is_character_body("res://assets/sprites/player.png", 4, 4):
 		fail("res://assets/sprites/player.png", "penitent geometry / not a character body")
 	if not is_character_body("res://assets/sprites/player_f.png"):
 		fail("res://assets/sprites/player_f.png", "penitent geometry / not a character body")
 	if not is_character_body("res://assets/sprites/baby.png", 1, 1):
 		fail("res://assets/sprites/baby.png", "penitent geometry / not a character body")
+	# Gate FAIL if Caim is the look-pass diamond, Lilith, or Bebê.
+	if not is_caim_own_body():
+		fail("res://assets/sprites/player.png", "caim reused female/bebe/diamond")
 
 
 static func sheet_exists(path: String) -> bool:
 	return not path.is_empty() and tex(path) != null
+
+
+static func disk_md5(path: String) -> String:
+	for p in _png_paths(path):
+		var md := FileAccess.get_md5(p)
+		if md != "":
+			return md
+	return ""
+
+
+static func is_caim_own_body() -> bool:
+	var caim := "res://assets/sprites/player.png"
+	var lilith := "res://assets/sprites/player_f.png"
+	var baby := "res://assets/sprites/baby.png"
+	var a := disk_md5(caim)
+	var b := disk_md5(lilith)
+	var c := disk_md5(baby)
+	if a.is_empty() or a == b or a == c:
+		return false
+	return is_character_body(caim, 4, 4)
 
 
 static func is_character_body(path: String, cols: int = 4, rows: int = 3) -> bool:

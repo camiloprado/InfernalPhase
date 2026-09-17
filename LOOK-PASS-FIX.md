@@ -20,7 +20,7 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 - `assets/sprites/shots.png` — diamond + ring rows only.
 - `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph.
 - `scripts/sprites.gd` — look sheets load from PNG bytes on `res://` (not only an OS absolute path) so a missing `.ctex` cannot blank F5. Doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64; wrong cell sizes are rejected after a disk retry. Imps / boss / player / cantor / wretch / concierge go through `Sprites.tex` too. A miss prints `SPRITE_BIND FAIL` and asserts. No gameplay-actor `_draw` geometry.
-- `assets/sprites/player.png`, `player_f.png`, `baby.png`, `env.png` — character / env atlases must stay pixel bodies. Caim is a generated top-down Penitent male walker (`player.png`). Lilith is `player-female-v2` (`player_f.png`). Bebê is `bebe_sprite` (`baby.png`). Do not stand Caim in on the female or baby sheet. Look-pass Penitent diamonds are rejected at bind. `gen_look_pass.py` must not overwrite them.
+- `assets/sprites/player.png`, `player_f.png`, `baby.png`, `env.png` — character / env atlases must stay pixel bodies. Caim is a ~32px top-down hooded Penitent (`player.png`, 4×4). Lilith is `player-female-v2` (`player_f.png`). Bebê is `bebe_sprite` (`baby.png`). Bind **FAIL** if Caim is diamond, female, or Bebê. `gen_look_pass.py` must not overwrite them.
 
 ## Not in this pass
 
