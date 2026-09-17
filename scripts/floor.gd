@@ -546,6 +546,7 @@ func _look_dump() -> void:
 		ui.hint.visible = true
 	if player and current:
 		player.global_position = current.center_global() + Vector2(-40, 36)
+		player.set_physics_process(false)
 		player.aim = Vector2.DOWN
 		player.velocity = Vector2.ZERO
 		player._sync_sheet()
