@@ -85,6 +85,8 @@ func _ready() -> void:
 	ui.set_walker(Game.walker_label(), "")
 	Game.bgm("play_for_run")
 	_enter_room(rooms[Vector2i.ZERO], true)
+	if look or qa:
+		_look_wire_log()
 	if look:
 		await _look_dump()
 		if not qa:
@@ -440,8 +442,28 @@ func _qa_proof() -> void:
 	get_tree().quit()
 
 
+func _look_wire_log() -> void:
+	var d := Sprites.tex("res://assets/sprites/doors.png")
+	var h := Sprites.tex("res://assets/sprites/hearts.png")
+	var s := Sprites.tex("res://assets/sprites/shots.png")
+	var p := Sprites.tex("res://assets/env/pit.png")
+	print(
+		"LOOK_WIRE doors=", _tex_size(d),
+		" hearts=", _tex_size(h),
+		" shots=", _tex_size(s),
+		" pit=", _tex_size(p),
+		" disk=1"
+	)
+
+
+func _tex_size(t: Texture2D) -> String:
+	if t == null:
+		return "missing"
+	return "%dx%d" % [t.get_width(), t.get_height()]
+
+
 func _look_dump() -> void:
-	# Doors plate, dedicated HUD crop (no arch), clear pit plate. Shots stay on last PASS.
+	# F5 plates first (HUD + doors + pit as after Swear In), then isolated crops.
 	if camera:
 		camera.position_smoothing_enabled = false
 		camera.zoom = Vector2.ONE
@@ -449,11 +471,26 @@ func _look_dump() -> void:
 			camera.global_position = current.center_global()
 			camera.reset_smoothing()
 	if current:
+		current.set_door_sprites_visible(true)
 		# Ember lit seal on the north arch; south / east / west stay cracked-open.
 		current._set_door_blocked(Room.Dir.N, true)
+	if ui:
+		ui.visible = true
+		ui.hint.visible = true
+	if player and current:
+		player.global_position = current.center_global() + Vector2(-40, 36)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.25).timeout
+	_qa_shot("f5_threshold", true, "f5_threshold")
 	_qa_shot("doors", true, "doors")
+	_spawn_look_shots()
+	await get_tree().create_timer(0.35).timeout
+	_qa_shot("f5_shots", true, "f5_shots")
+	_qa_shot("shots", true, "shots")
+	for n in projectiles.get_children():
+		if n is Bullet:
+			n.queue_free()
+	await get_tree().process_frame
 	if current:
 		current._set_door_blocked(Room.Dir.N, false)
 	# Mixed seals so the HUD crop shows full / hit / empty — combat numbers restore after.
@@ -484,6 +521,31 @@ func _look_dump() -> void:
 		if camera:
 			camera.zoom = Vector2.ONE
 			camera.global_position = rooms[Vector2i.ZERO].center_global()
+
+
+func _spawn_look_shots() -> void:
+	if current == null:
+		return
+	var origin := current.center_global()
+	var arts: Array[String] = ["player", "imp", "wretch", "cantor", "boss", "ember", "bone", "deflect"]
+	var cols: Array[Color] = [
+		Palette.EMBER, Palette.EMBER, Palette.BONE, Palette.BONE,
+		Palette.EMBER, Palette.EMBER, Palette.BONE, Palette.EMBER,
+	]
+	for i in arts.size():
+		spawn_bullet(
+			origin + Vector2(-280.0 + float(i) * 72.0, -90.0),
+			Vector2.RIGHT,
+			12.0,
+			arts[i] != "player",
+			cols[i],
+			6.0,
+			0.0,
+			8.0,
+			0.0,
+			0.0,
+			arts[i]
+		)
 
 
 func _qa_hud_crop() -> void:

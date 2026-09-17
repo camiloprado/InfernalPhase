@@ -19,7 +19,7 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 - `assets/env/pit.png` — opaque Void hole, thin Ash/Bone lip, outside-lip pixels opaque Void `#0B0C10` (the hell sheet had gray `216,216,216,105` in the corners; alpha-0 corners punched the F5 checkerboard).
 - `assets/sprites/shots.png` — diamond + ring rows only.
 - `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph.
-- `tools/gen_look_pass.py` — source for the sheets.
+- `scripts/sprites.gd` — look sheets load from the PNG on disk so a stale `.godot/imported` hell `.ctex` cannot win at F5. Doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64; wrong cell sizes are rejected.
 
 ## Not in this pass
 

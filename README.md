@@ -14,7 +14,7 @@ rm -rf .godot
 godot --path . --import
 ```
 
-Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine.
+Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine. Combat look sheets (doors, hearts, shots, pit) also load from the PNG on disk at F5 so a leftover hell `.ctex` cannot keep the old art.
 3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
 4. Press **F5** (or Run Project).
 

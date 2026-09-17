@@ -610,10 +610,7 @@ func add_pit(dest: Room = null) -> void:
 	add_child(under)
 	var spr := Sprite2D.new()
 	spr.name = "PitSprite"
-	if ResourceLoader.exists(PIT_SHEET):
-		var loaded: Variant = ResourceLoader.load(PIT_SHEET)
-		if loaded is Texture2D:
-			spr.texture = loaded
+	spr.texture = Sprites.tex(PIT_SHEET)
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = pit_center

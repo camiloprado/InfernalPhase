@@ -1,14 +1,35 @@
 class_name Sprites
 extends RefCounted
 ## Slice a cols×rows PNG. Never abort the tree if a sheet is missing.
+## Look sheets (doors / hearts / shots / pit) load from the PNG on disk so a
+## stale `.godot/imported/*.ctex` cannot keep hell art after a sheet replace.
+
+static var _tex_cache: Dictionary = {}
 
 
 static func tex(path: String) -> Texture2D:
-	if path.is_empty() or not ResourceLoader.exists(path):
+	if path.is_empty():
 		return null
-	var loaded: Variant = ResourceLoader.load(path)
-	if loaded is Texture2D:
-		return loaded
+	if _tex_cache.has(path):
+		return _tex_cache[path]
+	var t := _load_png(path)
+	if t:
+		_tex_cache[path] = t
+	return t
+
+
+static func _load_png(path: String) -> Texture2D:
+	# Editor / F5: read the PNG bytes. ResourceLoader.load() can return a
+	# CompressedTexture2D whose .ctex is an older hell sheet at the same path.
+	var abs := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(abs):
+		var img := Image.load_from_file(abs)
+		if img and img.get_width() > 0 and img.get_height() > 0:
+			return ImageTexture.create_from_image(img)
+	if ResourceLoader.exists(path):
+		var loaded: Variant = ResourceLoader.load(path)
+		if loaded is Texture2D:
+			return loaded
 	return null
 
 
@@ -16,10 +37,24 @@ static func cell(path: String, cols: int, rows: int, col: int, row: int) -> Atla
 	var sheet := tex(path)
 	if sheet == null or cols < 1 or rows < 1:
 		return null
-	var fw := sheet.get_width() / cols
-	var fh := sheet.get_height() / rows
-	if fw < 1 or fh < 1:
+	var fw := float(sheet.get_width()) / float(cols)
+	var fh := float(sheet.get_height()) / float(rows)
+	if fw < 1.0 or fh < 1.0:
 		return null
+	# Locked look cells. A stale hell ctex with the same path but a different
+	# sheet size must not be sliced as gothic / Bone / diamond art.
+	if path.ends_with("doors.png") and cols == 4 and rows == 2:
+		if absf(fw - 384.0) > 1.0 or absf(fh - 512.0) > 1.0:
+			push_warning("LOOK_WIRE reject doors cell %sx%s (want 384x512)" % [fw, fh])
+			return null
+	if path.ends_with("hearts.png") and cols == 4 and rows == 1:
+		if absf(fw - 64.0) > 1.0 or absf(fh - 64.0) > 1.0:
+			push_warning("LOOK_WIRE reject hearts cell %sx%s (want 64x64)" % [fw, fh])
+			return null
+	if path.ends_with("shots.png") and cols == 4 and rows == 8:
+		if absf(fw - 64.0) > 1.0 or absf(fh - 64.0) > 1.0:
+			push_warning("LOOK_WIRE reject shots cell %sx%s (want 64x64)" % [fw, fh])
+			return null
 	var at := AtlasTexture.new()
 	at.atlas = sheet
 	at.filter_clip = true
@@ -111,10 +146,14 @@ static func actor(
 	var sheet := tex(path)
 	if sheet == null or cols < 1 or rows < 1:
 		return null
-	var fw := sheet.get_width() / cols
-	var fh := sheet.get_height() / rows
-	if fw < 1 or fh < 1:
+	var fw := float(sheet.get_width()) / float(cols)
+	var fh := float(sheet.get_height()) / float(rows)
+	if fw < 1.0 or fh < 1.0:
 		return null
+	if path.ends_with("shots.png") and cols == 4 and rows == 8:
+		if absf(fw - 64.0) > 1.0 or absf(fh - 64.0) > 1.0:
+			push_warning("LOOK_WIRE reject shots actor %sx%s (want 64x64)" % [fw, fh])
+			return null
 	var sf := SpriteFrames.new()
 	for anim_name in anims:
 		var spec: Dictionary = anims[anim_name]
