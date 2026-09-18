@@ -43,6 +43,7 @@ var _hazard_scene: PackedScene = preload("res://scenes/hazard.tscn")
 var _pickup_scene: PackedScene = preload("res://scenes/pickup.tscn")
 var _run_pick_script: Script = preload("res://scripts/run_pick.gd")
 var _fall_cd := 0.0
+var _door_cd := 0.0
 
 
 func _ready() -> void:
@@ -59,19 +60,39 @@ func _ready() -> void:
 		player.set_physics_process(false)
 	var qa := "--qa-proof" in OS.get_cmdline_user_args()
 	var look := "--qa-look" in OS.get_cmdline_user_args()
-	if qa and not look:
+	var combat := "--qa-combat" in OS.get_cmdline_user_args()
+	var spec := "--qa-spec" in OS.get_cmdline_user_args()
+	var viz := "--qa-viz" in OS.get_cmdline_user_args()
+	var play := "--qa-play" in OS.get_cmdline_user_args()
+	if (qa or combat or spec or viz) and not look and not play:
 		Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
 	else:
 		var pick = _run_pick_script.new()
 		add_child(pick)
-		if look:
+		if look or play:
 			if ui:
 				ui.visible = false
 			await get_tree().process_frame
 			await get_tree().process_frame
-			await get_tree().create_timer(0.35).timeout
+			await get_tree().create_timer(0.25).timeout
+			if pick.has_method("qa_show"):
+				pick.qa_show(Game.Body.CAIM, Game.Difficulty.NORMAL)
+			await get_tree().process_frame
 			_qa_shot("start", true, "start_card")
-			print("LOOK_START penitent=1 who_walks=0 ember_cta=SWEAR_IN")
+			_qa_shot("start_caim", true, "start_caim")
+			if pick.has_method("qa_show"):
+				pick.qa_show(Game.Body.LILITH, Game.Difficulty.NORMAL)
+			await get_tree().process_frame
+			await get_tree().create_timer(0.12).timeout
+			_qa_shot("start_lilith", true, "start_lilith")
+			if pick.has_method("qa_show"):
+				pick.qa_show(Game.Body.CAIM, Game.Difficulty.BABY)
+			await get_tree().process_frame
+			await get_tree().create_timer(0.12).timeout
+			_qa_shot("start_baby", true, "start_baby")
+			var pixel := 1 if pick.has_method("qa_has_pixel_preview") and pick.qa_has_pixel_preview() else 0
+			var nearest := 1 if pick.has_method("qa_preview_nearest") and pick.qa_preview_nearest() else 0
+			print("LOOK_START penitent=0 pixel_preview=", pixel, " nearest=", nearest, " who_walks=1 ember_cta=SWEAR_IN")
 			if ui:
 				ui.visible = true
 			Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
@@ -90,11 +111,16 @@ func _ready() -> void:
 		_look_wire_log()
 	if look:
 		await _look_dump()
-		if not qa:
-			get_tree().quit()
-			return
 	if qa:
 		await _qa_proof()
+	if combat or spec:
+		await _qa_combat()
+	if viz:
+		await _qa_combat()
+	if play:
+		await _qa_combat()
+	if look or qa or combat or spec or viz or play:
+		get_tree().quit()
 		return
 	await get_tree().create_timer(0.15).timeout
 	Game.say(Flavor.START[0], 2.8)
@@ -149,6 +175,7 @@ func _process(delta: float) -> void:
 		return
 	var was_falling := _fall_cd > 0.0
 	_fall_cd = maxf(_fall_cd - delta, 0.0)
+	_door_cd = maxf(_door_cd - delta, 0.0)
 	if was_falling and _fall_cd <= 0.0:
 		for room in rooms.values():
 			if (room as Room).has_pit:
@@ -164,6 +191,15 @@ func _process(delta: float) -> void:
 
 
 func _check_room_change() -> void:
+	if current == null or player == null or _door_cd > 0.0:
+		return
+	var dest: Room = current.transition_at(player.global_position)
+	if dest:
+		var through := _arrival_dir(current, dest)
+		_door_cd = 0.28
+		_enter_room(dest, false)
+		player.global_position = dest.entry_from(through)
+		return
 	for room in rooms.values():
 		var r: Room = room
 		if r == current:
@@ -171,6 +207,19 @@ func _check_room_change() -> void:
 		if r.contains_inner(player.global_position):
 			_enter_room(r, false)
 			return
+
+
+func _arrival_dir(from: Room, to: Room) -> int:
+	var d: Vector2i = to.grid - from.grid
+	if d == Vector2i(0, -1):
+		return Room.Dir.S
+	if d == Vector2i(0, 1):
+		return Room.Dir.N
+	if d == Vector2i(1, 0):
+		return Room.Dir.W
+	if d == Vector2i(-1, 0):
+		return Room.Dir.E
+	return Room.Dir.S
 
 
 func _enter_room(room: Room, instant: bool) -> void:
@@ -196,6 +245,10 @@ func _enter_room(room: Room, instant: bool) -> void:
 		room.unlock_doors()
 		return
 	room.lock_doors()
+	if player:
+		player.i_timer = maxf(player.i_timer, 0.4)
+		if not room.contains_inner(player.global_position):
+			player.global_position = player.global_position.move_toward(room.center_global(), Game.WALL + 8.0)
 	_spawn_pack(room)
 
 
@@ -450,7 +503,14 @@ func _qa_proof() -> void:
 	print("QA_CONCIERGE ", grant)
 	if display_imp and is_instance_valid(display_imp):
 		display_imp.queue_free()
-	get_tree().quit()
+
+
+func _qa_combat() -> void:
+	var bat: Node = (load("res://scripts/qa_battery.gd") as Script).new()
+	add_child(bat)
+	await bat.run(self)
+	if is_instance_valid(bat):
+		bat.queue_free()
 
 
 func _look_wire_log() -> void:
@@ -595,6 +655,30 @@ func _look_dump() -> void:
 		player.rebind_visual()
 	if ui:
 		ui.set_walker(Game.walker_label(), "")
+	# Bebê Chorão is a difficulty body (baby.png), not a second walker pick.
+	Game.pick_run(Game.Body.CAIM, Game.Difficulty.BABY)
+	if player:
+		player.rebind_visual()
+	if ui:
+		ui.set_walker(Game.walker_label(), "")
+	await get_tree().process_frame
+	await get_tree().create_timer(0.2).timeout
+	_qa_shot("f5_threshold_baby", true, "f5_threshold_baby")
+	if camera and player:
+		camera.zoom = Vector2(4.0, 4.0)
+		camera.global_position = player.global_position
+		camera.reset_smoothing()
+	await get_tree().process_frame
+	_qa_shot("f5_baby_body", true, "f5_baby_body")
+	if camera and current:
+		camera.zoom = Vector2.ONE
+		camera.global_position = current.center_global()
+		camera.reset_smoothing()
+	Game.pick_run(Game.Body.CAIM, Game.Difficulty.NORMAL)
+	if player:
+		player.rebind_visual()
+	if ui:
+		ui.set_walker(Game.walker_label(), "")
 	_qa_shot("doors", true, "doors")
 	_spawn_look_shots()
 	await get_tree().create_timer(0.35).timeout
@@ -722,8 +806,7 @@ func _qa_hud_crop() -> void:
 		return
 	var crop := img.get_region(Rect2i(0, 0, img.get_width(), mini(130, img.get_height())))
 	_write_look("hud", crop)
-	crop.save_png("/workspace/gate/hud.png")
-	crop.save_png("/opt/cursor/artifacts/hud.png")
+	_qa_save_png(crop, "hud.png")
 
 
 func _qa_pit_still() -> void:
@@ -755,10 +838,26 @@ func _qa_pit_still() -> void:
 	var ry := maxi((ch - rh) / 2, 0)
 	var crop := img.get_region(Rect2i(rx, ry, rw, rh))
 	_write_look("pit", crop)
-	crop.save_png("/workspace/gate/pit.png")
-	crop.save_png("/opt/cursor/artifacts/pit.png")
+	_qa_save_png(crop, "pit.png")
 	if ui:
 		ui.visible = true
+
+
+func _qa_local_gate() -> String:
+	return ProjectSettings.globalize_path("res://gate")
+
+
+func _qa_save_png(img: Image, rel: String) -> void:
+	var local := _qa_local_gate().path_join(rel)
+	DirAccess.make_dir_recursive_absolute(local.get_base_dir())
+	img.save_png(local)
+	if DirAccess.dir_exists_absolute("/workspace"):
+		var ws := "/workspace/gate".path_join(rel)
+		DirAccess.make_dir_recursive_absolute(ws.get_base_dir())
+		img.save_png(ws)
+	if DirAccess.dir_exists_absolute("/opt/cursor"):
+		DirAccess.make_dir_recursive_absolute("/opt/cursor/artifacts")
+		img.save_png("/opt/cursor/artifacts".path_join(rel.get_file()))
 
 
 func _qa_shot(shot_name: String, to_gate: bool = false, look_name: String = "") -> void:
@@ -769,15 +868,20 @@ func _qa_shot(shot_name: String, to_gate: bool = false, look_name: String = "") 
 	if img == null:
 		return
 	if to_gate:
-		DirAccess.make_dir_recursive_absolute("/workspace/gate")
-		img.save_png("/workspace/gate/%s.png" % shot_name)
+		_qa_save_png(img, "%s.png" % shot_name)
 		if look_name != "":
 			_write_look(look_name, img)
-	img.save_png("/opt/cursor/artifacts/%s.png" % shot_name)
+	else:
+		_qa_save_png(img, "%s.png" % shot_name)
 
 
 func _write_look(look_name: String, img: Image) -> void:
-	DirAccess.make_dir_recursive_absolute("/workspace/gate/look")
-	img.save_png("/workspace/gate/look/look_%s.png" % look_name)
-	img.save_jpg("/workspace/gate/look/look_%s.jpg" % look_name, 0.84)
-	img.save_png("/opt/cursor/artifacts/look_%s.png" % look_name)
+	var local_look := _qa_local_gate().path_join("look")
+	DirAccess.make_dir_recursive_absolute(local_look)
+	img.save_png("%s/look_%s.png" % [local_look, look_name])
+	if DirAccess.dir_exists_absolute("/workspace"):
+		DirAccess.make_dir_recursive_absolute("/workspace/gate/look")
+		img.save_png("/workspace/gate/look/look_%s.png" % look_name)
+	if DirAccess.dir_exists_absolute("/opt/cursor"):
+		DirAccess.make_dir_recursive_absolute("/opt/cursor/artifacts")
+		img.save_png("/opt/cursor/artifacts/look_%s.png" % look_name)

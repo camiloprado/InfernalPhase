@@ -215,6 +215,80 @@ def _voussoirs(a: np.ndarray, frame: np.ndarray, cx: int, spring: int, y_top: in
         paint_mask(a, ray, ASH_DARK)
 
 
+def chunky(img: Image.Image, px: int) -> Image.Image:
+    """Nearest down/up so smooth geometry reads as pixel art, not vectors."""
+    w, h = img.size
+    sw = max(w // max(px, 1), 1)
+    sh = max(h // max(px, 1), 1)
+    return img.resize((sw, sh), Image.Resampling.NEAREST).resize((w, h), Image.Resampling.NEAREST)
+
+
+def stamp(dst: Image.Image, bits: list[str], ox: int, oy: int, scale: int, on, edge=None) -> None:
+    rows = len(bits)
+    cols = max(len(r) for r in bits) if bits else 0
+    for j, row in enumerate(bits):
+        for i, ch in enumerate(row):
+            if ch in " .":
+                continue
+            col = edge if ch == "o" and edge else on
+            for yy in range(scale):
+                for xx in range(scale):
+                    put(dst, ox + i * scale + xx, oy + j * scale + yy, col)
+
+
+HEART_FULL = [
+    "  ##  ##  ",
+    " ######## ",
+    "##########",
+    "##########",
+    " ######## ",
+    "  ######  ",
+    "   ####   ",
+    "    ##    ",
+]
+HEART_EMPTY = [
+    "  ##  ##  ",
+    " #      # ",
+    "#        #",
+    "#        #",
+    " #      # ",
+    "  #    #  ",
+    "   #  #   ",
+    "    ##    ",
+]
+HEART_HIT = [
+    "  ##  ##  ",
+    " ###  ### ",
+    "## #### ##",
+    "# ##  ## #",
+    " # ## # # ",
+    "  #  # #  ",
+    "   # #    ",
+    "    ##    ",
+]
+DIAMOND = [
+    "    ##    ",
+    "   ####   ",
+    "  ######  ",
+    " ######## ",
+    "##########",
+    " ######## ",
+    "  ######  ",
+    "   ####   ",
+    "    ##    ",
+]
+RING = [
+    "   ####   ",
+    "  #    #  ",
+    " #      # ",
+    "#        #",
+    "#        #",
+    " #      # ",
+    "  #    #  ",
+    "   ####   ",
+]
+
+
 def door_cell(kind: str, locked: bool) -> Image.Image:
     """Gothic stone FRAME on transparent field + circular seal in the opening."""
     w, h = DOOR_W, DOOR_H
@@ -264,38 +338,38 @@ def write_doors() -> None:
     for col, kind in enumerate(kinds):
         for row, locked in enumerate((False, True)):
             cell = door_cell(kind, locked)
+            cell = chunky(cell, 8)
             sheet.paste(cell, (col * cw, row * ch), cell)
     sheet.save(SPR / "doors.png")
 
 
 def shot_diamond(frame: int) -> Image.Image:
     cell = new(64, 64)
-    cx, cy = 32, 32
-    rx, ry = 26, 18
-    inset = (0, 1, 2, 1)[frame % 4]
-    diamond(cell, cx, cy, rx, ry, EMBER, BONE)
-    if inset:
-        diamond(cell, cx, cy, max(4, rx - 8 - inset), max(3, ry - 6 - inset), VOID)
-        diamond(cell, cx, cy, max(3, 6 - inset), max(2, 4 - inset), EMBER)
-    else:
-        diamond(cell, cx, cy, 6, 4, VOID)
-        diamond(cell, cx, cy, 3, 2, EMBER)
+    ox, oy = 12, 14
+    stamp(cell, DIAMOND, ox, oy, 4, EMBER, BONE)
+    if frame % 2:
+        stamp(cell, [
+            "  ##  ",
+            " #### ",
+            "######",
+            " #### ",
+            "  ##  ",
+        ], 20, 22, 4, VOID)
+        stamp(cell, [
+            "##",
+            "##",
+        ], 28, 30, 4, EMBER)
     return cell
 
 
 def shot_ring(frame: int) -> Image.Image:
     cell = new(64, 64)
-    cx, cy = 32, 32
-    ro, ri = 22, 13
-    ring(cell, cx, cy, ro, ri, BONE, ASH_DARK)
-    for i in range(4):
-        ang = math.radians(frame * 22.5 + i * 90)
-        rm = (ro + ri) * 0.5
-        x = int(cx + rm * math.cos(ang))
-        y = int(cy + rm * math.sin(ang))
-        put(cell, x, y, VOID)
-        put(cell, x + 1, y, VOID)
-        put(cell, x, y + 1, VOID)
+    stamp(cell, RING, 16, 16, 4, BONE, ASH_DARK)
+    if frame % 2:
+        put(cell, 30, 18, VOID)
+        put(cell, 31, 18, VOID)
+        put(cell, 32, 18, VOID)
+        put(cell, 33, 18, VOID)
     return cell
 
 
@@ -310,30 +384,34 @@ def write_shots() -> None:
 
 
 def write_hearts() -> None:
-    # 0 full Bone + Ember glyph · 1 empty hollow Ash · 2 hit Wound cracks · 3 shot glyph
     sheet = new(256, 64)
     filled = new(64, 64)
-    circle_fill(filled, 32, 32, 28, BONE)
-    ring(filled, 32, 32, 28, 25, BONE_DIM)
-    diamond(filled, 32, 32, 12, 8, EMBER, ASH_DARK)
-    diamond(filled, 32, 32, 4, 3, VOID)
+    stamp(filled, HEART_FULL, 12, 16, 4, WOUND)
+    stamp(filled, [
+        " ##  ## ",
+        "########",
+        "########",
+        " ###### ",
+        "  ####  ",
+        "   ##   ",
+    ], 16, 18, 4, EMBER)
     sheet.paste(filled, (0, 0), filled)
 
     empty = new(64, 64)
-    ring(empty, 32, 32, 28, 20, ASH)
-    ring(empty, 32, 32, 28, 26, ASH_DARK)
+    stamp(empty, HEART_EMPTY, 12, 16, 4, ASH)
     sheet.paste(empty, (64, 0), empty)
 
     cracked = new(64, 64)
-    circle_fill(cracked, 32, 32, 28, BONE)
-    ring(cracked, 32, 32, 28, 25, BONE_DIM)
-    _wound_rim_faults(cracked, 32, 32, 28)
-    _wound_fissures(cracked, 32, 32, 28)
+    stamp(cracked, HEART_HIT, 12, 16, 4, BONE)
+    stamp(cracked, [
+        "# #",
+        " # ",
+        "# #",
+    ], 24, 28, 4, WOUND)
     sheet.paste(cracked, (128, 0), cracked)
 
     glyph = new(64, 64)
-    diamond(glyph, 32, 32, 22, 16, EMBER, BONE)
-    diamond(glyph, 32, 32, 7, 5, VOID)
+    stamp(glyph, DIAMOND, 12, 14, 4, EMBER, BONE)
     sheet.paste(glyph, (192, 0), glyph)
     sheet.save(SPR / "hearts.png")
 
@@ -365,7 +443,7 @@ def write_pit() -> None:
                 px, py = x + ox, y + oy
                 if 0 <= px < n and 0 <= py < n and a[py, px, 3] > 0:
                     a[py, px] = BONE_DIM
-    from_arr(a).save(ENV / "pit.png")
+    from_arr(a).resize((128, 128), Image.Resampling.NEAREST).resize((n, n), Image.Resampling.NEAREST).save(ENV / "pit.png")
 
 
 def penitent_cell(w: int, h: int, frame_row: int, frame_col: int, lilith: bool) -> Image.Image:

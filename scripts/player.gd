@@ -3,7 +3,7 @@ extends CharacterBody2D
 
 const SPEED := 258.0
 const FIRE_CD := 0.2
-const RADIUS := 16.0
+const RADIUS := 13.0
 const BABY_SHEET := "res://assets/sprites/baby.png"
 
 var aim := Vector2.RIGHT
@@ -14,6 +14,7 @@ var knockback := Vector2.ZERO
 var _hit_stamp_ms := -99999
 var _baby: Sprite2D
 var _sheet: AnimatedSprite2D
+var _face_left := false
 
 @onready var _hurt: Area2D = $Hurtbox
 @onready var _col: CollisionShape2D = $CollisionShape2D
@@ -71,12 +72,12 @@ func rebind_visual() -> void:
 				"walk": {"row": 1, "fps": 8.0, "loop": true},
 				"attack": {"row": 2, "fps": 14.0, "loop": false},
 			},
-			96.0,
+			64.0,
 			true
 		)
 	else:
 		# Caim: masculine adult body on the Lilith 4×3 idle/walk/attack grid.
-		# player.png — not female-v2, not bebe, not a hooded/void Penitent.
+		# Shorter than the Ring Wretch so minion hierarchy reads.
 		_sheet = Sprites.actor(
 			"res://assets/sprites/player.png",
 			4,
@@ -86,7 +87,7 @@ func rebind_visual() -> void:
 				"walk": {"row": 1, "fps": 8.0, "loop": true},
 				"attack": {"row": 2, "fps": 14.0, "loop": false},
 			},
-			96.0,
+			64.0,
 			true
 		)
 	if _sheet:
@@ -102,16 +103,16 @@ func has_pixel() -> bool:
 
 
 func _physics_process(delta: float) -> void:
-	if Game.is_dead or Game.is_won:
+	if Game.is_dead or Game.is_won or Game.in_dialogue:
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
 
 	var wasd := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var arrows := Input.get_vector("aim_left", "aim_right", "aim_up", "aim_down")
+	# Arrows aim/shoot. WASD (or left stick) walks. Using aim as move made
+	# Caim moonwalk in a loop whenever the mouse faced the other way.
 	var move_vec := wasd
-	if move_vec.length() < 0.15:
-		move_vec = arrows
 
 	velocity = move_vec.limit_length(1.0) * SPEED + knockback
 	knockback = knockback.move_toward(Vector2.ZERO, 980.0 * delta)
@@ -138,11 +139,14 @@ func _physics_process(delta: float) -> void:
 	var want_shoot := Input.is_action_pressed("shoot") or dual or (arrows.length() > 0.5)
 	if want_shoot and fire_left <= 0.0:
 		_shoot()
+		Game.sfx("shoot")
 
 	_sync_sheet()
 
 
 func _shoot() -> void:
+	if Game.is_dead or Game.is_won:
+		return
 	var cd := FIRE_CD * (1.0 - 0.2 * float(Game.rapid))
 	if Game.heavy > 0:
 		cd *= 1.18
@@ -211,12 +215,18 @@ func _sync_sheet() -> void:
 	if Game.is_baby() and _baby:
 		_baby.visible = not blink
 		_baby.modulate.a = 0.0 if blink else 1.0
-		_baby.flip_h = aim.x < -0.15
+		var face_x := velocity.x if velocity.length() > 24.0 else aim.x
+		if absf(face_x) > 0.22:
+			_face_left = face_x < 0.0
+		_baby.flip_h = _face_left
 		return
 	if _sheet == null:
 		return
 	_sheet.visible = not blink
-	_sheet.flip_h = aim.x < 0.0
+	var face_x := velocity.x if velocity.length() > 24.0 else aim.x
+	if absf(face_x) > 0.22:
+		_face_left = face_x < 0.0
+	_sheet.flip_h = _face_left
 	if i_timer > 0.0 and not blink:
 		_sheet.modulate = Color(1.7, 0.55, 0.2)
 	elif Game.burn > 0:

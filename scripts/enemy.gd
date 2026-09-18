@@ -366,7 +366,7 @@ func _die() -> void:
 	queue_free()
 	var floor_node := _floor()
 	if floor_node:
-		floor_node.drop_from(drop_kind, drop_at)
+		floor_node.call_deferred("drop_from", drop_kind, drop_at)
 		floor_node.on_enemy_died(self)
 
 
@@ -513,7 +513,7 @@ func _setup_art() -> void:
 		Kind.BOSS:
 			_setup_boss_art()
 		Kind.WRETCH:
-			_setup_sheet_art("res://assets/sprites/wretch.png", 70.0, {
+			_setup_sheet_art("res://assets/sprites/wretch.png", 80.0, {
 				"idle": {"row": 0, "fps": 5.0, "loop": true},
 				"attack": {"row": 1, "fps": 9.0, "loop": false},
 			})

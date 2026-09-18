@@ -14,7 +14,7 @@ const DIR_VEC := {
 const DOOR_SHEET := "res://assets/sprites/doors.png"
 const ENV_SHEET := "res://assets/sprites/env.png"
 ## Arch lip past the inner wall face. Fallback art uses WALL + this (100px).
-## Portrait sheet cells (384×512) scale uniformly to the 200px opening (~267px deep).
+## Portrait sheet cells (384×512) scale uniformly to the 256px opening (4 tiles).
 const DOOR_REVEAL := 36.0
 
 var room_id: String = ""
@@ -73,19 +73,91 @@ func lock_doors() -> void:
 	locked = true
 	for dir in neighbors.keys():
 		_set_door_blocked(dir, true)
+	Game.sfx("door")
 
 
 func unlock_doors() -> void:
+	var was_locked := locked
 	locked = false
 	cleared = true
 	for dir in neighbors.keys():
 		_set_door_blocked(dir, false)
+	if was_locked:
+		Game.sfx("unlock")
 
 
 func contains_inner(point: Vector2) -> bool:
-	var inset := Game.WALL + 24.0
+	var inset := Game.WALL
 	var r := Rect2(global_position + Vector2(inset, inset), size - Vector2(inset * 2.0, inset * 2.0))
 	return r.has_point(point)
+
+
+func door_gap(dir: int) -> Rect2:
+	if _door_art.has(dir) and _door_art[dir] is Sprite2D:
+		var g: Rect2 = (_door_art[dir] as Sprite2D).get_meta("gap", Rect2())
+		if g.size != Vector2.ZERO:
+			return g
+	return Rect2()
+
+
+func door_trigger_global(dir: int) -> Rect2:
+	var gap := door_gap(dir)
+	if gap.size == Vector2.ZERO:
+		return Rect2()
+	var inset := 0.0
+	if _door_art.has(dir) and _door_art[dir] is Sprite2D:
+		var spr := _door_art[dir] as Sprite2D
+		var cell := Vector2(384, 512)
+		if spr.texture is AtlasTexture:
+			cell = (spr.texture as AtlasTexture).region.size
+		elif spr.texture:
+			cell = Vector2(spr.texture.get_width(), spr.texture.get_height())
+		var along := maxf(gap.size.x, gap.size.y) / maxf(cell.x, 1.0)
+		var depth := cell.y * along
+		inset = maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
+	match dir:
+		Dir.N:
+			gap.size.y += inset
+		Dir.S:
+			gap.position.y -= inset
+			gap.size.y += inset
+		Dir.W:
+			gap.size.x += inset
+		Dir.E:
+			gap.position.x -= inset
+			gap.size.x += inset
+	return Rect2(global_position + gap.position, gap.size)
+
+
+func transition_at(point: Vector2) -> Room:
+	if locked:
+		return null
+	for dir in neighbors.keys():
+		if not _door_bodies.has(dir):
+			continue
+		var body: StaticBody2D = _door_bodies[dir]
+		var col := body.get_node_or_null("Col") as CollisionShape2D
+		if col and not col.disabled and body.collision_layer != 0:
+			continue
+		var tr := door_trigger_global(dir)
+		if tr.has_point(point):
+			return neighbors[dir]
+	return null
+
+
+func entry_from(through_dir: int) -> Vector2:
+	var c := center_global()
+	var pad := Game.WALL + 188.0
+	match through_dir:
+		Dir.N:
+			return Vector2(c.x, global_position.y + pad)
+		Dir.S:
+			return Vector2(c.x, global_position.y + size.y - pad)
+		Dir.W:
+			return Vector2(global_position.x + pad, c.y)
+		Dir.E:
+			return Vector2(global_position.x + size.x - pad, c.y)
+	return c
 
 
 func center_global() -> Vector2:
@@ -117,19 +189,20 @@ func title() -> String:
 
 
 func _theme_row() -> int:
+	# env.png is 3×5 of 64. Rows 0 and 4 are empty; pixel art lives on 1–3.
 	match kind:
 		Kind.START:
-			return 0
+			return 1
 		Kind.NPC:
-			return 2
+			return 3
 		Kind.BOSS:
-			return 4
+			return 2
 		_:
 			if pack.has("wretch"):
-				return 2
-			if pack.has("cultist") or pack.has("cantor"):
 				return 3
-			return 1
+			if pack.has("cultist") or pack.has("cantor"):
+				return 2
+			return 2
 
 
 func _floor_color() -> Color:
@@ -148,11 +221,10 @@ func _owns_door(dir: int) -> bool:
 
 
 func _build_geometry() -> void:
-	# Node2D fill (not ColorRect) so any leftover pit-sprite alpha composites
-	# onto Void instead of the viewport clear. Same canvas as PitSprite.
+	# Void underlay so transparent env texels never punch the F5 checker.
 	var floor_n := Node2D.new()
 	floor_n.name = "FloorFill"
-	floor_n.z_index = -8
+	floor_n.z_index = -9
 	var floor_col := _floor_color()
 	floor_n.draw.connect(func () -> void:
 		floor_n.draw_rect(Rect2(Vector2.ZERO, size), floor_col)
@@ -160,15 +232,8 @@ func _build_geometry() -> void:
 	add_child(floor_n)
 	floor_n.queue_redraw()
 	Sprites.require(ENV_SHEET)
-	# Combat floors are a Void field. Do not tile env.png dungeon/checker
-	# cells (Isaac brick stripes). Quiet cathedral: fill + ritual circle.
-	_scatter_decals()
-
-	var grid_n := Node2D.new()
-	grid_n.z_index = -7
-	grid_n.draw.connect(_draw_floor.bind(grid_n))
-	add_child(grid_n)
-	grid_n.queue_redraw()
+	_stamp_floor()
+	_stamp_sigil()
 
 	var w := Game.WALL
 	var s := size
@@ -211,47 +276,96 @@ func _build_geometry() -> void:
 
 
 func _paint_gap(rect: Rect2, dir: int) -> void:
-	# Floor-colored throat. Jambs only on the owner side so shared walls
-	# do not stamp two bone frames on the same opening.
-	var hole := ColorRect.new()
-	hole.color = _floor_color()
-	hole.position = rect.position
-	hole.size = rect.size
-	hole.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hole.z_index = -6
-	add_child(hole)
+	var t := Game.WALL
+	var floor_xy := _env_xy()
+	var y := rect.position.y
+	while y < rect.end.y - 0.5:
+		var x := rect.position.x
+		while x < rect.end.x - 0.5:
+			_stamp_cell(Vector2(x, y), floor_xy.x, floor_xy.y, -6, minf(t, rect.end.x - x), minf(t, rect.end.y - y))
+			x += t
+		y += t
 	if not _owns_door(dir):
 		return
-	# Arch art is doors.png. No ColorRect jamb fallback if the sheet missed.
 	Sprites.require(DOOR_SHEET)
 
 
-func _draw_floor(node: Node2D) -> void:
-	var s := size
-	var w := Game.WALL
-	# One faint cross, not a 40px tile grid — that read as a broken tileset.
-	var line := Color(_wall_color().r, _wall_color().g, _wall_color().b, 0.16)
-	node.draw_line(Vector2(s.x * 0.5, w), Vector2(s.x * 0.5, s.y - w), line, 1.0)
-	node.draw_line(Vector2(w, s.y * 0.5), Vector2(s.x - w, s.y * 0.5), line, 1.0)
-	match kind:
-		Kind.START:
-			_draw_sigil(node, s * 0.5, 70.0)
-		Kind.BOSS:
-			_draw_sigil(node, s * 0.5, 110.0)
-		Kind.NPC:
-			node.draw_rect(Rect2(s.x * 0.5 - 70, s.y * 0.5 - 40, 140, 90), Color(Palette.ASH_MID.r, Palette.ASH_MID.g, Palette.ASH_MID.b, 0.85))
-		Kind.COMBAT:
-			_draw_sigil(node, s * 0.5, 78.0)
+func _env_xy() -> Vector2i:
+	var row := clampi(theme, 1, 3)
+	return Vector2i(0, row)
 
 
-func _draw_sigil(node: Node2D, c: Vector2, r: float) -> void:
-	var pts: PackedVector2Array = []
-	for i in 5:
-		var a := -PI * 0.5 + i * TAU * 2.0 / 5.0
-		pts.append(c + Vector2.RIGHT.rotated(a) * r)
-	pts.append(pts[0])
-	node.draw_polyline(pts, Color(Palette.WOUND.r, Palette.WOUND.g, Palette.WOUND.b, 0.45), 2.0, true)
-	node.draw_arc(c, r * 0.72, 0, TAU, 40, Color(Palette.ASH.r, Palette.ASH.g, Palette.ASH.b, 0.55), 1.5, true)
+func _wall_xy() -> Vector2i:
+	var row := clampi(theme, 1, 3)
+	return Vector2i(1, row)
+
+
+func _sigil_xy() -> Vector2i:
+	# Col 2 is emblems (pentagram / skull). Never stamp wall bricks on the floor.
+	return Vector2i(2, clampi(theme, 1, 3))
+
+
+func _stamp_floor() -> void:
+	# Inner field only — wall band is col 1, never mixed into the floor.
+	var t := Game.WALL
+	var base := _env_xy()
+	var inset := t
+	var y := inset
+	while y < size.y - inset - 0.5:
+		var x := inset
+		while x < size.x - inset - 0.5:
+			_stamp_cell(Vector2(x, y), base.x, base.y, -8, minf(t, size.x - inset - x), minf(t, size.y - inset - y))
+			x += t
+		y += t
+
+
+func _stamp_sigil() -> void:
+	if kind == Kind.NPC:
+		_stamp_dais()
+		return
+	var xy := _sigil_xy()
+	var spr := Sprite2D.new()
+	spr.name = "Sigil"
+	spr.texture = Sprites.require_cell(ENV_SHEET, 3, 5, xy.x, xy.y)
+	spr.centered = true
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.position = (size * 0.5).round()
+	var sc := 3.0 if kind == Kind.BOSS else (2.0 if kind == Kind.START else 2.5)
+	spr.scale = Vector2(sc, sc)
+	spr.z_index = -7
+	add_child(spr)
+
+
+func _stamp_dais() -> void:
+	var t := Game.WALL
+	var origin := Vector2(size.x * 0.5 - t * 1.5, size.y * 0.5 - t)
+	for iy in 2:
+		for ix in 3:
+			_stamp_cell(origin + Vector2(ix * t, iy * t), 0, 3, -7, t, t)
+
+
+func _stamp_cell(at: Vector2, col: int, row: int, z: int, w: float, h: float) -> void:
+	var atlas := Sprites.require_cell(ENV_SHEET, 3, 5, col, row)
+	if atlas == null:
+		return
+	var spr := Sprite2D.new()
+	spr.centered = false
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.position = at.round()
+	spr.z_index = z
+	if z >= 1:
+		spr.name = "EnvWall_%d_%d" % [int(at.x), int(at.y)]
+	elif z <= -8:
+		spr.name = "EnvFloor_%d_%d" % [int(at.x), int(at.y)]
+	else:
+		spr.name = "EnvDecal_%d_%d" % [int(at.x), int(at.y)]
+	if w < 63.5 or h < 63.5:
+		var cropped := atlas.duplicate() as AtlasTexture
+		cropped.region = Rect2(atlas.region.position, Vector2(w, h))
+		spr.texture = cropped
+	else:
+		spr.texture = atlas
+	add_child(spr)
 
 
 func _add_wall(rect: Rect2) -> void:
@@ -266,23 +380,16 @@ func _add_wall(rect: Rect2) -> void:
 	shape.size = rect.size
 	col.shape = shape
 	body.add_child(col)
-	var vis := ColorRect.new()
-	vis.color = _wall_color()
-	vis.size = rect.size
-	vis.position = -rect.size * 0.5
-	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(vis)
-	var edge := ColorRect.new()
-	edge.color = Palette.BONE_DIM
-	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if rect.size.x >= rect.size.y:
-		edge.size = Vector2(rect.size.x, 3)
-		edge.position = Vector2(-rect.size.x * 0.5, -1.5)
-	else:
-		edge.size = Vector2(3, rect.size.y)
-		edge.position = Vector2(-1.5, -rect.size.y * 0.5)
-	body.add_child(edge)
 	add_child(body)
+	var wall := _wall_xy()
+	var t := Game.WALL
+	var y := rect.position.y
+	while y < rect.end.y - 0.5:
+		var x := rect.position.x
+		while x < rect.end.x - 0.5:
+			_stamp_cell(Vector2(x, y), wall.x, wall.y, 1, minf(t, rect.end.x - x), minf(t, rect.end.y - y))
+			x += t
+		y += t
 
 
 func _add_door_blocker(dir: int, rect: Rect2) -> void:
@@ -329,7 +436,6 @@ func _add_door_blocker(dir: int, rect: Rect2) -> void:
 
 
 func _scatter_decals() -> void:
-	# No hell-tile skulls / dungeon stamps. Floor is Void + sigil only.
 	pass
 
 
@@ -347,7 +453,7 @@ func _door_col(k: Kind) -> int:
 
 func _door_atlas(k: Kind, blocked: bool) -> AtlasTexture:
 	# Full portrait cell (not used-rect crop) so the circular seal stays circular
-	# when scaled uniformly onto the 200px opening.
+	# when scaled uniformly onto the 256px opening.
 	return Sprites.cell(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
 
 
@@ -413,14 +519,15 @@ func _apply_door_sprite(spr: Sprite2D, atlas: AtlasTexture, dir: int, rect: Rect
 	spr.rotation = _door_rotation(dir)
 	var cell := atlas.region.size
 	var opening := maxf(rect.size.x, rect.size.y)
-	# Uniform scale from cell width → 200px opening. Portrait 384×512 becomes
-	# ~200×267 and sits on the wall: outer face flush, crown into the room.
+	# Uniform scale from cell width → 256px opening (4×64). Portrait 384×512
+	# sits on the wall: outer face flush, crown into the room.
 	var along := opening / maxf(cell.x, 1.0)
 	spr.scale = Vector2(along, along)
 	spr.position = rect.position + rect.size * 0.5
 	var depth := cell.y * along
 	var inset := maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
 	spr.position += _door_inward(dir) * inset
+	spr.position = spr.position.round()
 	spr.set_meta("gap", rect)
 	spr.set_meta("dir", dir)
 
@@ -435,7 +542,7 @@ func _add_door_art(dir: int, rect: Rect2) -> void:
 	spr.name = "DoorArt_%d" % dir
 	_apply_door_sprite(spr, atlas, dir, rect)
 	spr.z_index = 3
-	spr.visible = false
+	spr.visible = true
 	add_child(spr)
 	_door_art[dir] = spr
 
@@ -504,7 +611,7 @@ func add_pit(dest: Room = null) -> void:
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = pit_center
-	spr.scale = Vector2(0.30, 0.30)
+	spr.scale = Vector2(0.25, 0.25)
 	spr.z_index = -5
 	add_child(spr)
 	# Trigger the Void mouth, not the Ash lip / sprite quad.
@@ -515,11 +622,9 @@ func add_pit(dest: Room = null) -> void:
 		pit_radius = maxf(float(spr.texture.get_width()) * spr.scale.x * 0.33, 80.0)
 	# 1px pad so nearest-filter edge samples stay on the opaque underlay.
 	half += Vector2.ONE
-	var mouth := pit_radius
 	var cover := half
 	under.draw.connect(func () -> void:
 		under.draw_rect(Rect2(-cover, cover * 2.0), Palette.VOID)
-		under.draw_circle(Vector2.ZERO, mouth, Palette.VOID_DEEP)
 	)
 	under.queue_redraw()
 	var area := Area2D.new()

@@ -4,3 +4,4 @@ export/
 *.ipa
 gate/look/*_chunk_*
 agent-tools/
+n__pycache__/n*:Zone.Identifiern

@@ -27,9 +27,9 @@ const HEART_CAP := 6
 const RAPID_CAP := 2
 const PIERCE_CAP := 2
 const IFRAME_MS := 550
-const ROOM_SIZE := Vector2(1280, 720)
+const ROOM_SIZE := Vector2(1280, 768)
 const WALL := 64.0
-const DOOR_WIDTH := 200.0
+const DOOR_WIDTH := 256.0
 
 var hearts: int = MAX_HEARTS
 var max_hearts: int = MAX_HEARTS
@@ -48,6 +48,7 @@ var last_body: Body = Body.CAIM
 var body_picked: bool = false
 var difficulty: Difficulty = Difficulty.NORMAL
 var last_difficulty: Difficulty = Difficulty.NORMAL
+var in_dialogue: bool = false
 
 
 func _ready() -> void:
@@ -55,6 +56,17 @@ func _ready() -> void:
 	floor_seed = rng.randi()
 	_bind_inputs()
 	reset_run()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		release_gameplay_actions()
+
+
+func release_gameplay_actions() -> void:
+	for action in ["move_left", "move_right", "move_up", "move_down", "aim_left", "aim_right", "aim_up", "aim_down", "shoot", "interact"]:
+		if InputMap.has_action(action):
+			Input.action_release(action)
 
 
 func reset_run() -> void:
@@ -67,6 +79,7 @@ func reset_run() -> void:
 	heavy = 0
 	is_dead = false
 	is_won = false
+	in_dialogue = false
 	_hurt_stamp_ms = -99999
 	body_picked = false
 	body = last_body
@@ -110,6 +123,13 @@ func bgm(method: String) -> void:
 	m.call(method)
 
 
+func sfx(key: String) -> void:
+	var s := get_node_or_null("/root/Sfx")
+	if s == null or not s.has_method("play_named"):
+		return
+	s.play_named(key)
+
+
 func hurt(amount: int = 1) -> bool:
 	if is_dead or is_won:
 		return false
@@ -120,8 +140,10 @@ func hurt(amount: int = 1) -> bool:
 	hearts = max(hearts - amount, 0)
 	hearts_changed.emit(hearts, max_hearts)
 	shake.emit(10.0)
+	sfx("hit")
 	if hearts <= 0:
 		is_dead = true
+		sfx("death")
 		died.emit()
 		return true
 	return true

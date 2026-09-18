@@ -5,7 +5,7 @@ alwaysApply: true
 
 Godot 4.7.2 GL Compatibility. One infernal floor. Do not add auth, Steam, extra floors, or a second UI kit.
 
-Caim is a **masculine Lilith-grid** body on `assets/sprites/player.png` (4×3 idle / walk-side / shoot). Same Bone coat, Ember chest brand, pistol, boots as Lilith; broader shoulders, jaw, short/tied hair. Bind with `Sprites.actor(..., 4, 3, idle/walk/attack, 96.0)`.
+Caim is a **masculine Lilith-grid** body on `assets/sprites/player.png` (4×3 idle / walk-side / shoot). Same Bone coat, Ember chest brand, pistol, boots as Lilith; broader shoulders, jaw, short/tied hair. Bind with `Sprites.actor(..., 4, 3, idle/walk/attack, 64.0)` so Caim reads shorter than the Ring Wretch.
 
 Lilith stays `player_f.png` (female-v2). Bebê stays `baby.png`. Never copy those onto Caim.
 

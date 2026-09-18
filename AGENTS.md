@@ -8,7 +8,7 @@ This file is the Camilo / Designer contract from the pixel-restore work. Do not 
 
 | Who | Sheet | Layout |
 | --- | --- | --- |
-| **Caim** | `assets/sprites/player.png` | Masculine adult on the **Lilith 4×3** grid: idle 4 · walk-side 4 · shoot 4. Bone coat, Ember chest brand, pistol. Broader shoulders, jaw, **short / tied hair** (not Lilith length), same boots. Transparent background. |
+| **Caim** | `assets/sprites/player.png` | Masculine adult on the **Lilith 4×3** grid: idle 4 · walk-side 4 · shoot 4. Bind height **64px** (shorter than Ring Wretch). Bone coat, Ember chest brand, pistol. Broader shoulders, jaw, **short / tied hair** (not Lilith length), same boots. Transparent background. |
 | **Lilith** | `assets/sprites/player_f.png` | `player-female-v2`. Do not overwrite. |
 | **Bebê Chorão** | `assets/sprites/baby.png` | `bebe_sprite`. Difficulty **mode** (deflect), not a walker pick. Do not overwrite. |
 
@@ -22,7 +22,7 @@ Start-card Penitent diamond is **UI only**, never the floor actor.
 
 Combat rooms (**A BAD ROOM**): Void field `#0B0C10` plus ritual circle, Ash walls. **No** tiled `env.png` Isaac dungeon / striped checker.
 
-Threshold pit **teleports** to Deep. After landing, the player must still be the Caim `player.png` sheet (readable ~Lilith 96px class), not the red sword imp. `fall_from` rebinds the sheet.
+Threshold pit **teleports** to Deep. After landing, the player must still be the Caim `player.png` sheet (shorter than the Ring Wretch, ~64px class), not the red sword imp. `fall_from` rebinds the sheet.
 
 ## Bind rules
 

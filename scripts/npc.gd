@@ -26,7 +26,7 @@ func _ready() -> void:
 			"idle": {"row": 0, "fps": 3.5, "loop": true},
 			"talk": {"row": 1, "fps": 6.0, "loop": true},
 		},
-		108.0,
+		80.0,
 		true
 	)
 	if _sprite:
@@ -36,16 +36,17 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	cooldown = maxf(cooldown - delta, 0.0)
 	if _sprite:
-		if cooldown > 2.2:
+		if Game.in_dialogue or cooldown > 2.2:
 			if _sprite.animation != &"talk":
 				_sprite.play("talk")
 		elif _sprite.animation != &"idle":
 			_sprite.play("idle")
-	queue_redraw()
 
 
 func _on_body(body: Node) -> void:
 	if not body is Player:
+		return
+	if Game.in_dialogue:
 		return
 	if cooldown > 0.0:
 		return
@@ -54,18 +55,28 @@ func _on_body(body: Node) -> void:
 		var floor_node := get_tree().get_first_node_in_group("floor") as Floor
 		if floor_node:
 			kind = floor_node.roll_item()
-		var blurb := Pickup.apply(kind)
-		Game.say("\"On the house. Don't tell payroll.\" " + blurb, 3.8)
-	else:
-		Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 3.6)
-		line_i += 1
-	cooldown = 4.2
+		Pickup.apply(kind)
+		Game.sfx("pickup")
+	_open_talk()
+	cooldown = 1.2
 	shown = true
 	if _sprite:
 		_sprite.play("talk")
 
 
-func _draw() -> void:
-	# Desk shadow only. Concierge body is concierge.png — no skeleton fallback.
-	if _sprite:
-		draw_circle(Vector2(0, 28), 40.0, Color(0, 0, 0, 0.28))
+func _open_talk() -> void:
+	var qa := false
+	for arg in OS.get_cmdline_user_args():
+		if String(arg).begins_with("--qa-"):
+			qa = true
+			break
+	if qa:
+		Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 2.4)
+		line_i += 1
+		return
+	var hud := get_tree().get_first_node_in_group("hud") as HUD
+	if hud and hud.has_method("start_talk"):
+		hud.start_talk(Flavor.concierge_script())
+		return
+	Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 3.6)
+	line_i += 1

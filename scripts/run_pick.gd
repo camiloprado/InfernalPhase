@@ -1,6 +1,6 @@
 class_name RunPick
 extends CanvasLayer
-## Caim / Lilith and Bebê Chorão / Normal. Same combat numbers. One choice per run.
+## Caim / Lilith and Bebê Chorão / Normal. Disk pixel portraits, not Penitent polygons.
 ## Clicks are handled three ways so IGNORE children / HUD labels cannot swallow them:
 ## Button.pressed, Panel gui_input, and _input rect hit-tests.
 
@@ -13,13 +13,17 @@ var _lilith_btn: Control
 var _bebe_card: Control
 var _baby_btn: Control
 var _normal_btn: Control
+var _preview: TextureRect
+var _preview_caption: Label
 var _hint: Label
 var _confirm_btn: Button
 var _click_ms := -99999
 var _pick_frame := -1
 var _sworn := false
+const CAIM_SHEET := "res://assets/sprites/player.png"
+const LILITH_SHEET := "res://assets/sprites/player_f.png"
 const BABY_SHEET := "res://assets/sprites/baby.png"
-const PENITENT_RECT := Rect2(480, 48, 320, 268)
+const PREVIEW_RECT := Rect2(480, 48, 320, 268)
 const CAIM_RECT := Rect2(280, 318, 240, 78)
 const LILITH_RECT := Rect2(760, 318, 240, 78)
 const BABY_DIFF_RECT := Rect2(300, 448, 300, 100)
@@ -47,14 +51,14 @@ func _ready() -> void:
 	root.add_child(dim)
 
 	_label(root, Vector2(0, 16), Vector2(1280, 20), "Click a name  ·  Space / E to swear in", Palette.UI_DIM, 14)
-	_bebe_card = _penitent_face(root, PENITENT_RECT)
-	_caim_btn = _name_card(root, CAIM_RECT, "Caim", func() -> void: _on_body(Game.Body.CAIM))
-	_lilith_btn = _name_card(root, LILITH_RECT, "Lilith", func() -> void: _on_body(Game.Body.LILITH))
+	_bebe_card = _walker_preview(root, PREVIEW_RECT)
+	_caim_btn = _name_card(root, CAIM_RECT, "Caim", _idle_tex(CAIM_SHEET), func() -> void: _on_body(Game.Body.CAIM))
+	_lilith_btn = _name_card(root, LILITH_RECT, "Lilith", _idle_tex(LILITH_SHEET), func() -> void: _on_body(Game.Body.LILITH))
 	_label(root, Vector2(0, 412), Vector2(1280, 28), "DIFFICULTY", Palette.BONE, 20)
-	_baby_btn = _diff_card(root, BABY_DIFF_RECT, "Bebê Chorão", func() -> void: _on_diff(Game.Difficulty.BABY))
-	_normal_btn = _diff_card(root, NORMAL_DIFF_RECT, "Normal", func() -> void: _on_diff(Game.Difficulty.NORMAL))
+	_baby_btn = _diff_card(root, BABY_DIFF_RECT, "Bebê Chorão", Sprites.require(BABY_SHEET), func() -> void: _on_diff(Game.Difficulty.BABY))
+	_normal_btn = _diff_card(root, NORMAL_DIFF_RECT, "Normal", _idle_tex(CAIM_SHEET), func() -> void: _on_diff(Game.Difficulty.NORMAL))
 	_confirm_btn = _confirm_cta(root, CONFIRM_RECT)
-	_hint = _label(root, Vector2(0, 656), Vector2(1280, 28), "", Palette.BONE_DIM, 14)
+	_hint = _label(root, Vector2(0, 704), Vector2(1280, 28), "", Palette.BONE_DIM, 14)
 	_refresh()
 	_preview_music()
 
@@ -72,52 +76,96 @@ func _label(parent: Node, pos: Vector2, size: Vector2, text: String, col: Color,
 	return lab
 
 
-func _name_card(parent: Node, rect: Rect2, caption: String, on_click: Callable) -> Control:
+func _name_card(parent: Node, rect: Rect2, caption: String, face: Texture2D, on_click: Callable) -> Control:
 	var btn := _shell(parent, rect, on_click)
-	_caption(btn, caption, "", (rect.size.y - 36.0) * 0.5)
-	return btn
-
-
-func _penitent_face(parent: Node, rect: Rect2) -> Control:
-	# One hooded face. Not a WHO WALKS poster and not dual Caim/Lilith portraits.
-	var frame := Control.new()
-	frame.position = rect.position
-	frame.size = rect.size
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var chrome := StyleBoxFlat.new()
-	chrome.bg_color = Palette.VOID
-	chrome.set_border_width_all(2)
-	chrome.border_color = Palette.BONE
-	var panel := Panel.new()
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", chrome)
-	frame.add_child(panel)
-	var art := Control.new()
-	art.position = Vector2(24, 10)
-	art.size = Vector2(rect.size.x - 48.0, 196)
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	art.draw.connect(func() -> void: _draw_penitent(art, false))
-	frame.add_child(art)
-	art.queue_redraw()
-	_caption(frame, "THE PENITENT", "", 214)
-	parent.add_child(frame)
-	return frame
-
-
-func _diff_card(parent: Node, rect: Rect2, caption: String, on_click: Callable) -> Control:
-	var btn := _shell(parent, rect, on_click)
+	_face(btn, Vector2(8, 7), Vector2(64, 64), face)
 	var name := Label.new()
 	name.text = caption
-	name.position = Vector2(12, 0)
-	name.size = Vector2(rect.size.x - 24.0, rect.size.y)
-	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name.position = Vector2(76, 0)
+	name.size = Vector2(rect.size.x - 84.0, rect.size.y)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name.add_theme_font_size_override("font_size", 26)
 	name.add_theme_color_override("font_color", Palette.BONE)
 	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(name)
 	return btn
+
+
+func _walker_preview(parent: Node, rect: Rect2) -> Control:
+	# Disk pixel body on Void. No env floor tiles in the portrait.
+	var frame := Control.new()
+	frame.position = rect.position
+	frame.size = rect.size
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chrome := ColorRect.new()
+	chrome.color = Palette.VOID
+	chrome.set_anchors_preset(Control.PRESET_FULL_RECT)
+	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(chrome)
+	var border := ColorRect.new()
+	border.color = Palette.ASH
+	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	border.position = Vector2.ZERO
+	border.size = rect.size
+	frame.add_child(border)
+	var inset := ColorRect.new()
+	inset.color = Palette.VOID
+	inset.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inset.position = Vector2(2, 2)
+	inset.size = rect.size - Vector2(4, 4)
+	frame.add_child(inset)
+	_preview = TextureRect.new()
+	_preview.name = "Preview"
+	_preview.position = Vector2(24, 10)
+	_preview.size = Vector2(rect.size.x - 48.0, 196)
+	_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	frame.add_child(_preview)
+	_preview_caption = _caption(frame, "Caim", "", 214)
+	parent.add_child(frame)
+	return frame
+
+
+func _diff_card(parent: Node, rect: Rect2, caption: String, face: Texture2D, on_click: Callable) -> Control:
+	var btn := _shell(parent, rect, on_click)
+	_face(btn, Vector2(12, 14), Vector2(72, 72), face)
+	var name := Label.new()
+	name.text = caption
+	name.position = Vector2(92, 0)
+	name.size = Vector2(rect.size.x - 104.0, rect.size.y)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name.add_theme_font_size_override("font_size", 26)
+	name.add_theme_color_override("font_color", Palette.BONE)
+	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(name)
+	return btn
+
+
+func _face(parent: Control, pos: Vector2, size: Vector2, tex: Texture2D) -> TextureRect:
+	var tr := TextureRect.new()
+	tr.name = "Face"
+	tr.position = pos
+	tr.size = size
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.texture = tex
+	parent.add_child(tr)
+	return tr
+
+
+func _idle_tex(path: String) -> Texture2D:
+	if path == BABY_SHEET:
+		return Sprites.require(path)
+	var cropped := Sprites.cell_used(path, 4, 3, 0, 0)
+	if cropped:
+		return cropped
+	return Sprites.require_cell(path, 4, 3, 0, 0)
 
 
 func _shell(parent: Node, rect: Rect2, on_click: Callable) -> Control:
@@ -141,7 +189,7 @@ func _shell(parent: Node, rect: Rect2, on_click: Callable) -> Control:
 	return btn
 
 
-func _caption(btn: Control, caption: String, blurb: String, name_y: float) -> void:
+func _caption(btn: Control, caption: String, blurb: String, name_y: float) -> Label:
 	var name := Label.new()
 	name.text = caption
 	name.position = Vector2(0, name_y)
@@ -152,7 +200,7 @@ func _caption(btn: Control, caption: String, blurb: String, name_y: float) -> vo
 	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(name)
 	if blurb.is_empty():
-		return
+		return name
 	var sub := Label.new()
 	sub.text = blurb
 	sub.position = Vector2(8, name_y + 36.0)
@@ -162,13 +210,14 @@ func _caption(btn: Control, caption: String, blurb: String, name_y: float) -> vo
 	sub.add_theme_color_override("font_color", Palette.UI_DIM)
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(sub)
+	return name
 
 
 func _confirm_cta(parent: Node, rect: Rect2) -> Button:
 	var btn := Button.new()
 	btn.position = rect.position
 	btn.size = rect.size
-	btn.text = "SWEAR IN"
+	btn.text = "   SWEAR IN"
 	btn.flat = false
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.focus_mode = Control.FOCUS_NONE
@@ -192,72 +241,45 @@ func _confirm_cta(parent: Node, rect: Rect2) -> Button:
 			_confirm()
 			btn.accept_event()
 	)
+	var ember := TextureRect.new()
+	ember.name = "Ember"
+	ember.texture = Sprites.require_cell("res://assets/sprites/pickups.png", 3, 1, 1, 0)
+	ember.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ember.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ember.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ember.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ember.position = Vector2(18, 6)
+	ember.size = Vector2(36, 36)
+	btn.add_child(ember)
 	parent.add_child(btn)
 	return btn
 
 
 func _style(btn: Button) -> void:
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Palette.VOID
-	normal.set_border_width_all(2)
-	normal.border_color = Palette.ASH
-	var hover := StyleBoxFlat.new()
-	hover.bg_color = Palette.VOID
-	hover.set_border_width_all(2)
-	hover.border_color = Palette.BONE
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", hover)
-	btn.add_theme_stylebox_override("focus", normal)
-	btn.add_theme_stylebox_override("disabled", normal)
-
-
-func _draw_penitent(node: Control, lilith: bool) -> void:
-	# Hooded, no face, Bone body, 4–6px Ember brand. Not a Caim/Lilith pair.
-	var c := node.size * 0.5 + Vector2(0, 8)
-	var rx := 62.0 if lilith else 70.0
-	var ry := 88.0 if lilith else 80.0
-	var pts := PackedVector2Array([
-		c + Vector2(0, -ry),
-		c + Vector2(rx, 0),
-		c + Vector2(0, ry),
-		c + Vector2(-rx, 0),
-	])
-	node.draw_colored_polygon(pts, Palette.BONE)
-	var hood := PackedVector2Array([
-		c + Vector2(0, -ry),
-		c + Vector2(rx * 0.78, -ry * 0.08),
-		c + Vector2(rx * 0.18, -ry * 0.02),
-		c + Vector2(0, -ry * 0.18),
-		c + Vector2(-rx * 0.18, -ry * 0.02),
-		c + Vector2(-rx * 0.78, -ry * 0.08),
-	])
-	node.draw_colored_polygon(hood, Palette.ASH)
-	node.draw_colored_polygon(PackedVector2Array([
-		c + Vector2(0, -ry),
-		c + Vector2(rx * 0.42, -ry * 0.55),
-		c + Vector2(-rx * 0.42, -ry * 0.55),
-	]), Palette.ASH_MID)
-	node.draw_colored_polygon(PackedVector2Array([
-		c + Vector2(0, -ry * 0.42),
-		c + Vector2(14, -ry * 0.12),
-		c + Vector2(-14, -ry * 0.12),
-	]), Palette.VOID)
-	var brand := PackedVector2Array([
-		c + Vector2(0, 6),
-		c + Vector2(6, 14),
-		c + Vector2(0, 22),
-		c + Vector2(-6, 14),
-	])
-	node.draw_colored_polygon(brand, Palette.EMBER)
-
-
-func _draw_bebe(node: Control) -> void:
-	_draw_penitent(node, false)
-
-
-func _draw_body(node: Control, male: bool) -> void:
-	_draw_penitent(node, not male)
+	var empty := StyleBoxEmpty.new()
+	btn.add_theme_stylebox_override("normal", empty)
+	btn.add_theme_stylebox_override("hover", empty)
+	btn.add_theme_stylebox_override("pressed", empty)
+	btn.add_theme_stylebox_override("focus", empty)
+	btn.add_theme_stylebox_override("disabled", empty)
+	var wall := ColorRect.new()
+	wall.name = "Wall"
+	wall.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wall.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wall.color = Palette.ASH_MID
+	btn.add_child(wall)
+	btn.move_child(wall, 0)
+	var inset := ColorRect.new()
+	inset.name = "Inset"
+	inset.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inset.color = Palette.VOID
+	inset.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inset.offset_left = 2
+	inset.offset_top = 2
+	inset.offset_right = -2
+	inset.offset_bottom = -2
+	btn.add_child(inset)
+	btn.move_child(inset, 1)
 
 
 func _is_click(event: InputEvent) -> bool:
@@ -372,6 +394,40 @@ func _confirm() -> void:
 	queue_free()
 
 
+func qa_show(body: Game.Body, diff: Game.Difficulty) -> void:
+	_body = body
+	_diff = diff
+	_preview_music()
+	_refresh()
+
+
+func qa_preview_path() -> String:
+	if _diff == Game.Difficulty.BABY:
+		return BABY_SHEET
+	if _body == Game.Body.LILITH:
+		return LILITH_SHEET
+	return CAIM_SHEET
+
+
+func qa_has_pixel_preview() -> bool:
+	return _preview != null and _preview.texture != null and _preview.texture.get_width() > 0
+
+
+func qa_preview_nearest() -> bool:
+	return _preview != null and _preview.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST
+
+
+func qa_card_faces() -> int:
+	var n := 0
+	for btn in [_caim_btn, _lilith_btn, _baby_btn, _normal_btn]:
+		if btn == null:
+			continue
+		var face: Node = btn.find_child("Face", true, false)
+		if face is TextureRect and (face as TextureRect).texture != null:
+			n += 1
+	return n
+
+
 func _refresh() -> void:
 	var baby := _diff == Game.Difficulty.BABY
 	_caim_btn.visible = not baby
@@ -382,23 +438,21 @@ func _refresh() -> void:
 	_paint(_lilith_btn, _body == Game.Body.LILITH)
 	_paint(_baby_btn, baby)
 	_paint(_normal_btn, not baby)
+	if _preview:
+		_preview.texture = _idle_tex(qa_preview_path())
+		_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if _preview_caption:
+		if baby:
+			_preview_caption.text = "Bebê Chorão"
+		else:
+			_preview_caption.text = String(Game.BODY_NAMES[_body])
 	if baby:
 		_hint.text = "Bebê Chorão"
 	else:
 		_hint.text = "%s  ·  Normal" % Game.BODY_NAMES[_body]
-	for art in [_caim_btn.get_child(0), _lilith_btn.get_child(0)]:
-		if art is Control:
-			(art as Control).queue_redraw()
 
 
 func _paint(btn: Control, on: bool) -> void:
-	var box := StyleBoxFlat.new()
-	box.bg_color = Palette.ASH_MID if on else Palette.VOID
-	box.set_border_width_all(3 if on else 2)
-	box.border_color = Palette.BONE if on else Palette.ASH
-	if btn is Button:
-		var b := btn as Button
-		b.add_theme_stylebox_override("normal", box)
-		b.add_theme_stylebox_override("hover", box)
-		b.add_theme_stylebox_override("pressed", box)
-		b.add_theme_stylebox_override("focus", box)
+	var wall := btn.find_child("Wall", true, false)
+	if wall is CanvasItem:
+		(wall as CanvasItem).modulate = Color(1.15, 1.08, 0.95) if on else Color(0.72, 0.7, 0.68)
