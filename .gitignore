@@ -3,3 +3,4 @@ export/
 *.apk
 *.ipa
 gate/look/*_chunk_*
+agent-tools/

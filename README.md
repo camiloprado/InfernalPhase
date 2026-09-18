@@ -4,6 +4,25 @@ One infernal floor. No campaign. You walk a small graph of hell-rooms, dodge pat
 
 Top-down move-and-shoot in the Binding of Isaac room style, with Undertale-ish bullet patterns and short dark-humor lines. Caim / Lilith, Bebê Chorão, Ember Imps, Ring Wretches, Ash Cantors, the Concierge, and **The Infernal Phase** bind pixel character sheets. Doors, hearts, shots, and the pit keep the locked Bone / Ash / Ember look. Hell palette in `VISUAL-BRIEF.md`: Void `#0B0C10`, Ash `#5C5A56`, Bone `#E6D9C3`, Ember `#E25A1A` (accent), Wound `#7A1F1A`. See `LOOK-PASS-FIX.md` for the look-pass delta.
 
+## Open in Cursor
+
+This is a **Godot** project (not a web app). After you click **Create repo**, clone it and **File → Open Folder** on the repo root in [Cursor](https://cursor.com).
+
+1. Install **Godot 4.7.2** (standard, not .NET) and put `godot` on your `PATH`, or set `GODOT`.
+2. In Cursor’s terminal, from the repo root:
+
+```bash
+./run.sh
+```
+
+That launches GL Compatibility. Editor F5 is the same as `godot --path . --rendering-method gl_compatibility`. Agent locks for Caim / Lilith / floors live in `AGENTS.md` and `.cursor/rules/infernal-phase.mdc`.
+
+Proof stills / bind gates:
+
+```bash
+./run.sh -- --qa-look --qa-proof
+```
+
 ## Open in Godot 4
 
 1. Install **Godot 4.x** (built and tested with **4.7.2**; 4.3+ should open it). Standard build, not .NET.

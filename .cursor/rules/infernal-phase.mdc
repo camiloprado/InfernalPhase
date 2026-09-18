@@ -1,0 +1,20 @@
+---
+description: Infernal Phase art, bind, and floor locks from Camilo / Designer
+alwaysApply: true
+---
+
+Godot 4.7.2 GL Compatibility. One infernal floor. Do not add auth, Steam, extra floors, or a second UI kit.
+
+Caim is a **masculine Lilith-grid** body on `assets/sprites/player.png` (4×3 idle / walk-side / shoot). Same Bone coat, Ember chest brand, pistol, boots as Lilith; broader shoulders, jaw, short/tied hair. Bind with `Sprites.actor(..., 4, 3, idle/walk/attack, 96.0)`.
+
+Lilith stays `player_f.png` (female-v2). Bebê stays `baby.png`. Never copy those onto Caim.
+
+Forbidden in-world Caim: void-hood Penitent, look-pass diamond, female sheet, baby sheet. `bc3b5f5` is FAIL-closed.
+
+Combat floors: Void fill + ritual circle, Ash walls. Do not tile `env.png` checker/Isaac bricks.
+
+Pit teleport must rebind Caim’s sheet. After the drop the walker is still male Caim, not the sword imp.
+
+No gameplay `_draw` body fallbacks (player, enemy body, NPC body, bullets, hearts, doors). Disk-first `Sprites.tex`. `QA_ASSERT` must keep `caim_own=1` and fail void-hood / female / baby / diamond.
+
+Start-card Penitent is UI only. Shot diamonds are shots/HUD only.
