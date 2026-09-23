@@ -14,7 +14,8 @@ const DIR_VEC := {
 const DOOR_SHEET := "res://assets/sprites/doors.png"
 const ENV_SHEET := "res://assets/sprites/env.png"
 ## env.png is 8×5 of 64. Rows 0 and 4 are an unused Void field.
-## Rows 1–3 are the room themes. Cols 0–3 floor grit, 4–5 Ash walls, 6–7 sigils.
+## Rows 1–3 are the room themes. Cols 0–3 floor grit, 4–5 Ash walls.
+## Cols 6–7 are a blank Void field. Nothing is stamped from them.
 const ENV_COLS := 8
 const ENV_ROWS := 5
 ## Flush doorway cells are 256×96. Width maps to the 256px opening; depth is 96px
@@ -320,12 +321,6 @@ func _wall_xy() -> Vector2i:
 	return Vector2i(4, row)
 
 
-func _sigil_xy() -> Vector2i:
-	if kind == Kind.BOSS:
-		return Vector2i(7, 2)
-	return Vector2i(6, clampi(theme, 1, 3))
-
-
 func _stamp_floor() -> void:
 	# Inner field only — wall band is col 1, never mixed into the floor.
 	var t := Game.WALL
@@ -341,20 +336,10 @@ func _stamp_floor() -> void:
 
 
 func _stamp_sigil() -> void:
+	# Cols 6–7 are blank Void. A scaled stamp of that cell would blot the grit
+	# floor with a flat square, which is the debug gizmo Designer rejected.
 	if kind == Kind.NPC:
 		_stamp_dais()
-		return
-	var xy := _sigil_xy()
-	var spr := Sprite2D.new()
-	spr.name = "Sigil"
-	spr.texture = Sprites.require_cell(ENV_SHEET, ENV_COLS, ENV_ROWS, xy.x, xy.y)
-	spr.centered = true
-	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	spr.position = (size * 0.5).round()
-	var sc := 3.0 if kind == Kind.BOSS else (2.0 if kind == Kind.START else 2.5)
-	spr.scale = Vector2(sc, sc)
-	spr.z_index = -7
-	add_child(spr)
 
 
 func _stamp_dais() -> void:

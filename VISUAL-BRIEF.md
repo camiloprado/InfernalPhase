@@ -20,7 +20,7 @@ Rectangular flush doorways in the Ash wall band (Isaac basement, not a gothic ar
 
 ## Room
 
-Isaac basement / Sheol, not Cathedral. Wall band is ~32px Ash blocks (two courses in the 64px wall). Floor is opaque Void `#0B0C10` with four subtle Ash/Bone grit variants. No checker, no brown, no wood, no pebbles. A small Bone or Wound sigil sits on the floor; it is not a tiled dungeon stripe.
+Isaac basement / Sheol, not Cathedral. Wall band is ~32px Ash blocks (two courses in the 64px wall), ink contour and hard interior shade bands in the Ash ramp. Floor is opaque Void `#0B0C10` with four subtle shaded Ash/Bone grit chips. No checker, no brown, no wood, no pebbles, no floor emblem. Columns 6–7 of `env.png` are a blank Void field — no circle, tick, or selection box.
 
 ## Shots
 
@@ -30,7 +30,7 @@ Drawn pixel projectiles. Not diamonds, rings, or ellipses.
 - **Ash tear** — imp, cantor. Stepped tear with a Wound fissure, points along travel.
 - **Bone chip** — wretch, boss, bone. Irregular flake with a Wound crack; tumbles.
 
-Hard pixels, same outline/shading language as Caim / Lilith / Bebê, Infernal ramp only. Readable around 12×12.
+Hard pixels, same outline weight and interior shade steps as Caim / Lilith / Bebê, Infernal ramp only (shades of the five hues, no new colors). Readable around 12×12.
 
 ## HUD
 

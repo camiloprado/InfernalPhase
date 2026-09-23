@@ -21,32 +21,77 @@ ROOT = Path(__file__).resolve().parents[1]
 SPR = ROOT / "assets" / "sprites"
 ENV = ROOT / "assets" / "env"
 
-# Locked hues plus shade steps of those hues only. No gold, green, or brown.
-VOID = (0x0B, 0x0C, 0x10, 255)
-VOID_DEEP = (0x06, 0x07, 0x0A, 255)
-ASH = (0x5C, 0x5A, 0x56, 255)
-ASH_HI = (0x8A, 0x88, 0x84, 255)
-ASH_MID = (0x45, 0x43, 0x40, 255)
-ASH_LO = (0x32, 0x31, 0x2E, 255)
-ASH_MORT = (0x1A, 0x19, 0x18, 255)
-BONE = (0xE6, 0xD9, 0xC3, 255)
-BONE_DIM = (0xB4, 0xA8, 0x96, 255)
-BONE_SHADE = (0x7A, 0x72, 0x64, 255)
-EMBER = (0xE2, 0x5A, 0x1A, 255)
-EMBER_HI = (0xF0, 0x7A, 0x38, 255)
-EMBER_LO = (0xA3, 0x3A, 0x10, 255)
-WOUND = (0x7A, 0x1F, 0x1A, 255)
-WOUND_LO = (0x4A, 0x12, 0x10, 255)
+# Locked hues. Steps are shades of those hues only — the contour ink is the
+# near-black red Caim's outline uses, not a new color. No gold, green, or brown.
+def _c(r, g, b):
+    return (r, g, b, 255)
+
+
+INK = _c(0x12, 0x08, 0x08)
+INK2 = _c(0x28, 0x10, 0x0C)
+VOID = _c(0x0B, 0x0C, 0x10)
+VOID_DEEP = _c(0x06, 0x07, 0x0A)
+VOID_LIFT = _c(0x14, 0x16, 0x1C)
+# Ash, dark to lit.
+ASH_R = (
+    _c(0x1A, 0x18, 0x16),
+    _c(0x2A, 0x28, 0x26),
+    _c(0x3A, 0x38, 0x34),
+    _c(0x4A, 0x48, 0x44),
+    _c(0x5C, 0x5A, 0x56),
+    _c(0x72, 0x70, 0x6A),
+    _c(0x88, 0x86, 0x80),
+    _c(0x9A, 0x98, 0x92),
+)
+BONE_R = (
+    _c(0x5C, 0x52, 0x44),
+    _c(0x7A, 0x6E, 0x5C),
+    _c(0xA2, 0x94, 0x7E),
+    _c(0xC4, 0xB4, 0x9E),
+    _c(0xE6, 0xD9, 0xC3),
+    _c(0xF3, 0xEB, 0xDC),
+)
+EMBER_R = (
+    _c(0x4A, 0x14, 0x08),
+    _c(0x7A, 0x28, 0x0C),
+    _c(0xA6, 0x3A, 0x10),
+    _c(0xC6, 0x4C, 0x14),
+    _c(0xE2, 0x5A, 0x1A),
+    _c(0xF0, 0x74, 0x30),
+    _c(0xF4, 0x80, 0x3C),
+)
+WOUND_R = (
+    _c(0x2C, 0x08, 0x08),
+    _c(0x4A, 0x12, 0x10),
+    _c(0x7A, 0x1F, 0x1A),
+    _c(0xA2, 0x32, 0x28),
+    _c(0xC0, 0x46, 0x38),
+)
+# Aliases the pit still paints with.
+ASH = ASH_R[4]
+ASH_HI = ASH_R[6]
+ASH_MID = ASH_R[3]
+ASH_LO = ASH_R[2]
+ASH_MORT = ASH_R[0]
+BONE = BONE_R[4]
+BONE_DIM = BONE_R[3]
+BONE_SHADE = BONE_R[1]
+EMBER = EMBER_R[4]
+EMBER_HI = EMBER_R[5]
+EMBER_LO = EMBER_R[2]
+WOUND = WOUND_R[2]
+WOUND_LO = WOUND_R[1]
 CLEAR = (0, 0, 0, 0)
 
-ALLOWED = {
-    VOID, VOID_DEEP, ASH, ASH_HI, ASH_MID, ASH_LO, ASH_MORT,
-    BONE, BONE_DIM, BONE_SHADE, EMBER, EMBER_HI, EMBER_LO,
-    WOUND, WOUND_LO, CLEAR,
-}
+ALLOWED = {CLEAR, INK, INK2, VOID, VOID_DEEP, VOID_LIFT}
+ALLOWED.update(ASH_R)
+ALLOWED.update(BONE_R)
+ALLOWED.update(EMBER_R)
+ALLOWED.update(WOUND_R)
 
 # env.png: 8×5 of 64. Rows 0 and 4 stay a Void field (not stamped).
-# Rows 1–3 are Start / Combat / NPC. Cols 0–3 floor grit, 4–5 walls, 6–7 sigils.
+# Rows 1–3 are Start / Combat / NPC. Cols 0–3 floor grit, 4–5 walls.
+# Cols 6–7 are a blank Void field (no sigil, no debug gizmo).
 ENV_COLS, ENV_ROWS, TILE = 8, 5, 64
 DOOR_W, DOOR_H = 256, 96
 
@@ -93,187 +138,341 @@ def assert_palette(img: Image.Image, name: str) -> None:
 # Shots — drawn silhouettes, 4 frames. Pointing +X so travel-facing rows aim.
 # ---------------------------------------------------------------------------
 
-COAL_MAP = {
-    "o": ASH_MORT,
-    "e": EMBER,
-    "E": EMBER_HI,
-    "l": EMBER_LO,
-    "w": WOUND,
-    "W": WOUND_LO,
-    "b": BONE_DIM,
-}
-BONE_MAP = {
-    "o": ASH_MORT,
-    "B": BONE,
-    "h": BONE_DIM,
-    "s": BONE_SHADE,
-    "w": WOUND,
-    "W": WOUND_LO,
-    "e": EMBER,
-}
-TEAR_MAP = {
-    "o": ASH_LO,
-    "A": ASH,
-    "h": ASH_HI,
-    "s": ASH_MID,
-    "w": WOUND,
-    "W": WOUND_LO,
-    "b": BONE_DIM,
-}
-
-# Asymmetric ember coal. Tail on the left, chipped nose to the right, wound core.
+# Glyphs are 1px masks. '#' body, 'w' wound core, 'b' bone rim (deflect nose).
+# Wider than tall, nose to the right, bitten edge so they are not gems.
+# Sized to stay readable once the 64px cell scales to ~24px.
 COAL = [
-    "..............oooo......",
-    "............ooEEEEoo....",
-    "..........ooEEEEEEEoo...",
-    ".oooo....oEEEwwEEEElo...",
-    "oEEEEo..oEEwwwwEEElEo...",
-    "oEEwwwo.oEwWWWwwEElEo...",
-    ".owwWWo.EwWWWWWwElo.....",
-    "..owWWo.oEWWWEloo.......",
-    "...ooo...ooEloo.........",
-    "...........ooo..........",
+    "                       #########                        ",
+    "                  ###################                   ",
+    "                 #####################                  ",
+    "              # #########################               ",
+    "             #############################              ",
+    "            #################################           ",
+    "           ###################################          ",
+    "          #####################################         ",
+    "         ############################        ###        ",
+    "        # ###########################        ####       ",
+    "       ##############################        #####      ",
+    "       ############################################     ",
+    "      ##############################################    ",
+    "      ##############################################    ",
+    "     #################wwwwwww########################   ",
+    "     # ###############wwwwwww########################   ",
+    "    ##################wwwwwww#########################  ",
+    "   ###################wwwwwww########################## ",
+    "  #####      #########wwwwwww########################## ",
+    "  #####      ###########################################",
+    " ######      ###########################################",
+    " ###################################################### ",
+    "######################################################  ",
+    "#####################################################   ",
+    " ############################      ###############      ",
+    "   ##########################      ###########          ",
+    "       #################################                ",
+    "           #######################                      ",
+    "                 ###########                            ",
 ]
+
 COAL_HOT = [
-    ".............ooooo......",
-    "...........ooEEEEEoo....",
-    ".........ooEEEEEEEEoo...",
-    "oooo....oEEEwwEEEEElo...",
-    "EEEEo..oEEwwwwwEEElEo...",
-    "EEwwwo.oEwWWWWWwEElEo...",
-    "owwWWo.EwWWWWWWwElo.....",
-    ".owWWo..oWWWEloo........",
-    "..ooo....ooEloo.........",
-    "...........ooo..........",
+    "                        #########                       ",
+    "                   ###################                  ",
+    "                  #####################                 ",
+    "               # #########################              ",
+    "              #############################             ",
+    "           ################################             ",
+    "          ############################        #         ",
+    "         #############################        ##        ",
+    "        ##############################        ###       ",
+    "       # #########################################      ",
+    "      #############################################     ",
+    "     ###############################################    ",
+    "    #################################################   ",
+    "    ####################wwwwwww######################   ",
+    "   #####################wwwwwww#######################  ",
+    "   # ###################wwwwwww#######################  ",
+    "  ######################wwwwwww######################## ",
+    "  ##      ##############wwwwwww######################## ",
+    " ###      ##############################################",
+    "####      ##############################################",
+    "####################################################### ",
+    "######################################################  ",
+    " ##################################################     ",
+    "    ######################      ###############         ",
+    "        ##################      #########               ",
+    "            #######################                     ",
+    "                #############                           ",
+    "                    #####                               ",
 ]
-# Deflected coal keeps the shard but picks up a Bone rim on the nose.
+
 COAL_BONE = [
-    "..............oooo......",
-    "............ooEEEEbo....",
-    "..........ooEEEEEEbbo...",
-    ".oooo....oEEEwwEEEbbo...",
-    "oEEEEo..oEEwwwwEEbEo....",
-    "oEEwwwo.oEwWWWwwbEo.....",
-    ".owwWWo.EwWWWWWbbo......",
-    "..owWWo.oEWWEboo........",
-    "...ooo...ooboo..........",
-    "...........ooo..........",
+    "                       #########                        ",
+    "                  ###################                   ",
+    "                 #####################                  ",
+    "              # #########################               ",
+    "             #############################              ",
+    "            #################################           ",
+    "           ###################################          ",
+    "          #####################################         ",
+    "         ############################        ###        ",
+    "        # ###########################        ####       ",
+    "       ##############################        #####      ",
+    "       ############################################     ",
+    "      ##############################################    ",
+    "      ##############################################    ",
+    "     ###############wwwwwww##########################   ",
+    "     # #############wwwwwww##########################   ",
+    "    ################wwwwwww##########################b  ",
+    "   #################wwwwwww##########################bb ",
+    "  #####      #######wwwwwww##########################bb ",
+    "  #####      ########################################bbb",
+    " ######      ########################################bbb",
+    " ####################################################bb ",
+    "#####################################################b  ",
+    "#####################################################   ",
+    " ############################      ###############      ",
+    "   ##########################      ###########          ",
+    "       #################################                ",
+    "           #######################                      ",
+    "                 ###########                            ",
 ]
-# Bone chip — irregular flake, wound crack, not a ring.
+
 BONE_CHIP = [
-    "......ooooooo...........",
-    "....ooBBBBBBhho.........",
-    "...oBBBBBBBBBBho........",
-    "..oBBBBwwBBBBBBho.......",
-    "..oBBBwwwwBBBBBo........",
-    "..oBBwwWWWBBBhho........",
-    "...oBwwWWBBBhho.........",
-    "....oBBBBBhho...........",
-    ".....oBBBho.............",
-    "......ooo...............",
+    "          ######################                  ",
+    "       ########################                   ",
+    "      ##########################                  ",
+    "     #######################################      ",
+    "    #########################################     ",
+    "   # #########################################    ",
+    "  #############################################   ",
+    "  ##############################################  ",
+    " ################################################ ",
+    " ################################################ ",
+    "##################    wwwwwww#####################",
+    " # ###############    wwwwwww#################### ",
+    "##################    wwwwwww#####################",
+    " #####################wwwwwww#################### ",
+    " #####################wwwwwww#################### ",
+    "  ##############################################  ",
+    "  #############################################   ",
+    "   # #########################################    ",
+    "            #################################     ",
+    "             ###############################      ",
+    "            #############################         ",
+    "            #########################             ",
+    "              #################                   ",
 ]
+
 BONE_BOSS = [
-    ".....ooooooooo..........",
-    "...ooBBBBBBBBhho........",
-    "..oBBBBBBBBBBBBho.......",
-    ".oBBBwwwwBBBBBBBho......",
-    ".oBBwwWWWwwBBBBBo.......",
-    ".oBwwWWWWWWwBBBhho......",
-    "..oBwwWWWWwBBBhho.......",
-    "...oBBBBBBBhho..........",
-    "....oBBBBhho............",
-    ".....ooooo..............",
+    "            ######################                   ",
+    "         # ######################                    ",
+    "        ##########################                   ",
+    "     ###########################################     ",
+    "    #############################################    ",
+    "   ###############################################   ",
+    "  #################################################  ",
+    "  # ###############################################  ",
+    " ################################################### ",
+    " ################################################### ",
+    "####################      ###########################",
+    " ###################      ########################## ",
+    "####################      wwwwwww####################",
+    " # #####################wwwwwwwww################### ",
+    " #######################wwwwwwwww################### ",
+    "  ######################wwwwwwwww##################  ",
+    "  ######################wwwwwwwww##################  ",
+    "   ###############################################   ",
+    "    ##        #################################      ",
+    "     #         ###############################       ",
+    "              #############################          ",
+    "              #######################                ",
+    "              #################                      ",
 ]
-# Ash tear flying +X. Round back, flat belly, wound fissure, stepped nose.
+
 ASH_TEAR = [
-    "......oooo..............",
-    "....oohhhho.............",
-    "...ohhhhhhhho...........",
-    "..ohhhwwAhhhho..........",
-    ".ohhwwwwAhhhhso.........",
-    ".ohwwWWwAhhhhso.........",
-    "..owwWAhhhsso...........",
-    "...oAAhso...............",
-    "....oso.................",
+    "#########                                            ",
+    " #############                                       ",
+    "###############                                      ",
+    " ###################                                 ",
+    "#####################                                ",
+    " # #######################                           ",
+    "  #########################                          ",
+    "   #############################                     ",
+    "  ############      #############                    ",
+    "   ###########      ################                 ",
+    "    ##########      #################                ",
+    "     # #################################             ",
+    "      ##################wwwwwww##########            ",
+    "       #################wwwwwww#############         ",
+    "        ################wwwwwww##############        ",
+    "         ###############wwwwwww#################     ",
+    "          ##############wwwwwww##################    ",
+    "           # #####################################   ",
+    "            #######################################  ",
+    "             ####################################### ",
+    "              ########################      #########",
+    "                ######################      #########",
+    "                    ###############################  ",
+    "                        #######################      ",
+    "                            #############            ",
+    "                                #####                ",
 ]
+
 ASH_TEAR_LONG = [
-    ".......ooooo............",
-    ".....oohhhhho...........",
-    "...oohhhhhhhhho.........",
-    "..ohhhhwwAhhhhho........",
-    ".ohhwwwwwAhhhhhso.......",
-    ".ohwwWWWwAhhhhhsso......",
-    "..owwWWAhhhhsso.........",
-    "...oAAAhso..............",
-    "....ooso................",
+    "#############                                            ",
+    " # ###############                                       ",
+    "###################                                      ",
+    " #######################                                 ",
+    "#########################                                ",
+    " #############################                           ",
+    "  #############################                          ",
+    "   # ###############################                     ",
+    "    ##############      #############                    ",
+    "     #############      ##################               ",
+    "      ############      ###################              ",
+    "       #######################################           ",
+    "        #######################################          ",
+    "         # #######################################       ",
+    "          ################wwwwwww##################      ",
+    "           ###############wwwwwww#####################   ",
+    "              ############wwwwwww######################  ",
+    "                  ########wwwwwww########################",
+    "                      ####wwwwwww###########      #######",
+    "                          ##################      ###    ",
+    "                              ###################        ",
+    "                                  #########              ",
+    "                                      ###                ",
 ]
 
-
-def _spark(cell: Image.Image, frame: int, hot: bool) -> None:
-    """Motes stuck to the nose so a frame flickers without leaving the shard."""
-    if not hot:
-        return
-    px = cell.load()
-    w, h = cell.size
-    nose = None
-    for y in range(h):
-        for x in range(w):
-            if px[x, y][3] > 0:
-                if nose is None or x > nose[0]:
-                    nose = (x, y)
-    if nose is None:
-        return
-    x, y = nose
-    col = EMBER_HI if frame % 2 == 0 else EMBER
-    put(cell, x + 1, y, col)
-    put(cell, x + 2, y + (1 if frame == 1 else -1), EMBER_LO if hot else ASH_HI)
-    if hot and frame == 3:
-        put(cell, x + 3, y, BONE)
+def _glyph_masks(rows: list[str]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    h = len(rows)
+    w = max(len(r) for r in rows)
+    body = np.zeros((h, w), dtype=bool)
+    wound = np.zeros((h, w), dtype=bool)
+    bone = np.zeros((h, w), dtype=bool)
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch in " .":
+                continue
+            body[y, x] = True
+            if ch == "w":
+                wound[y, x] = True
+            elif ch == "b":
+                bone[y, x] = True
+    return body, wound, bone
 
 
-def _crack_flicker(cell: Image.Image, frame: int) -> None:
-    if frame % 2 == 0:
-        return
-    # Brighten a couple of wound pixels already in the core so the crack breathes.
-    px = cell.load()
-    w, h = cell.size
-    n = 0
-    for y in range(h):
-        for x in range(w):
-            if px[x, y] == WOUND and (x + y + frame) % 7 == 0:
-                px[x, y] = WOUND_LO if frame == 3 else EMBER_LO
-                n += 1
-                if n > 6:
-                    return
+def _edge_dist(mask: np.ndarray) -> np.ndarray:
+    dist = np.zeros(mask.shape, dtype=np.uint8)
+    cur = mask.copy()
+    for d in range(1, 7):
+        er = cur.copy()
+        er[1:, :] &= cur[:-1, :]
+        er[:-1, :] &= cur[1:, :]
+        er[:, 1:] &= cur[:, :-1]
+        er[:, :-1] &= cur[:, 1:]
+        dist[cur & ~er] = d
+        cur = er
+        if not cur.any():
+            break
+    dist[cur] = 7
+    return dist
 
 
-def shot_cell(rows: list[str], cmap: dict, frame: int, hot: bool = False) -> Image.Image:
+def _shade_index(x: int, y: int, dist: int, bw: int, bh: int, n: int, frame: int) -> int:
+    """Upper-left light, lower-right shadow, 1px pores. Frame nudges the facet."""
+    lit = 0.62 * (1.0 - x / max(bw, 1)) + 0.38 * (1.0 - y / max(bh, 1))
+    lit += 0.06 * ((frame % 3) - 1)
+    idx = int(round(lit * (n - 1)))
+    if (x * 13 + y * 7 + frame) % 17 == 0:
+        idx -= 1
+    elif (x * 3 + y * 11) % 19 == 0:
+        idx += 1
+    if dist >= 5 and idx < n - 2:
+        idx += 1
+    return max(0, min(n - 1, idx))
+
+
+def _paint_shot(rows: list[str], ramp: tuple, frame: int, hot: bool) -> Image.Image:
+    body, wound, bone = _glyph_masks(rows)
+    dist = _edge_dist(body)
+    gh, gw = body.shape
+    ys, xs = np.where(body)
+    # Centroid on the cell center so the travel pivot sits in the mass.
+    cx = int(round(xs.mean()))
+    cy = int(round(ys.mean()))
+    ox = 32 - cx + (1 if frame == 2 else 0)
+    oy = 32 - cy
     cell = new(64, 64)
-    # Nudge the nose toward +X so the travel pivot (cell center) sits in the body.
-    center_blit(cell, rows, 2, cmap, nudge=(2, 0))
-    _spark(cell, frame, hot)
-    _crack_flicker(cell, frame)
+    px = cell.load()
+    bh = int(ys.max() - ys.min()) + 1
+    bw = int(xs.max() - xs.min()) + 1
+    minx, miny = int(xs.min()), int(ys.min())
+    for y, x in zip(ys, xs):
+        d = int(dist[y, x])
+        dx, dy = ox + x, oy + y
+        if not (0 <= dx < 64 and 0 <= dy < 64):
+            continue
+        # Two-pixel ink contour, then a warm inner edge. Matches Caim's outline mass.
+        if d <= 2:
+            px[dx, dy] = INK
+            continue
+        if d == 3:
+            px[dx, dy] = INK2
+            continue
+        if bone[y, x]:
+            use = BONE_R
+        elif wound[y, x]:
+            use = WOUND_R
+        else:
+            use = ramp
+        idx = _shade_index(x - minx, y - miny, d, bw, bh, len(use), frame)
+        px[dx, dy] = use[idx]
+    # Specular chip on the lit shoulder. Moves a pixel per frame.
+    lit = []
+    for y, x in zip(ys, xs):
+        if dist[y, x] < 4 or wound[y, x] or bone[y, x]:
+            continue
+        if x > minx + bw * 0.45 or y > miny + bh * 0.45:
+            continue
+        lit.append((x + y, x, y))
+    lit.sort()
+    for i, (_k, x, y) in enumerate(lit[:5]):
+        dx, dy = ox + x + (frame % 2), oy + y + (1 if frame == 3 else 0)
+        if 0 <= dx < 64 and 0 <= dy < 64 and px[dx, dy][3] == 255 and px[dx, dy] != INK:
+            px[dx, dy] = ramp[-1] if i < 2 else ramp[-2]
+    if hot and frame % 2 == 1:
+        # A single mote on the nose, still attached to the ink.
+        nose = max(zip(xs, ys))
+        dx, dy = ox + nose[0] + 1, oy + nose[1]
+        if 0 <= dx < 64 and 0 <= dy < 64:
+            px[dx, dy] = EMBER_R[-2]
     return cell
 
 
 def write_shots() -> None:
     sheet = new(256, 512)
-    # row: (glyph, cmap, hot)
     spec = [
-        (COAL, COAL_MAP, False),
-        (ASH_TEAR, TEAR_MAP, False),
-        (BONE_CHIP, BONE_MAP, False),
-        (ASH_TEAR_LONG, TEAR_MAP, False),
-        (BONE_BOSS, BONE_MAP, False),
-        (COAL_HOT, COAL_MAP, True),
-        (BONE_CHIP, BONE_MAP, False),
-        (COAL_BONE, COAL_MAP, False),
+        (COAL, EMBER_R, False),
+        (ASH_TEAR, ASH_R, False),
+        (BONE_CHIP, BONE_R, False),
+        (ASH_TEAR_LONG, ASH_R, False),
+        (BONE_BOSS, BONE_R, False),
+        (COAL_HOT, EMBER_R, True),
+        (BONE_CHIP, BONE_R, False),
+        (COAL_BONE, EMBER_R, False),
     ]
-    for row, (glyph, cmap, hot) in enumerate(spec):
+    for row, (glyph, ramp, hot) in enumerate(spec):
         for col in range(4):
-            cell = shot_cell(glyph, cmap, col, hot)
+            cell = _paint_shot(glyph, ramp, col, hot)
             sheet.paste(cell, (col * 64, row * 64), cell)
     _reject_geometry(sheet)
+    # Interior shading has to be more than a flat fill plus an outline.
+    for row in range(8):
+        cell = sheet.crop((0, row * 64, 64, row * 64 + 64))
+        colors = cell.getcolors(256)
+        nunq = len([c for _n, c in colors if c[3] > 0]) if colors else 0
+        if nunq < 8:
+            raise SystemExit(f"shot row {row} too flat ({nunq} colors)")
     assert_palette(sheet, "shots")
     sheet.save(SPR / "shots.png")
 
@@ -331,6 +530,8 @@ def _reject_geometry(sheet: Image.Image) -> None:
         if _iou(m, _ring_mask(h, w, xs, ys)) > 0.72:
             raise SystemExit(f"shot row {row} reads as a ring")
         # Directional shots must be wider than they are tall.
+        if (ys.max() - ys.min()) < 20:
+            raise SystemExit(f"shot row {row} is too small to shade")
         if row in (0, 1, 3, 5, 7):
             if (xs.max() - xs.min()) <= (ys.max() - ys.min()):
                 raise SystemExit(f"shot row {row} is not a directional shard/tear")
@@ -341,28 +542,63 @@ def _reject_geometry(sheet: Image.Image) -> None:
 # ---------------------------------------------------------------------------
 
 def brick_at(x: int, y: int, seed: int = 0) -> tuple:
-    """32×32 Ash block. Odd courses shift 16px so the tile repeats without a seam."""
+    """32px Ash block. Odd courses shift 16 so a 64px tile has no seam.
+
+    The joint is a 2px ink contour (Caim's outline weight). The face is hard
+    shade bands plus 1px pores, not a flat fill with a highlight strip.
+    """
     course = y // 32
-    sx = (x + (16 if course % 2 else 0)) % 32
+    shift = 16 if course % 2 else 0
+    sx = (x + shift) % 32
     ly = y % 32
-    if sx >= 30 or ly >= 30:
-        return ASH_MORT
-    lx = sx
-    # Stable chip per brick so neighboring tiles share the module.
-    bx = (x + (16 if course % 2 else 0)) // 32
+    bx = (x + shift) // 32
     by = course
-    chip = (bx * 5 + by * 9 + seed * 3) % 13 == 0
-    if chip and lx > 20 and ly > 20:
-        return VOID if (lx + ly) % 2 == 0 else ASH_MORT
-    if chip and 10 <= lx <= 16 and 12 <= ly <= 20 and (lx + ly) % 2 == 0:
-        return WOUND_LO
-    if ly < 2 or lx < 2:
-        return ASH_HI
-    if ly > 26 or lx > 26:
-        return ASH_LO
-    if (lx + by) % 17 == 0 and ly < 8:
-        return ASH_MID
-    return ASH
+    h = (bx * 73856093 ^ by * 19349663 ^ seed * 83492791) & 0xFFFFFFFF
+    if sx >= 30 or ly >= 30:
+        if (sx + ly + (h & 7)) % 6 == 0:
+            return INK2
+        if (sx * 3 + ly + bx) % 11 == 0:
+            return ASH_R[0]
+        return INK
+    lx = sx
+    bias = int(h % 5) - 2
+    if ly < 5:
+        band = 6
+    elif ly < 12:
+        band = 5
+    elif ly < 20:
+        band = 4
+    else:
+        band = 2
+    if lx < 5:
+        band += 1
+    elif lx > 23:
+        band -= 2
+    band += bias
+    nse = lx * 13 + ly * 7 + (h & 31) + seed
+    if nse % 7 == 0:
+        band -= 1
+    elif nse % 11 == 0:
+        band += 1
+    if (ly <= 1 or lx <= 1) and (lx + ly + (h % 3)) % 4 != 0:
+        band = 7
+    if lx >= 27 and ly >= 27:
+        return ASH_R[0]
+    if (lx >= 28 or ly >= 28) and (lx + ly) % 3 != 0:
+        band = 0
+    band = max(0, min(len(ASH_R) - 1, band))
+    if (h % 4) == 0:
+        crack = 7 + (h % 12)
+        jag = 1 if ((ly + h) % 6) == 0 else 0
+        if lx == crack + jag and 4 < ly < 26:
+            return WOUND_R[1 + (ly // 8) % 3]
+        if lx == crack + jag + 1 and 4 < ly < 26 and (ly % 2) == 0:
+            return ASH_R[0]
+    if (h % 9) == 1 and lx > 21 and ly > 21:
+        return VOID if (lx + ly) % 2 == 0 else ASH_R[0]
+    if nse % 29 == 0 and 6 < lx < 24 and 6 < ly < 24:
+        return ASH_R[1]
+    return ASH_R[band]
 
 
 def paint_bricks(img: Image.Image, rect: tuple, seed: int = 0) -> None:
@@ -373,97 +609,66 @@ def paint_bricks(img: Image.Image, rect: tuple, seed: int = 0) -> None:
             px[x, y] = brick_at(x, y, seed)
 
 
+def _paint_grit(px, ox: int, oy: int, pixels: list, ramp: tuple) -> None:
+    """Filled angular chip. First pixel is the lit corner, the tail is the shadow."""
+    n = len(pixels)
+    for i, (dx, dy) in enumerate(pixels):
+        x, y = ox + dx, oy + dy
+        if not (1 <= x < TILE - 1 and 1 <= y < TILE - 1):
+            continue
+        if i == 0:
+            col = ramp[-1]
+        elif i < max(2, n // 2):
+            col = ramp[len(ramp) // 2]
+        else:
+            col = ramp[0]
+        px[x, y] = col
+
+
 def floor_cell(variant: int, theme: int) -> Image.Image:
-    """Void field. A few Ash/Bone marks, inset so the 64px seam stays invisible."""
+    """Void field. Shaded grit chips, not flat specks and not pebbles."""
     cell = new(TILE, TILE, VOID)
     px = cell.load()
-    # Hand marks. Variant changes which cluster; theme only adds one extra nick.
-    marks = {
-        0: [(18, 42, ASH_LO), (19, 42, ASH_LO), (46, 20, ASH_MID), (47, 21, ASH_LO), (30, 16, ASH_MORT)],
-        1: [(22, 28, BONE_SHADE), (23, 28, BONE_DIM), (24, 29, BONE_SHADE), (23, 29, ASH_LO),
-            (48, 46, ASH_LO), (49, 46, ASH_MID)],
-        2: [(16, 36, ASH_MID), (17, 37, ASH_LO), (18, 37, ASH_MID), (19, 38, ASH_LO),
-            (20, 38, ASH_MORT), (50, 18, ASH_LO), (36, 50, ASH_MID)],
-        3: [(40, 44, BONE_SHADE), (41, 44, BONE_DIM), (41, 45, ASH_LO),
-            (14, 18, ASH_MID), (15, 18, ASH_LO), (28, 24, ASH_MORT)],
+    pores = {
+        0: [(8, 12, VOID_DEEP), (9, 14, VOID_LIFT), (40, 50, VOID_DEEP), (55, 22, VOID_LIFT), (33, 8, VOID_DEEP), (20, 55, VOID_LIFT)],
+        1: [(12, 40, VOID_LIFT), (48, 18, VOID_DEEP), (6, 28, VOID_DEEP), (36, 36, VOID_LIFT), (58, 48, VOID_DEEP), (22, 6, VOID_LIFT)],
+        2: [(18, 18, VOID_DEEP), (50, 40, VOID_LIFT), (44, 8, VOID_DEEP), (8, 48, VOID_LIFT), (30, 58, VOID_DEEP), (60, 30, VOID_LIFT)],
+        3: [(4, 20, VOID_LIFT), (28, 48, VOID_DEEP), (52, 52, VOID_LIFT), (16, 8, VOID_DEEP), (42, 28, VOID_LIFT), (58, 10, VOID_DEEP)],
     }
-    for x, y, c in marks[variant]:
+    for x, y, c in pores[variant]:
         px[x, y] = c
+    ash = ASH_R[1:6]
+    bone = BONE_R[0:4]
+    chips = {
+        0: [((18, 42), [(0, 0), (1, 0), (2, 0), (3, 1), (2, 1), (1, 1), (0, 1), (1, 2), (2, 2), (4, 1), (3, 2)], ash),
+            ((46, 16), [(0, 0), (1, 0), (2, 1), (1, 1), (0, 2), (2, 2), (-1, 1)], ash)],
+        1: [((22, 28), [(0, 0), (1, 0), (2, 0), (3, 0), (1, 1), (2, 1), (0, 1), (2, 2), (1, 2)], bone),
+            ((48, 46), [(0, 0), (1, 0), (1, 1), (2, 1), (0, 1), (2, 2), (3, 1)], ash)],
+        2: [((14, 36), [(0, 0), (1, 0), (2, 0), (3, 1), (2, 1), (1, 1), (0, 2), (1, 2), (4, 1), (3, 0)], ash),
+            ((50, 18), [(0, 0), (1, 0), (0, 1), (1, 1), (2, 1), (1, 2)], ash)],
+        3: [((36, 44), [(0, 0), (1, 0), (2, 0), (3, 1), (1, 1), (2, 1), (0, 1), (1, -1), (2, 2)], bone),
+            ((12, 18), [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1), (3, 1), (0, 1)], ash)],
+    }
+    for (ox, oy), pixels, ramp in chips[variant]:
+        _paint_grit(px, ox, oy, pixels, ramp)
     if theme == 2 and variant == 2:
-        px[34, 22] = WOUND_LO
-        px[35, 23] = WOUND_LO
+        px[34, 22] = WOUND_R[2]
+        px[35, 23] = WOUND_R[1]
+        px[35, 22] = WOUND_R[0]
     if theme == 3 and variant == 1:
-        px[52, 30] = BONE_SHADE
-    return cell
-
-
-def _circle_pixels(cx: int, cy: int, r: int) -> list[tuple[int, int]]:
-    pts = []
-    x, y, d = 0, r, 3 - 2 * r
-    def plot(px, py):
-        pts.append((cx + px, cy + py))
-        pts.append((cx - px, cy + py))
-        pts.append((cx + px, cy - py))
-        pts.append((cx - px, cy - py))
-        pts.append((cx + py, cy + px))
-        pts.append((cx - py, cy + px))
-        pts.append((cx + py, cy - px))
-        pts.append((cx - py, cy - px))
-    while x <= y:
-        plot(x, y)
-        if d < 0:
-            d += 4 * x + 6
-        else:
-            d += 4 * (x - y) + 10
-            y -= 1
-        x += 1
-    return pts
-
-
-def sigil_cell(kind: str) -> Image.Image:
-    cell = new(TILE, TILE, CLEAR)
-    px = cell.load()
-    cx = cy = TILE // 2
-    if kind == "npc":
-        # Bone inlay square — Concierge floor mark, still Ash stone, no wood.
-        for x in range(16, 48):
-            px[x, 20] = BONE_DIM
-            px[x, 44] = BONE_SHADE
-        for y in range(20, 45):
-            px[16, y] = BONE_DIM
-            px[47, y] = BONE_SHADE
-        px[18, 22] = ASH_HI
-        px[45, 42] = ASH_LO
-        return cell
-    radius = {"start": 22, "combat": 24, "boss": 26}[kind]
-    col = {"start": BONE_DIM, "combat": ASH, "boss": WOUND}[kind]
-    gaps = {0, 1, 14, 15} if kind != "boss" else {4, 5, 20}
-    pts = _circle_pixels(cx, cy, radius)
-    for i, (x, y) in enumerate(pts):
-        if i % 32 in gaps:
-            continue
-        if 0 <= x < TILE and 0 <= y < TILE:
-            px[x, y] = col
-            if kind == "start" and i % 32 == 8:
-                px[x, y] = BONE
-    # Short ticks, not a cathedral rose.
-    ticks = ((0, -1), (1, 0), (0, 1), (-1, 0))
-    tick_col = EMBER if kind == "boss" else (WOUND if kind == "combat" else ASH_HI)
-    for dx, dy in ticks:
-        for t in range(3, 6):
-            x, y = cx + dx * (radius + t), cy + dy * (radius + t)
-            if 0 <= x < TILE and 0 <= y < TILE:
-                px[x, y] = tick_col
-    if kind == "boss":
-        px[cx, cy] = EMBER_LO
-        px[cx + 1, cy] = WOUND
+        px[52, 30] = BONE_R[2]
+        px[53, 30] = BONE_R[1]
+        px[51, 30] = BONE_R[0]
+    if theme == 1 and variant == 0:
+        px[30, 16] = ASH_R[3]
+        px[31, 16] = ASH_R[1]
     return cell
 
 
 def write_env() -> None:
     sheet = new(ENV_COLS * TILE, ENV_ROWS * TILE, VOID)
     for row in range(ENV_ROWS):
-        theme = row  # 1 start, 2 combat, 3 npc; 0 and 4 are unused Void
+        theme = row
         for col in range(4):
             sheet.paste(floor_cell(col, theme), (col * TILE, row * TILE))
         wall = new(TILE, TILE, VOID)
@@ -472,13 +677,9 @@ def write_env() -> None:
         chipped = new(TILE, TILE, VOID)
         paint_bricks(chipped, (0, 0, TILE, TILE), seed=4)
         sheet.paste(chipped, (5 * TILE, row * TILE))
-    # Sigils only on the rows the floor actually stamps.
-    for row, kind in ((1, "start"), (2, "combat"), (3, "npc")):
-        sheet.paste(sigil_cell(kind), (6 * TILE, row * TILE), sigil_cell(kind))
-    boss = sigil_cell("boss")
-    sheet.paste(boss, (7 * TILE, 2 * TILE), boss)
-    # Other col-7 cells stay Void so a bad index cannot punch a hole.
+    # Cols 6–7 stay the Void field. No circle, tick, or selection box.
     _reject_checker(sheet)
+    _reject_gizmos(sheet)
     assert_palette(sheet, "env")
     sheet.save(SPR / "env.png")
 
@@ -490,7 +691,10 @@ def _reject_checker(sheet: Image.Image) -> None:
     for col in range(4):
         for row in (1, 2, 3):
             cell = a[row * TILE:(row + 1) * TILE, col * TILE:(col + 1) * TILE]
-            means.append(cell[:, :, :3].mean())
+            means.append(float(cell[:, :, :3].mean()))
+            colors = {tuple(p) for p in cell.reshape(-1, 4) if p[3] > 0}
+            if len(colors) < 6:
+                raise SystemExit(f"floor r{row}c{col} too flat ({len(colors)} colors)")
     if max(means) - min(means) > 8:
         raise SystemExit(f"floor variants diverge like a checker: {means}")
     if max(means) > 28:
@@ -498,93 +702,146 @@ def _reject_checker(sheet: Image.Image) -> None:
     wall = a[TILE:TILE * 2, 4 * TILE:5 * TILE]
     if wall[:, :, :3].mean() < 50:
         raise SystemExit("wall tile does not read as Ash block")
+    wcolors = {tuple(p) for p in wall.reshape(-1, 4)}
+    if len(wcolors) < 8:
+        raise SystemExit(f"wall tile too flat ({len(wcolors)} colors)")
 
 
-# ---------------------------------------------------------------------------
-# Doors — rectangular flush frame in the wall band. Row 0 open, row 1 locked.
-# Texture top is the room-side lip (see Room._door_rotation).
-# ---------------------------------------------------------------------------
+def _reject_gizmos(sheet: Image.Image) -> None:
+    """Cols 6–7 are a blank Void field. No cell may be a ring or a hollow box."""
+    a = np.array(sheet)
+    void = np.array(VOID, dtype=np.uint8)
+    for col in (6, 7):
+        block = a[:, col * TILE:(col + 1) * TILE]
+        expect = np.broadcast_to(void, block.shape)
+        if not np.array_equal(block, expect):
+            raise SystemExit(f"env col {col} still has a mark — strip the gizmo")
+    for row in range(ENV_ROWS):
+        for col in range(ENV_COLS):
+            cell = a[row * TILE:(row + 1) * TILE, col * TILE:(col + 1) * TILE]
+            _reject_cell_gizmo(cell, row, col)
+
+
+def _reject_cell_gizmo(cell: np.ndarray, row: int, col: int) -> None:
+    rgb = cell[:, :, :3]
+    mark = np.any(rgb != np.array(VOID[:3], dtype=np.uint8), axis=2) & (cell[:, :, 3] > 0)
+    n = int(mark.sum())
+    if n < 24 or n > 700:
+        return
+    ys, xs = np.where(mark)
+    cx, cy = float(xs.mean()), float(ys.mean())
+    r = np.sqrt((xs - cx) ** 2 + (ys - cy) ** 2)
+    if float(r.mean()) > 8 and float(r.std()) < 2.2:
+        raise SystemExit(f"env r{row}c{col} is a ring gizmo")
+    x0, x1 = int(xs.min()), int(xs.max())
+    y0, y1 = int(ys.min()), int(ys.max())
+    if x1 - x0 < 12 or y1 - y0 < 12:
+        return
+    border = mark.copy()
+    border[y0 + 2:y1 - 1, x0 + 2:x1 - 1] = False
+    if y1 - y0 <= 4 or x1 - x0 <= 4:
+        return
+    interior = int(mark[y0 + 2:y1 - 1, x0 + 2:x1 - 1].sum())
+    if int(border.sum()) / n > 0.82 and interior < n * 0.08:
+        raise SystemExit(f"env r{row}c{col} is a box gizmo")
+
 
 def _wound_crack(img: Image.Image, x: int, y: int, dx: int, dy: int, n: int) -> None:
     px = img.load()
     wob = (0, 1, 0, -1, 1, 0, -1, 0)
+    w, h = img.size
     for i in range(n):
-        xx = x + dx * i + wob[i % len(wob)] * (0 if dx == 0 else 0) + (wob[i % len(wob)] if dy != 0 or dx != 0 else 0)
-        yy = y + dy * i + (wob[(i + 3) % len(wob)] if dx != 0 else 0)
-        if 0 <= xx < img.size[0] and 0 <= yy < img.size[1] and px[xx, yy][3] == 255:
-            px[xx, yy] = WOUND if i % 3 else WOUND_LO
+        j = wob[i % len(wob)]
+        xx = x + dx * i + (j if dy != 0 else 0)
+        yy = y + dy * i + (j if dx != 0 and dy == 0 else 0)
+        col = WOUND_R[2] if i % 2 == 0 else WOUND_R[3]
+        if 0 <= xx < w and 0 <= yy < h and px[xx, yy][3] == 255:
+            px[xx, yy] = col
+        nx = xx + (0 if dx else 1)
+        ny = yy + (1 if dx else 0)
+        if 0 <= nx < w and 0 <= ny < h and px[nx, ny][3] == 255 and px[nx, ny] not in WOUND_R:
+            px[nx, ny] = WOUND_R[0]
 
 
 def _ember_plate(img: Image.Image, cx: int, cy: int, pw: int, ph: int) -> None:
-    """Rectangular Ember plate. The mark is a short Wound fissure, not a diamond."""
+    """Ember plate with an ink edge, a shade ramp, and a wound fissure plus AO."""
     px = img.load()
     x0, y0 = cx - pw // 2, cy - ph // 2
-    for y in range(y0, y0 + ph):
-        for x in range(x0, x0 + pw):
-            edge = x < x0 + 2 or y < y0 + 2 or x >= x0 + pw - 2 or y >= y0 + ph - 2
-            if edge:
-                px[x, y] = ASH_MORT
-            elif y < y0 + 4 or x < x0 + 3:
-                px[x, y] = EMBER_HI
-            elif y > y0 + ph - 5 or x > x0 + pw - 4:
-                px[x, y] = EMBER_LO
+    for y in range(ph):
+        for x in range(pw):
+            if x < 2 or y < 2 or x >= pw - 2 or y >= ph - 2:
+                col = INK if (x + y) % 4 else INK2
             else:
-                px[x, y] = EMBER
-    # Fissure across the plate.
-    mid = cy
-    for i, x in enumerate(range(cx - pw // 5, cx + pw // 5)):
-        yy = mid + (1 if i % 4 == 0 else 0) - (1 if i % 5 == 0 else 0)
-        px[x, yy] = WOUND_LO
-        px[x, yy + 1] = WOUND
+                lit = 0.58 * (1 - (x - 2) / max(pw - 4, 1)) + 0.42 * (1 - (y - 2) / max(ph - 4, 1))
+                idx = int(round(lit * (len(EMBER_R) - 1)))
+                if (x * 7 + y * 3) % 8 == 0:
+                    idx -= 1
+                elif (x * 5 + y) % 13 == 0:
+                    idx += 1
+                idx = max(0, min(len(EMBER_R) - 1, idx))
+                col = EMBER_R[idx]
+            px[x0 + x, y0 + y] = col
+    for i, x in enumerate(range(pw // 5, pw - pw // 5)):
+        yy = ph // 2 + (1 if i % 4 == 0 else 0) - (1 if i % 5 == 0 else 0)
+        for t, col in ((-1, WOUND_R[0]), (0, WOUND_R[2]), (1, WOUND_R[1])):
+            py = y0 + yy + t
+            px_x = x0 + x
+            if 0 <= px_x < img.size[0] and 0 <= py < img.size[1]:
+                px[px_x, py] = col
+
+
+def _bone_inlay(px, x0: int, y0: int, length: int, vertical: bool, gap: int) -> None:
+    """3px Bone inlay, broken so it is not a selection rectangle."""
+    for i in range(length):
+        if (i // 4) % gap == gap - 1:
+            continue
+        for t in range(3):
+            xx = x0 + t if vertical else x0 + i
+            yy = y0 + i if vertical else y0 + t
+            if not (0 <= xx < DOOR_W and 0 <= yy < DOOR_H):
+                continue
+            if px[xx, yy][3] == 0:
+                continue
+            if t == 0:
+                col = BONE_R[5] if i % 5 else BONE_R[4]
+            elif t == 1:
+                col = BONE_R[4] if i % 3 else BONE_R[3]
+            else:
+                col = BONE_R[1]
+            px[xx, yy] = col
 
 
 def door_cell(kind: str, locked: bool) -> Image.Image:
     cell = new(DOOR_W, DOOR_H, CLEAR)
     jamb = {"start": 44, "combat": 34, "npc": 28, "boss": 42}[kind]
     seed = {"start": 2, "combat": 1, "npc": 3, "boss": 5}[kind]
-    # Room-side lip (texture top) and outer sill.
     paint_bricks(cell, (0, 0, DOOR_W, 10), seed)
     paint_bricks(cell, (0, DOOR_H - 10, DOOR_W, DOOR_H), seed)
     paint_bricks(cell, (0, 0, jamb, DOOR_H), seed)
     paint_bricks(cell, (DOOR_W - jamb, 0, DOOR_W, DOOR_H), seed)
     px = cell.load()
-    # Bone inlay on the inner lip and the jamb reveal.
-    for x in range(0, DOOR_W):
-        if 8 <= x < DOOR_W - 8:
-            px[x, 8] = BONE_DIM
-            px[x, DOOR_H - 9] = BONE_SHADE
-    for y in range(8, DOOR_H - 8):
-        px[jamb - 1, y] = BONE
-        px[DOOR_W - jamb, y] = BONE_DIM
-    if kind in ("start", "boss"):
-        for y in range(12, DOOR_H - 12, 16):
-            px[6, y] = BONE_DIM
-            px[DOOR_W - 7, y] = BONE_DIM
-            px[6, y + 1] = ASH_HI
-            px[DOOR_W - 7, y + 1] = ASH_HI
+    _bone_inlay(px, 8, 7, DOOR_W - 16, False, 5)
+    _bone_inlay(px, 8, DOOR_H - 10, DOOR_W - 16, False, 5)
+    _bone_inlay(px, jamb - 3, 8, DOOR_H - 16, True, 4)
+    _bone_inlay(px, DOOR_W - jamb, 8, DOOR_H - 16, True, 4)
     if locked:
-        # Shut slab: same Ash blocks, darker courses, sitting in the opening.
         paint_bricks(cell, (jamb, 10, DOOR_W - jamb, DOOR_H - 10), seed + 7)
-        for y in range(12, DOOR_H - 12):
-            for x in range(jamb + 2, DOOR_W - jamb - 2):
-                if px[x, y] == ASH_HI:
-                    px[x, y] = ASH
-                elif px[x, y] == ASH:
-                    px[x, y] = ASH_MID
         pw, ph = {"start": (64, 34), "combat": (48, 26), "npc": (40, 22), "boss": (58, 32)}[kind]
         _ember_plate(cell, DOOR_W // 2, DOOR_H // 2 + 2, pw, ph)
         if kind == "boss":
             _wound_crack(cell, jamb + 8, 18, 1, 1, 14)
             _wound_crack(cell, DOOR_W - jamb - 10, DOOR_H - 22, -1, -1, 12)
     else:
-        # Opening stays clear so the Void floor shows through the frame.
         _wound_crack(cell, jamb - 6, 16, 0, 1, 18)
         _wound_crack(cell, DOOR_W - jamb + 4, DOOR_H - 28, 0, 1, 16)
         if kind != "npc":
             _wound_crack(cell, jamb + 2, DOOR_H // 2, 1, 0, 8)
         if kind == "boss":
             _wound_crack(cell, 8, 14, 1, 1, 20)
-    # Keep the outer 1px of the lip from going transparent (flush with the wall).
+    colors = cell.getcolors(512)
+    nunq = len([c for _n, c in colors if c[3] > 0]) if colors else 0
+    if nunq < 10:
+        raise SystemExit(f"door {kind} locked={locked} too flat ({nunq} colors)")
     assert_palette(cell, f"door {kind} locked={locked}")
     return cell
 
@@ -597,7 +854,6 @@ def write_doors() -> None:
             cell = door_cell(kind, locked)
             sheet.paste(cell, (col * DOOR_W, row * DOOR_H), cell)
     assert_palette(sheet, "doors")
-    # Open combat cell must have a real hole, locked cell must be shut.
     open_c = sheet.crop((DOOR_W, 0, DOOR_W * 2, DOOR_H))
     locked_c = sheet.crop((DOOR_W, DOOR_H, DOOR_W * 2, DOOR_H * 2))
     oa = np.array(open_c)
@@ -612,11 +868,23 @@ def write_doors() -> None:
     sheet.save(SPR / "doors.png")
 
 
-# ---------------------------------------------------------------------------
-# Pit — stepped Ash blocks around an opaque Void mouth. No alpha anywhere.
-# ---------------------------------------------------------------------------
+
 
 def write_pit() -> None:
+    # Colors locked to the sheet Designer already passed. Do not retint the pit.
+    VOID = (0x0B, 0x0C, 0x10, 255)
+    ASH = (0x5C, 0x5A, 0x56, 255)
+    ASH_HI = (0x8A, 0x88, 0x84, 255)
+    ASH_MID = (0x45, 0x43, 0x40, 255)
+    ASH_LO = (0x32, 0x31, 0x2E, 255)
+    ASH_MORT = (0x1A, 0x19, 0x18, 255)
+    BONE_DIM = (0xB4, 0xA8, 0x96, 255)
+    BONE_SHADE = (0x7A, 0x72, 0x64, 255)
+    WOUND = (0x7A, 0x1F, 0x1A, 255)
+    WOUND_LO = (0x4A, 0x12, 0x10, 255)
+    pit_ok = {
+        VOID, ASH, ASH_HI, ASH_MID, ASH_LO, ASH_MORT, BONE_DIM, BONE_SHADE, WOUND, WOUND_LO,
+    }
     n = 1024
     a = np.zeros((n, n, 4), dtype=np.uint8)
     a[:, :] = VOID
@@ -671,7 +939,10 @@ def write_pit() -> None:
     if void_px.sum() < n * n * 0.5:
         raise SystemExit("pit mouth is not a Void field")
     img = Image.fromarray(a, "RGBA")
-    assert_palette(img, "pit")
+    colors = img.getcolors(max(img.size[0] * img.size[1], 1))
+    bad = [c for _n, c in colors if c not in pit_ok]
+    if bad:
+        raise SystemExit(f"pit: off locked palette {bad[:6]}")
     img.save(ENV / "pit.png")
 
 
