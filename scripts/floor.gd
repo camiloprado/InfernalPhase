@@ -703,15 +703,23 @@ func _look_dump() -> void:
 		player.aim = Vector2.RIGHT
 		player.velocity = Vector2.ZERO
 		player._sync_sheet()
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
 		var flip_r := player._baby.flip_h
 		_qa_shot("f5_baby_face_r", true, "f5_baby_face_r")
 		player.aim = Vector2.LEFT
 		player._sync_sheet()
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
 		var flip_l := player._baby.flip_h
 		_qa_shot("f5_baby_face_l", true, "f5_baby_face_l")
 		player._baby.flip_h = false
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
 		_qa_shot("f5_baby_flip_false", true, "f5_baby_flip_false")
 		player._baby.flip_h = true
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
 		_qa_shot("f5_baby_flip_true", true, "f5_baby_flip_true")
 		print("QA_BABY_FLIP aim_right=", flip_r, " aim_left=", flip_l)
 	if camera and current:
