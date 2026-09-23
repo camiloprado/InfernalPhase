@@ -6,21 +6,21 @@ Designer art direction. Combat numbers, room graph, pit teleport, drops, Concier
 
 | Name | Hex | Role |
 | --- | --- | --- |
-| **Void** | `#0B0C10` | Pit mouth, overlay, type knockout |
-| **Ash** | `#5C5A56` | Wall band, 1px floor grit, card chrome |
-| **Bone** | `#E6D9C3` | Type, inlay, filled seals, bone-chip shots, ring-slam |
-| **Ember** | `#E25A1A` | Accent — locked door plate and tongues, coal shots, floor embers, bolts, plumes, one confirm CTA |
-| **Wound** | `#7A1F1A` | Floor field, heart cracks, jamb veins, damage, boss node |
+| **Void** | `#0B0C10` | Pit depth, boss tray, overlay, type knockout |
+| **Ash** | `#5C5A56` | Wall band, stone door, card chrome |
+| **Bone** | `#E6D9C3` | Type, boss name, heart ink, bone-chip shots, good-drop rim |
+| **Ember** | `#E25A1A` | Door flames and lock, coal shots, floor cracks, slam ring, bolts, plumes, boss fill |
+| **Wound** | `#7A1F1A` | Floor rock, heart cracks, door drips, pit well, boss empty |
 
 No gold, no chrome-edge crests, no `#FFBA08` heat, no brown brick on doors.
 
 ## Doors
 
-Rectangular flush doorways in the Ash wall band (Isaac basement, not a gothic arch). Ash stone frame only — no wood, no brown. Bone inlay on the lip and jambs. **Locked:** lit Ember plate with 2–4px Ember fire tongues on the top edge, Wound veins and drips on the jambs. **Open:** clear passage (the floor shows through) and Wound cracks on the jambs, no plate. Texture top is the room-side lip. Cells are 4×2 of 256×96 so the frame sits on the 64px wall.
+Rectangular flush doorways in the Ash wall band (Isaac basement, not a gothic arch). Grey stone frame — no wood, no brown. **Locked:** Ember flames on the lintel and jambs, thick enough to read at game size (about 6–10px and up), Wound blood drips, Ember lock plate. **Open:** the door face is clear so the floor shows through; lintel flames and jamb drips stay. Texture top is the room-side lip. Cells are 4×2 of 256×96 so the frame sits on the 64px wall.
 
 ## Room
 
-Isaac basement / Sheol, not Cathedral. Wall band is ~32px Ash blocks (two courses in the 64px wall), ink contour and hard interior shade bands in the Ash ramp. Floor is a dark Wound field `#7A1F1A` with sparse Ember motes and 1px Ash grit (four tile variants). No checker, no brown, no wood, no pebbles, no star specks, no floor emblem. Columns 6–7 of `env.png` are a blank Void field — no circle, tick, or selection box.
+Isaac basement / Sheol, not Cathedral. Wall band is ~32px Ash blocks (two courses in the 64px wall), ink contour and hard interior shade bands in the Ash ramp. Floor is four cracked Wound/Ember rock tiles (dark cracks, Ember in the fissures). No checker, no brown, no wood, no pebbles, no star specks, no flat `#7A1F1A` fill, no floor emblem. Columns 6–7 of `env.png` are a blank Void field — no circle, tick, or selection box.
 
 ## Shots
 
@@ -34,7 +34,7 @@ Hard pixels, same outline weight and interior shade steps as Caim / Lilith / Beb
 
 ## HUD
 
-- Hearts: circular **Bone** seals. Wound cracks when filled. Empty = Ash.
+- Hearts: Bone / Ember / Wound ink seals. Full, cracked half, hollow empty. Ember pip stays the HUD glyph.
 - Shot glyph on the heart sheet stays the Ember pip. Projectile art is the coal / tear / chip sheet, not that pip.
 - Map: circular nodes. Current room = Bone ring. No Ember on the frame.
 - Combat HUD has no Shop / Inventory / Score / Armor strip.
@@ -56,12 +56,13 @@ Combat actors bind pixel sheets. Do not replace these PNGs with Penitent diamond
 
 ## Pit
 
-Round mouth (not a square), stepped Ash-block rim, Bone fillet on the inner lip, opaque Void `#0B0C10` inside the mouth and outside the rim (never viewport-clear / checkerboard). One or two Wound cracks on the rim. One clear QA frame.
+Circular Wound well with a stone rim and depth rings. The sheet outside the circle is transparent, so the cracked floor shows around the rim. There is no black square under the sprite. The fall trigger is a circle inside the stone lip. One clear QA frame.
 
 ## Boss FX
 
 New sheets. Not the coal / tear / chip silhouettes. Ink contour and two or three shade steps.
 
-- **Ring slam** `fx_slam.png` — expanding Bone ring, Wound cracked outer edge. Wired to SLAM.
-- **Lightning** `fx_beam.png` — jagged Ember bolt. Wired to CROSS, DIAG, LANES.
-- **Fire** `fx_wisp.png` — asymmetric Ember plume. Wired to RING.
+- **Ring slam** `fx_slam.png` — Ember impact ring. Wired to SLAM.
+- **Lightning** `fx_beam.png` — jagged Ember fork. Wired to CROSS, DIAG, LANES.
+- **Fire** `fx_wisp.png` — four distinct Ember plume frames. Wired to RING.
+- **Boss plate** — Void tray with an Ash edge, Ember fill, Wound empty, Bone name `THE PHASE` centered.

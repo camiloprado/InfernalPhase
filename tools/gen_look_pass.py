@@ -474,12 +474,13 @@ def main() -> None:
     ENV.mkdir(parents=True, exist_ok=True)
     only = set(sys.argv[1:])
     if not only:
-        only = {"doors", "hearts", "pit", "shots"}
-    blocked = {"player", "baby"} & only
-    if blocked or "all" in only:
+        only = {"shots"}
+    blocked = {"player", "baby", "doors", "hearts", "pit", "env", "all"} & only
+    if blocked:
         raise SystemExit(
-            "refusing to overwrite Caim / Lilith / Bebê sheets. "
-            "Allowed: doors hearts pit shots env."
+            "refusing to overwrite locked sheets. "
+            "Caim / Lilith / Bebê stay. Doors, hearts, pit, and env are baked by apply_look_v3.py. "
+            "Allowed: shots."
         )
     if "doors" in only:
         write_doors()

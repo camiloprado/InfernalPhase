@@ -14,7 +14,7 @@ Cada `QA_ITEM` grava um still em `gate/spec/<id>.png`. Look plates extras: `./ru
 * [ ] **Contraste de Fundo vs. Gameplay:** O piso não pode conter ruído visual de alto contraste que compita com a visibilidade de tiros e inimigos pequenos. Projéteis devem ser 100% legíveis sobre qualquer parte do chão.
 * [ ] **Alinhamento de Paredes e Sombras:** As paredes superiores e laterais devem manter perspectiva consistente. Sombras projetadas no chão não podem ter colisores físicos invisíveis que travem o movimento do jogador.
 * [ ] **Repetição Textural (Tiling Fatigue):** Verificar se o chão parece um padrão quadriculado repetitivo e artificial. Variações sutis de tiles devem estar espalhadas sem quebrar a harmonia.
-* [ ] **Env bind (não checker vazio):** Tiles de `env.png` nas linhas 1–3 (64px, 8 colunas). Linhas 0 e 4 não são o tema da sala. Combate = campo Wound `#7A1F1A` com grão Ash de 1px e brasas Ember + parede de bloco Ash, não ColorRect no lugar da ficha e não checker.
+* [ ] **Env bind (não checker vazio):** Tiles de `env.png` nas linhas 1–3 (64px, 8 colunas). Linhas 0 e 4 não são o tema da sala. Combate = rocha Wound/Ember rachada (não fill chapado `#7A1F1A`, sem estrelas) + parede de bloco Ash, não ColorRect no lugar da ficha e não checker.
 
 ### 1.2 Integridade do Pixel Art e Spritesheets
 * [ ] **Modo de Filtragem (Point / Nearest Neighbor):** Todos os assets (cenário, entidades, HUD, partículas) devem estar estritamente configurados com amostragem *Nearest*. Zero interpolação bilinear (proibido texturas embaçadas ou suaves).

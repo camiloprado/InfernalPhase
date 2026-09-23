@@ -2,7 +2,7 @@ class_name Hazard
 extends Node2D
 ## Telegraphed area attack used by The Infernal Phase.
 ##
-## FX sheets: fx_beam lightning, fx_slam Bone ring, fx_wisp Ember plume.
+## FX sheets: fx_beam jagged fork, fx_slam Ember impact ring, fx_wisp plume.
 ## If one misses, `_draw` paints the telegraph. That is hazard FX, not an actor fallback.
 
 enum Kind { CROSS, DIAG, SLAM, LANES, RING }
@@ -123,11 +123,11 @@ func _line_dist(p: Vector2, dir: Vector2) -> float:
 func _build_art() -> void:
 	match kind:
 		Kind.CROSS:
-			_stamp_line(Vector2(room_rect.position.x, origin.y), Vector2(room_rect.end.x, origin.y), 58.0, 52.0)
-			_stamp_line(Vector2(origin.x, room_rect.position.y), Vector2(origin.x, room_rect.end.y), 58.0, 52.0)
+			_stamp_line(Vector2(room_rect.position.x, origin.y), Vector2(room_rect.end.x, origin.y), 72.0, 84.0)
+			_stamp_line(Vector2(origin.x, room_rect.position.y), Vector2(origin.x, room_rect.end.y), 72.0, 84.0)
 		Kind.DIAG:
-			_stamp_line(_edge(origin, Vector2.ONE), _edge(origin, -Vector2.ONE), 58.0, 52.0)
-			_stamp_line(_edge(origin, Vector2(1, -1)), _edge(origin, Vector2(-1, 1)), 58.0, 52.0)
+			_stamp_line(_edge(origin, Vector2.ONE), _edge(origin, -Vector2.ONE), 72.0, 84.0)
+			_stamp_line(_edge(origin, Vector2(1, -1)), _edge(origin, Vector2(-1, 1)), 72.0, 84.0)
 		Kind.SLAM:
 			_slam = _add_anim(
 				SLAM_SHEET,
@@ -143,11 +143,11 @@ func _build_art() -> void:
 				if i == safe_lane:
 					continue
 				var y := inner_top + lane_h * (float(i) + 0.5)
-				_stamp_line(Vector2(room_rect.position.x, y), Vector2(room_rect.end.x, y), 64.0, 56.0)
+				_stamp_line(Vector2(room_rect.position.x, y), Vector2(room_rect.end.x, y), 80.0, 84.0)
 		Kind.RING:
-			_stamp_ring(ring_inner + 28.0, 18, 34.0)
-			_stamp_ring((ring_inner + ring_outer) * 0.5, 26, 40.0)
-			_stamp_ring(ring_outer - 36.0, 32, 36.0)
+			_stamp_ring(ring_inner + 28.0, 18, 64.0)
+			_stamp_ring((ring_inner + ring_outer) * 0.5, 26, 60.0)
+			_stamp_ring(ring_outer - 36.0, 32, 56.0)
 	_has_art = not _fx.is_empty()
 	_play_warn()
 
@@ -229,7 +229,7 @@ func _play_hot() -> void:
 			var spr := n as AnimatedSprite2D
 			if spr.sprite_frames.has_animation("hot"):
 				spr.play("hot")
-			# Keep the sheet's Bone / Ember. A warm multiply washes the ring out.
+			# Keep the sheet's Ember. A warm multiply washes the ring out.
 			spr.modulate = Color(1, 1, 1, 1)
 			Sprites.stagger(spr)
 

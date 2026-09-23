@@ -16,6 +16,7 @@ const GAMEPLAY_SHEETS: PackedStringArray = [
 	"res://assets/sprites/wretch.png",
 	"res://assets/sprites/concierge.png",
 	"res://assets/sprites/pickups.png",
+	"res://assets/sprites/pickup_aura.png",
 	"res://assets/sprites/skills.png",
 	"res://assets/sprites/shots.png",
 	"res://assets/sprites/hearts.png",
@@ -76,6 +77,8 @@ static func require_gameplay() -> void:
 		fail("res://assets/sprites/doors.png", "look cell want 256x96")
 	if cell("res://assets/sprites/hearts.png", 4, 1, 0, 0) == null:
 		fail("res://assets/sprites/hearts.png", "look cell want 64x64")
+	if cell("res://assets/sprites/pickup_aura.png", 2, 1, 0, 0) == null:
+		fail("res://assets/sprites/pickup_aura.png", "look cell want 64x64")
 	if cell("res://assets/sprites/shots.png", 4, 8, 0, 0) == null:
 		fail("res://assets/sprites/shots.png", "look cell want 64x64")
 	# In-world Caim / Lilith / Bebê must be pixel bodies, not look-pass
@@ -358,6 +361,8 @@ static func _look_cell_size(path: String, cols: int, rows: int) -> Vector2:
 	if path.ends_with("doors.png") and cols == 4 and rows == 2:
 		return Vector2(256, 96)
 	if path.ends_with("hearts.png") and cols == 4 and rows == 1:
+		return Vector2(64, 64)
+	if path.ends_with("pickup_aura.png") and cols == 2 and rows == 1:
 		return Vector2(64, 64)
 	if path.ends_with("shots.png") and cols == 4 and rows == 8:
 		return Vector2(64, 64)

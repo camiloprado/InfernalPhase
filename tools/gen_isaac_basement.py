@@ -1163,23 +1163,11 @@ def write_fx() -> None:
 
 
 def write_all() -> None:
+    # Doors, env, pit, and boss FX are baked by apply_look_v3.py from the
+    # locked refs. This entry only refreshes the locked coal/tear/chip sheet.
     SPR.mkdir(parents=True, exist_ok=True)
-    ENV.mkdir(parents=True, exist_ok=True)
     write_shots()
-    write_doors()
-    write_env()
-    write_pit()
-    write_fx()
-    print(
-        "isaac basement sheets:",
-        "shots", (SPR / "shots.png").stat().st_size,
-        "doors", (SPR / "doors.png").stat().st_size,
-        "env", (SPR / "env.png").stat().st_size,
-        "pit", (ENV / "pit.png").stat().st_size,
-        "fx_beam", (SPR / "fx_beam.png").stat().st_size,
-        "fx_slam", (SPR / "fx_slam.png").stat().st_size,
-        "fx_wisp", (SPR / "fx_wisp.png").stat().st_size,
-    )
+    print("isaac basement shots only:", (SPR / "shots.png").stat().st_size)
 
 
 if __name__ == "__main__":
