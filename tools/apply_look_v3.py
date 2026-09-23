@@ -54,59 +54,6 @@ def quantize(rgb: np.ndarray) -> np.ndarray:
     return out.reshape(rgb.shape)
 
 
-def trim(im: Image.Image, pad: int = 2) -> Image.Image:
-    a = np.array(im)
-    m = a[:, :, 3] > 16
-    if not m.any():
-        return im
-    ys, xs = np.where(m)
-    y0, y1 = max(0, ys.min() - pad), min(a.shape[0], ys.max() + 1 + pad)
-    x0, x1 = max(0, xs.min() - pad), min(a.shape[1], xs.max() + 1 + pad)
-    return im.crop((x0, y0, x1, y1))
-
-
-def fit(im: Image.Image, size: int, pad: int = 4) -> Image.Image:
-    im = trim(im)
-    w, h = im.size
-    box = size - pad * 2
-    scale = box / max(w, h)
-    nw, nh = max(1, int(round(w * scale))), max(1, int(round(h * scale)))
-    im = im.resize((nw, nh), Image.Resampling.NEAREST)
-    cell = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    cell.paste(im, ((size - nw) // 2, (size - nh) // 2), im)
-    return cell
-
-
-def key_dark(im: Image.Image) -> Image.Image:
-    a = np.array(im.convert("RGBA"))
-    rgb = a[:, :, :3].astype(np.int16)
-    # The mock field is near-black grey. Dark reds are ink and stay.
-    spread = np.maximum(
-        np.abs(rgb[:, :, 0] - rgb[:, :, 1]),
-        np.abs(rgb[:, :, 1] - rgb[:, :, 2]),
-    )
-    grey = (spread < 18) & (rgb.max(2) < 52)
-    a[grey, 3] = 0
-    fg = a[:, :, 3] > 0
-    if fg.any():
-        q = quantize(a[:, :, :3])
-        a[fg, :3] = q[fg]
-    return Image.fromarray(a, "RGBA")
-
-
-def hotten(im: Image.Image) -> Image.Image:
-    a = np.array(im)
-    fg = a[:, :, 3] > 0
-    rgb = a[:, :, :3].astype(np.int16)
-    # Step ember-like pixels one shade hotter. Leave bone/ash.
-    emberish = fg & (rgb[:, :, 0] > rgb[:, :, 1] + 20) & (rgb[:, :, 0] > 80)
-    rgb[emberish, 0] = np.minimum(255, rgb[emberish, 0] + 24)
-    rgb[emberish, 1] = np.minimum(180, rgb[emberish, 1] + 16)
-    a[:, :, :3] = quantize(rgb.astype(np.uint8))
-    a[~fg, 3] = 0
-    return Image.fromarray(a, "RGBA")
-
-
 def write_pit() -> None:
     im = Image.open(REF / "pit_A_transparent_1a65.png").convert("RGBA")
     a = np.array(im)
@@ -175,50 +122,19 @@ def write_doors() -> None:
     print("doors", sheet.size, "open clear", clear)
 
 
-def _fx_crop(box: tuple) -> Image.Image:
-    im = Image.open(REF / "boss_fx_ref_322a.png").convert("RGBA").crop(box)
-    return key_dark(im)
+def _followup():
+    import importlib.util
+
+    path = Path(__file__).with_name("bake_followup_f5.py")
+    spec = importlib.util.spec_from_file_location("bake_followup_f5", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def write_fx() -> None:
-    slam_src = _fx_crop((48, 42, 236, 198))
-    beam_src = _fx_crop((300, 28, 430, 198))
-    slam = Image.new("RGBA", (512, 256), (0, 0, 0, 0))
-    beam = Image.new("RGBA", (384, 192), (0, 0, 0, 0))
-    for col in range(4):
-        ring = slam_src.rotate(col * 18, resample=Image.Resampling.NEAREST, expand=False)
-        slam.paste(fit(ring, 128, 2), (col * 128, 0), fit(ring, 128, 2))
-        hot = fit(hotten(ring), 128, 2)
-        slam.paste(hot, (col * 128, 128), hot)
-        # Nudge each frame so the fork reads as animation, not a stamp.
-        nudged = Image.new("RGBA", beam_src.size, (0, 0, 0, 0))
-        nudged.paste(beam_src, (col, col % 2))
-        cell = fit(nudged, 96, 2)
-        beam.paste(cell, (col * 96, 0), cell)
-        hot = fit(hotten(nudged), 96, 2)
-        beam.paste(hot, (col * 96, 96), hot)
-    _require_ink(slam, 128, "fx_slam")
-    _require_ink(beam, 96, "fx_beam")
-    slam.save(SPR / "fx_slam.png")
-    beam.save(SPR / "fx_beam.png")
-
-    wisp_src = np.array(Image.open(REF / "fx_wisp_polish_fcb6.png").convert("RGBA"))
-    wisp = Image.new("RGBA", (256, 64), (0, 0, 0, 0))
-    prev = None
-    for col in range(4):
-        frame = wisp_src[:, col * 32 : (col + 1) * 32].copy()
-        bg = (frame[:, :, 0] == 11) & (frame[:, :, 1] == 12) & (frame[:, :, 2] == 16)
-        frame[bg, 3] = 0
-        im = Image.fromarray(frame, "RGBA")
-        # Nearest scale of the locked 4 frames so the plume fills the cell.
-        big = fit(im, 64, 4)
-        if prev is not None and np.array_equal(np.array(prev), np.array(big)):
-            raise SystemExit(f"wisp frame {col} is a duplicate")
-        prev = big
-        wisp.paste(big, (col * 64, 0), big)
-    _require_ink(wisp, 64, "fx_wisp")
-    wisp.save(SPR / "fx_wisp.png")
-    print("fx", slam.size, beam.size, wisp.size)
+    """S / Z / wavy brand / trident, star to broken-C, wisp squash. See bake_followup_f5."""
+    _followup().write_fx()
 
 
 def write_hearts() -> None:
@@ -265,83 +181,9 @@ def write_hearts() -> None:
     print("hearts", sheet.size)
 
 
-def _require_ink(sheet: Image.Image, cell: int, name: str) -> None:
-    a = np.array(sheet)
-    cols = sheet.size[0] // cell
-    rows = sheet.size[1] // cell
-    for row in range(rows):
-        for col in range(cols):
-            block = a[row * cell : (row + 1) * cell, col * cell : (col + 1) * cell]
-            n = int((block[:, :, 3] > 16).sum())
-            if n < 40:
-                raise SystemExit(f"{name} cell {col},{row} empty ({n})")
-
-
-def _ring(px, cx, cy, r0, r1, col) -> None:
-    r0s, r1s = r0 * r0, r1 * r1
-    for y in range(64):
-        for x in range(64):
-            d = (x - cx) ** 2 + (y - cy) ** 2
-            if r0s <= d <= r1s:
-                px[x, y] = col
-
-
-def _chunk_ring(px, palette: dict) -> None:
-    # Stepped octagon, same ink weight as the pickup icons. Not a 1px circle.
-    ink, bone, ember, wound, void = (
-        (0x12, 0x08, 0x08, 255),
-        (0xE6, 0xD9, 0xC3, 255),
-        (0xE2, 0x5A, 0x1A, 255),
-        (0x7A, 0x1F, 0x1A, 255),
-        (0x0B, 0x0C, 0x10, 255),
-    )
-    colors = {"ink": ink, "bone": bone, "ember": ember, "wound": wound, "void": void}
-    for y in range(64):
-        for x in range(64):
-            dx = abs(x - 31)
-            dy = abs(y - 31)
-            r = max(dx, dy, int(round((dx + dy) * 0.72)))
-            band = None
-            if 26 <= r <= 30:
-                band = "ink"
-            elif 22 <= r <= 25:
-                band = palette["outer"]
-            elif 18 <= r <= 21:
-                band = palette["inner"]
-            if band:
-                px[x, y] = colors[band]
-            # Chunky notches so the halo is not a smooth ring.
-            if band and ((x + y) % 9 == 0) and 20 <= r <= 24:
-                px[x, y] = colors[palette["notch"]]
-
-
-def _chunk_x(px) -> None:
-    ink = (0x12, 0x08, 0x08, 255)
-    void = (0x0B, 0x0C, 0x10, 255)
-    bone = (0xE6, 0xD9, 0xC3, 255)
-    for i in range(11):
-        for t in range(4):
-            x0, y0 = 44 + i, 8 + i + t
-            x1, y1 = 44 + i, 18 - i + t
-            if 0 <= x0 < 64 and 0 <= y0 < 64:
-                px[x0, y0] = void if t in (1, 2) else ink
-            if 0 <= x1 < 64 and 0 <= y1 < 64:
-                px[x1, y1] = void if t in (1, 2) else bone
-
-
 def write_aura() -> None:
-    sheet = Image.new("RGBA", (128, 64), (0, 0, 0, 0))
-    good = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    g = good.load()
-    _chunk_ring(g, {"outer": "bone", "inner": "ember", "notch": "wound"})
-    bad = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    b = bad.load()
-    _chunk_ring(b, {"outer": "wound", "inner": "void", "notch": "ink"})
-    _chunk_x(b)
-    sheet.paste(good, (0, 0), good)
-    sheet.paste(bad, (64, 0), bad)
-    sheet.save(SPR / "pickup_aura.png")
-    print("aura", sheet.size)
+    """Horned heart and skull+X. Halo is in the item cell."""
+    _followup().write_aura()
 
 
 def main() -> None:

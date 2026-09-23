@@ -50,30 +50,23 @@ func _bind_icon() -> void:
 	var tex := _tex()
 	_icon.texture = tex
 	_icon.visible = tex != null
+	# The valence halo is baked into the item. A second ring would float off the silhouette.
+	if _aura:
+		_aura.visible = false
 	if tex == null:
 		return
 	var h := float(tex.get_height())
 	if tex is AtlasTexture:
 		h = (tex as AtlasTexture).region.size.y
-	_icon.scale = Vector2.ONE * (48.0 / maxf(h, 1.0))
-	if _aura == null:
-		return
-	# Good = Bone rim + Ember. Bad = Wound rim + Void X. No aura slot on the icon sheet.
-	var aura := Sprites.cell_used(AURA_SHEET, 2, 1, 1 if _is_cursed() else 0, 0)
-	_aura.texture = aura
-	_aura.visible = aura != null
-	if aura == null:
-		return
-	var ah := float(aura.get_height())
-	if aura is AtlasTexture:
-		ah = (aura as AtlasTexture).region.size.y
-	_aura.scale = Vector2.ONE * (60.0 / maxf(ah, 1.0))
+	var shown := 60.0 if _is_valence() else 48.0
+	_icon.scale = Vector2.ONE * (shown / maxf(h, 1.0))
 
 
 func _tex() -> Texture2D:
 	match kind:
 		Kind.HEART:
-			return Sprites.cell_used("res://assets/sprites/pickups.png", 3, 1, 0, 0)
+			# Full cell: cell_used's 1px inset would eat the Ember rim.
+			return Sprites.cell(AURA_SHEET, 2, 1, 0, 0)
 		Kind.EMBER:
 			return Sprites.cell_used("res://assets/sprites/pickups.png", 3, 1, 1, 0)
 		Kind.MAX_HEART:
@@ -87,13 +80,12 @@ func _tex() -> Texture2D:
 		Kind.BURN:
 			return Sprites.cell_used("res://assets/sprites/skills.png", 4, 1, 3, 0)
 		Kind.CURSE:
-			# Same heart craft as the boon. The Wound tint and bad halo mark it.
-			return Sprites.cell_used("res://assets/sprites/pickups.png", 3, 1, 0, 0)
+			return Sprites.cell(AURA_SHEET, 2, 1, 1, 0)
 	return null
 
 
-func _is_cursed() -> bool:
-	return kind == Kind.CURSE
+func _is_valence() -> bool:
+	return kind == Kind.HEART or kind == Kind.CURSE
 
 
 func _process(delta: float) -> void:
@@ -102,16 +94,10 @@ func _process(delta: float) -> void:
 	var pulse := 0.8 + 0.2 * absf(sin(_age * 4.2))
 	if _icon:
 		_icon.position.y = bob
-		if _is_cursed():
-			_icon.modulate = Color(0.95, 0.38 + 0.12 * pulse, 0.3)
-		else:
-			_icon.modulate = Color.WHITE
-	if _aura:
-		_aura.position.y = bob
-		if _is_cursed():
-			_aura.modulate = Color(0.55 + 0.25 * pulse, 0.16, 0.14, 0.94)
-		else:
-			_aura.modulate = Color(1.0, 0.72 + 0.22 * pulse, 0.5, 0.95)
+		# Keep the baked Bone/Ember and Wound/Void. A tint would repaint the craft.
+		_icon.modulate = Color.WHITE
+		if _is_valence():
+			_icon.scale = Vector2.ONE * (60.0 / 64.0) * (0.94 + 0.06 * pulse)
 
 
 func _on_body(body: Node) -> void:

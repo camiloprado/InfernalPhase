@@ -62,7 +62,8 @@ Circular Wound well with a stone rim and depth rings. The sheet outside the circ
 
 New sheets. Not the coal / tear / chip silhouettes. Ink contour and two or three shade steps.
 
-- **Ring slam** `fx_slam.png` — Ember impact ring. Wired to SLAM.
-- **Lightning** `fx_beam.png` — jagged Ember fork. Wired to CROSS, DIAG, LANES.
-- **Fire** `fx_wisp.png` — four distinct Ember plume frames. Wired to RING.
+- **Ring slam** `fx_slam.png` — four frames: star, small spiked ring, wide hollow ring, broken-C. Wired to SLAM.
+- **Lightning** `fx_beam.png` — four silhouettes: S-bolt, Z-brand, wavy brand, trident. Wired to CROSS, DIAG, LANES.
+- **Fire** `fx_wisp.png` — four plume frames (squash, stretch, flare) with Bone horns and an Ember rim. Wired to RING.
+- **Drops** `pickup_aura.png` — good Bone/Ember horned heart and bad Wound/Void skull. The halo is glued to the silhouette. HEART and CURSE use these cells as the item.
 - **Boss plate** — Void tray with an Ash edge, Ember fill, Wound empty, Bone name `THE PHASE` centered.
