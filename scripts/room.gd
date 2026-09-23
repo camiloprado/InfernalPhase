@@ -183,13 +183,13 @@ func spawn_offset(index: int, total: int) -> Vector2:
 func title() -> String:
 	match kind:
 		Kind.START:
-			return "THE THRESHOLD"
+			return Locale.t("room.threshold")
 		Kind.COMBAT:
-			return "A BAD ROOM"
+			return Locale.t("room.bad")
 		Kind.NPC:
-			return "THE CONCIERGE"
+			return Locale.t("room.concierge")
 		Kind.BOSS:
-			return "THE PHASE"
+			return Locale.t("room.phase")
 	return ""
 
 

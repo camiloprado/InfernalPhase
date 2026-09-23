@@ -2,7 +2,7 @@ class_name Pickup
 extends Area2D
 ## Ground loot. Pulse so it reads against ash floor.
 
-enum Kind { HEART, EMBER, MAX_HEART, PIERCE, RAPID, HEAVY, BURN }
+enum Kind { HEART, EMBER, MAX_HEART, PIERCE, RAPID, HEAVY, BURN, CURSE }
 
 const AURA_SHEET := "res://assets/sprites/pickup_aura.png"
 
@@ -67,7 +67,7 @@ func _bind_icon() -> void:
 	var ah := float(aura.get_height())
 	if aura is AtlasTexture:
 		ah = (aura as AtlasTexture).region.size.y
-	_aura.scale = Vector2.ONE * (72.0 / maxf(ah, 1.0))
+	_aura.scale = Vector2.ONE * (60.0 / maxf(ah, 1.0))
 
 
 func _tex() -> Texture2D:
@@ -86,24 +86,32 @@ func _tex() -> Texture2D:
 			return Sprites.cell_used("res://assets/sprites/skills.png", 4, 1, 2, 0)
 		Kind.BURN:
 			return Sprites.cell_used("res://assets/sprites/skills.png", 4, 1, 3, 0)
+		Kind.CURSE:
+			# Same heart craft as the boon. The Wound tint and bad halo mark it.
+			return Sprites.cell_used("res://assets/sprites/pickups.png", 3, 1, 0, 0)
 	return null
 
 
 func _is_cursed() -> bool:
-	# Every live kind is a boon. A wound drop that is not listed here takes the Void X.
-	match kind:
-		Kind.HEART, Kind.EMBER, Kind.MAX_HEART, Kind.PIERCE, Kind.RAPID, Kind.HEAVY, Kind.BURN:
-			return false
-	return true
+	return kind == Kind.CURSE
 
 
 func _process(delta: float) -> void:
 	_age += delta
 	var bob := sin(_age * 3.4) * 4.0
+	var pulse := 0.8 + 0.2 * absf(sin(_age * 4.2))
 	if _icon:
 		_icon.position.y = bob
+		if _is_cursed():
+			_icon.modulate = Color(0.95, 0.38 + 0.12 * pulse, 0.3)
+		else:
+			_icon.modulate = Color.WHITE
 	if _aura:
 		_aura.position.y = bob
+		if _is_cursed():
+			_aura.modulate = Color(0.55 + 0.25 * pulse, 0.16, 0.14, 0.94)
+		else:
+			_aura.modulate = Color(1.0, 0.72 + 0.22 * pulse, 0.5, 0.95)
 
 
 func _on_body(body: Node) -> void:
@@ -121,33 +129,36 @@ static func apply(p_kind: Kind) -> String:
 	match p_kind:
 		Kind.HEART:
 			Game.heal(1)
-			return "A brimstone heart. Don't get used to it."
+			return Locale.t("pickup.heart")
 		Kind.EMBER:
 			Game.add_ember()
-			return "Ember under the tongue. Shots hit harder."
+			return Locale.t("pickup.ember")
 		Kind.MAX_HEART:
 			if Game.add_max_heart():
-				return "Another chamber in the ribcage."
+				return Locale.t("pickup.vessel")
 			Game.heal(1)
-			return "The vessel is already full. A heart instead."
+			return Locale.t("pickup.vessel_full")
 		Kind.PIERCE:
 			if Game.add_pierce():
-				return "Bone spike. Shots keep going."
+				return Locale.t("pickup.pierce")
 			Game.add_ember()
-			return "Already punching through. Ember instead."
+			return Locale.t("pickup.pierce_full")
 		Kind.RAPID:
 			if Game.add_rapid():
-				return "Fan the hammer. Faster, wider."
+				return Locale.t("pickup.rapid")
 			Game.add_ember()
-			return "Trigger finger is already ruined. Ember instead."
+			return Locale.t("pickup.rapid_full")
 		Kind.HEAVY:
 			if Game.add_heavy():
-				return "Slower. Meaner. A molten slug."
+				return Locale.t("pickup.heavy")
 			Game.add_ember()
-			return "The slug is already fat. Ember instead."
+			return Locale.t("pickup.heavy_full")
 		Kind.BURN:
 			if Game.add_burn():
-				return "Trail of hell. They cook after the hit."
+				return Locale.t("pickup.burn")
 			Game.add_ember()
-			return "Already smoldering. Ember instead."
+			return Locale.t("pickup.burn_full")
+		Kind.CURSE:
+			Game.hurt(1)
+			return Locale.t("pickup.curse")
 	return ""

@@ -211,21 +211,26 @@ func _on_hurt_body(body: Node) -> void:
 		take_hit(body)
 
 
+func _update_face() -> void:
+	# Aim wins, especially while shooting. Walk only fills in when the aim is vertical.
+	var shooting := fire_left > 0.0 or Input.is_action_pressed("shoot")
+	var face_x := aim.x
+	if not shooting and absf(aim.x) <= 0.08:
+		face_x = velocity.x
+	if absf(face_x) > 0.08:
+		_face_left = face_x < 0.0
+
+
 func _sync_sheet() -> void:
+	_update_face()
 	if Game.is_baby() and _baby:
 		_baby.visible = not blink
 		_baby.modulate.a = 0.0 if blink else 1.0
-		var face_x := velocity.x if velocity.length() > 24.0 else aim.x
-		if absf(face_x) > 0.22:
-			_face_left = face_x < 0.0
 		_baby.flip_h = _face_left
 		return
 	if _sheet == null:
 		return
 	_sheet.visible = not blink
-	var face_x := velocity.x if velocity.length() > 24.0 else aim.x
-	if absf(face_x) > 0.22:
-		_face_left = face_x < 0.0
 	_sheet.flip_h = _face_left
 	if i_timer > 0.0 and not blink:
 		_sheet.modulate = Color(1.7, 0.55, 0.2)

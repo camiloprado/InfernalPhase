@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var boss_bar: ProgressBar = $Margin/VBox/BossBar
 
 var _boss_tray: Control
+var _boss_name: Label
 var _flavor_left := 0.0
 var _heart_max := 4
 var _walker: Label
@@ -39,7 +40,8 @@ func _ready() -> void:
 	Game.boss_intro.connect(func () -> void: _set_boss_plate(true))
 	Game.won.connect(func () -> void: _set_boss_plate(false))
 	_on_hearts(Game.hearts, Game.max_hearts)
-	hint.text = "WASD move  ·  Mouse aim  ·  Click / Space shoot  ·  Arrows shoot  ·  R restart"
+	_apply_locale()
+	Game.locale_changed.connect(_apply_locale)
 	_walker = Label.new()
 	_walker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_walker.add_theme_color_override("font_color", Palette.UI_DIM)
@@ -84,8 +86,16 @@ func set_minimap(rooms: Dictionary, current: Room) -> void:
 
 func show_end(won: bool, body: String) -> void:
 	overlay.visible = true
-	overlay_title.text = "THE PHASE ENDS" if won else "YOU DIED"
-	overlay_body.text = body + "\n\nPress Enter or R to restart the floor."
+	overlay_title.text = Locale.t("ui.won") if won else Locale.t("ui.died")
+	overlay_body.text = body + "\n\n" + Locale.t("ui.restart")
+
+
+func _apply_locale() -> void:
+	hint.text = Locale.t("ui.hint")
+	if _boss_name:
+		_boss_name.text = Locale.t("ui.boss")
+	if _dlg_hint:
+		_dlg_hint.text = Locale.t("ui.continue")
 
 
 func _on_hearts(current: int, maximum: int) -> void:
@@ -171,7 +181,8 @@ func _build_boss_plate() -> void:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation", 6)
 	var name_l := Label.new()
-	name_l.text = "THE PHASE"
+	name_l.text = Locale.t("ui.boss")
+	_boss_name = name_l
 	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_l.add_theme_color_override("font_color", Palette.BONE)
@@ -278,7 +289,7 @@ func _build_dialogue() -> void:
 	_dlg_hint = Label.new()
 	_dlg_hint.position = Vector2(208, 704)
 	_dlg_hint.size = Vector2(960, 24)
-	_dlg_hint.text = "E / Space / Click  —  continue"
+	_dlg_hint.text = Locale.t("ui.continue")
 	_dlg_hint.add_theme_color_override("font_color", Palette.UI_DIM)
 	_dlg_hint.add_theme_font_size_override("font_size", 14)
 	_dlg_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -291,7 +302,7 @@ func _show_line() -> void:
 		return
 	var line: Dictionary = _dlg_lines[_dlg_i]
 	var who := String(line.get("who", "Concierge"))
-	_dlg_name.text = who
+	_dlg_name.text = Locale.who(who)
 	_dlg_body.text = String(line.get("text", ""))
 	if _dlg_face:
 		if who == "Concierge":

@@ -286,23 +286,58 @@ def _ring(px, cx, cy, r0, r1, col) -> None:
                 px[x, y] = col
 
 
+def _chunk_ring(px, palette: dict) -> None:
+    # Stepped octagon, same ink weight as the pickup icons. Not a 1px circle.
+    ink, bone, ember, wound, void = (
+        (0x12, 0x08, 0x08, 255),
+        (0xE6, 0xD9, 0xC3, 255),
+        (0xE2, 0x5A, 0x1A, 255),
+        (0x7A, 0x1F, 0x1A, 255),
+        (0x0B, 0x0C, 0x10, 255),
+    )
+    colors = {"ink": ink, "bone": bone, "ember": ember, "wound": wound, "void": void}
+    for y in range(64):
+        for x in range(64):
+            dx = abs(x - 31)
+            dy = abs(y - 31)
+            r = max(dx, dy, int(round((dx + dy) * 0.72)))
+            band = None
+            if 26 <= r <= 30:
+                band = "ink"
+            elif 22 <= r <= 25:
+                band = palette["outer"]
+            elif 18 <= r <= 21:
+                band = palette["inner"]
+            if band:
+                px[x, y] = colors[band]
+            # Chunky notches so the halo is not a smooth ring.
+            if band and ((x + y) % 9 == 0) and 20 <= r <= 24:
+                px[x, y] = colors[palette["notch"]]
+
+
+def _chunk_x(px) -> None:
+    ink = (0x12, 0x08, 0x08, 255)
+    void = (0x0B, 0x0C, 0x10, 255)
+    bone = (0xE6, 0xD9, 0xC3, 255)
+    for i in range(11):
+        for t in range(4):
+            x0, y0 = 44 + i, 8 + i + t
+            x1, y1 = 44 + i, 18 - i + t
+            if 0 <= x0 < 64 and 0 <= y0 < 64:
+                px[x0, y0] = void if t in (1, 2) else ink
+            if 0 <= x1 < 64 and 0 <= y1 < 64:
+                px[x1, y1] = void if t in (1, 2) else bone
+
+
 def write_aura() -> None:
     sheet = Image.new("RGBA", (128, 64), (0, 0, 0, 0))
     good = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     g = good.load()
-    _ring(g, 32, 32, 26, 30, (0x12, 0x08, 0x08, 255))
-    _ring(g, 32, 32, 23, 26, (0xE6, 0xD9, 0xC3, 255))
-    _ring(g, 32, 32, 20, 23, (0xE2, 0x5A, 0x1A, 255))
+    _chunk_ring(g, {"outer": "bone", "inner": "ember", "notch": "wound"})
     bad = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     b = bad.load()
-    _ring(b, 32, 32, 26, 30, (0x12, 0x08, 0x08, 255))
-    _ring(b, 32, 32, 22, 26, (0x7A, 0x1F, 0x1A, 255))
-    _ring(b, 32, 32, 20, 22, (0x0B, 0x0C, 0x10, 255))
-    # Void X sitting on the rim so the icon does not cover it.
-    for i in range(7):
-        b[46 + i, 14 + i] = (0x0B, 0x0C, 0x10, 255)
-        b[46 + i, 20 - i] = (0x0B, 0x0C, 0x10, 255)
-        b[47 + i, 14 + i] = (0x12, 0x08, 0x08, 255)
+    _chunk_ring(b, {"outer": "wound", "inner": "void", "notch": "ink"})
+    _chunk_x(b)
     sheet.paste(good, (0, 0), good)
     sheet.paste(bad, (64, 0), bad)
     sheet.save(SPR / "pickup_aura.png")

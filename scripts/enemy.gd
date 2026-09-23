@@ -359,7 +359,7 @@ func _die() -> void:
 	alive = false
 	collision_layer = 0
 	if kind == Kind.BOSS:
-		Game.say(Flavor.pick(Flavor.WIN), 4.0)
+		Game.say(Flavor.win_line(), 4.0)
 		Game.win()
 	var drop_at := global_position
 	var drop_kind := kind
@@ -391,8 +391,8 @@ func _begin_special() -> void:
 		match pick:
 			3, 4:
 				origin = room.center_global()
-	if pick < Flavor.SPECIAL.size():
-		Game.say(Flavor.SPECIAL[pick], 1.7)
+	if pick < Flavor.SPECIAL_COUNT:
+		Game.say(Flavor.special(pick), 1.7)
 	var floor_node := _floor()
 	if floor_node and room:
 		floor_node.spawn_hazard(pick, origin, room)
