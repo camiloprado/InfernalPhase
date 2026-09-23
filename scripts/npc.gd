@@ -71,12 +71,12 @@ func _open_talk() -> void:
 			qa = true
 			break
 	if qa:
-		Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 2.4)
+		Game.say(Flavor.npc_line(line_i), 2.4)
 		line_i += 1
 		return
 	var hud := get_tree().get_first_node_in_group("hud") as HUD
 	if hud and hud.has_method("start_talk"):
 		hud.start_talk(Flavor.concierge_script())
 		return
-	Game.say(Flavor.NPC[line_i % Flavor.NPC.size()], 3.6)
+	Game.say(Flavor.npc_line(line_i), 3.6)
 	line_i += 1

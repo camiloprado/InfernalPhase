@@ -11,10 +11,10 @@ Lilith stays `player_f.png` (female-v2). Bebê stays `baby.png`. Never copy thos
 
 Forbidden in-world Caim: void-hood Penitent, look-pass diamond, female sheet, baby sheet. `bc3b5f5` is FAIL-closed.
 
-Combat floors: Void fill + ritual circle, Ash walls. Do not tile `env.png` checker/Isaac bricks.
+Combat floors: Isaac basement / Sheol. Cracked Wound/Ember rock, Ash-block walls. No checker, no brown, no wood, no star-speck Void, no flat Wound fill. Pit is a circular Wound well on a clear field (no black square).
 
 Pit teleport must rebind Caim’s sheet. After the drop the walker is still male Caim, not the sword imp.
 
 No gameplay `_draw` body fallbacks (player, enemy body, NPC body, bullets, hearts, doors). Disk-first `Sprites.tex`. `QA_ASSERT` must keep `caim_own=1` and fail void-hood / female / baby / diamond.
 
-Start-card Penitent is UI only. Shot diamonds are shots/HUD only.
+Start-card Penitent is UI only. Projectile art is coal / tear / chip. The heart-sheet Ember pip stays HUD.

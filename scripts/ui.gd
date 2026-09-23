@@ -11,6 +11,8 @@ extends CanvasLayer
 @onready var hint: Label = $Margin/VBox/Hint
 @onready var boss_bar: ProgressBar = $Margin/VBox/BossBar
 
+var _boss_tray: Control
+var _boss_name: Label
 var _flavor_left := 0.0
 var _heart_max := 4
 var _walker: Label
@@ -35,10 +37,11 @@ func _ready() -> void:
 	Game.hearts_changed.connect(_on_hearts)
 	Game.loadout_changed.connect(func () -> void: _on_hearts(Game.hearts, Game.max_hearts))
 	Game.flavor.connect(_on_flavor)
-	Game.boss_intro.connect(func () -> void: boss_bar.visible = true)
-	Game.won.connect(func () -> void: boss_bar.visible = false)
+	Game.boss_intro.connect(func () -> void: _set_boss_plate(true))
+	Game.won.connect(func () -> void: _set_boss_plate(false))
 	_on_hearts(Game.hearts, Game.max_hearts)
-	hint.text = "WASD move  ·  Mouse aim  ·  Click / Space shoot  ·  Arrows shoot  ·  R restart"
+	_apply_locale()
+	Game.locale_changed.connect(_apply_locale)
 	_walker = Label.new()
 	_walker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_walker.add_theme_color_override("font_color", Palette.UI_DIM)
@@ -47,14 +50,7 @@ func _ready() -> void:
 	$Margin/VBox/Top.add_child(_walker)
 	$Margin/VBox/Top.move_child(_walker, 2)
 	_walker.text = ""
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = Palette.WOUND
-	fill.set_corner_radius_all(3)
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = Palette.VOID
-	bg.set_corner_radius_all(3)
-	boss_bar.add_theme_stylebox_override("fill", fill)
-	boss_bar.add_theme_stylebox_override("background", bg)
+	_build_boss_plate()
 	flavor.text = ""
 	flavor.modulate.a = 0.0
 	_build_dialogue()
@@ -90,8 +86,16 @@ func set_minimap(rooms: Dictionary, current: Room) -> void:
 
 func show_end(won: bool, body: String) -> void:
 	overlay.visible = true
-	overlay_title.text = "THE PHASE ENDS" if won else "YOU DIED"
-	overlay_body.text = body + "\n\nPress Enter or R to restart the floor."
+	overlay_title.text = Locale.t("ui.won") if won else Locale.t("ui.died")
+	overlay_body.text = body + "\n\n" + Locale.t("ui.restart")
+
+
+func _apply_locale() -> void:
+	hint.text = Locale.t("ui.hint")
+	if _boss_name:
+		_boss_name.text = Locale.t("ui.boss")
+	if _dlg_hint:
+		_dlg_hint.text = Locale.t("ui.continue")
 
 
 func _on_hearts(current: int, maximum: int) -> void:
@@ -149,8 +153,62 @@ func _on_flavor(text: String, hold: float) -> void:
 	_flavor_left = hold
 
 
+func _set_boss_plate(on: bool) -> void:
+	boss_bar.visible = on
+	if _boss_tray:
+		_boss_tray.visible = on
+
+
+func _build_boss_plate() -> void:
+	var parent := boss_bar.get_parent()
+	var idx := boss_bar.get_index()
+	parent.remove_child(boss_bar)
+	var center := CenterContainer.new()
+	center.name = "BossPlate"
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.visible = false
+	var tray := PanelContainer.new()
+	tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = Palette.VOID
+	plate.border_color = Palette.ASH
+	plate.set_border_width_all(3)
+	plate.set_content_margin_all(12)
+	plate.set_corner_radius_all(0)
+	tray.add_theme_stylebox_override("panel", plate)
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 6)
+	var name_l := Label.new()
+	name_l.text = Locale.t("ui.boss")
+	_boss_name = name_l
+	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_l.add_theme_color_override("font_color", Palette.BONE)
+	name_l.add_theme_font_size_override("font_size", 22)
+	box.add_child(name_l)
+	boss_bar.custom_minimum_size = Vector2(480, 18)
+	boss_bar.show_percentage = false
+	boss_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Palette.EMBER
+	fill.set_corner_radius_all(0)
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Palette.WOUND
+	bg.set_corner_radius_all(0)
+	boss_bar.add_theme_stylebox_override("fill", fill)
+	boss_bar.add_theme_stylebox_override("background", bg)
+	box.add_child(boss_bar)
+	tray.add_child(box)
+	center.add_child(tray)
+	parent.add_child(center)
+	parent.move_child(center, idx)
+	_boss_tray = center
+
+
 func _update_boss_bar() -> void:
-	if not boss_bar.visible:
+	if _boss_tray == null or not _boss_tray.visible:
 		return
 	var boss: Enemy = null
 	for n in get_tree().get_nodes_in_group("enemies"):
@@ -158,7 +216,7 @@ func _update_boss_bar() -> void:
 			boss = n
 			break
 	if boss == null:
-		boss_bar.visible = false
+		_set_boss_plate(false)
 		return
 	boss_bar.max_value = boss.max_hp
 	boss_bar.value = boss.hp
@@ -231,7 +289,7 @@ func _build_dialogue() -> void:
 	_dlg_hint = Label.new()
 	_dlg_hint.position = Vector2(208, 704)
 	_dlg_hint.size = Vector2(960, 24)
-	_dlg_hint.text = "E / Space / Click  —  continue"
+	_dlg_hint.text = Locale.t("ui.continue")
 	_dlg_hint.add_theme_color_override("font_color", Palette.UI_DIM)
 	_dlg_hint.add_theme_font_size_override("font_size", 14)
 	_dlg_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -244,7 +302,7 @@ func _show_line() -> void:
 		return
 	var line: Dictionary = _dlg_lines[_dlg_i]
 	var who := String(line.get("who", "Concierge"))
-	_dlg_name.text = who
+	_dlg_name.text = Locale.who(who)
 	_dlg_body.text = String(line.get("text", ""))
 	if _dlg_face:
 		if who == "Concierge":

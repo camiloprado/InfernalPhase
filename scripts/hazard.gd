@@ -2,8 +2,8 @@ class_name Hazard
 extends Node2D
 ## Telegraphed area attack used by The Infernal Phase.
 ##
-## FX-only: if fx_beam / fx_slam / fx_wisp miss, `_draw` paints telegraph
-## bars / nova / ring. That is hazard FX, not a gameplay-actor fallback.
+## FX sheets: fx_beam jagged fork, fx_slam Ember impact ring, fx_wisp plume.
+## If one misses, `_draw` paints the telegraph. That is hazard FX, not an actor fallback.
 
 enum Kind { CROSS, DIAG, SLAM, LANES, RING }
 
@@ -41,7 +41,7 @@ func setup(p_kind: int, p_origin: Vector2, room: Room) -> void:
 	lane_h = room_rect.size.y / 3.0
 	match kind:
 		Kind.CROSS:
-			telegraph = 0.9
+			telegraph = 1.05
 			active = 0.42
 			bar_w = 118.0
 		Kind.DIAG:
@@ -49,7 +49,7 @@ func setup(p_kind: int, p_origin: Vector2, room: Room) -> void:
 			active = 0.42
 			bar_w = 108.0
 		Kind.SLAM:
-			telegraph = 0.72
+			telegraph = 0.87
 			active = 0.78
 			slam_r = 64.0
 			slam_max = 310.0
@@ -58,7 +58,7 @@ func setup(p_kind: int, p_origin: Vector2, room: Room) -> void:
 			active = 0.48
 			safe_lane = Game.rng.randi() % 3
 		Kind.RING:
-			telegraph = 1.05
+			telegraph = 1.20
 			active = 0.5
 			ring_inner = 100.0
 			ring_outer = maxf(room_rect.size.x, room_rect.size.y) * 0.72
@@ -123,17 +123,17 @@ func _line_dist(p: Vector2, dir: Vector2) -> float:
 func _build_art() -> void:
 	match kind:
 		Kind.CROSS:
-			_stamp_line(Vector2(room_rect.position.x, origin.y), Vector2(room_rect.end.x, origin.y), 58.0, 52.0)
-			_stamp_line(Vector2(origin.x, room_rect.position.y), Vector2(origin.x, room_rect.end.y), 58.0, 52.0)
+			_stamp_line(Vector2(room_rect.position.x, origin.y), Vector2(room_rect.end.x, origin.y), 72.0, 116.0)
+			_stamp_line(Vector2(origin.x, room_rect.position.y), Vector2(origin.x, room_rect.end.y), 72.0, 116.0)
 		Kind.DIAG:
-			_stamp_line(_edge(origin, Vector2.ONE), _edge(origin, -Vector2.ONE), 58.0, 52.0)
-			_stamp_line(_edge(origin, Vector2(1, -1)), _edge(origin, Vector2(-1, 1)), 58.0, 52.0)
+			_stamp_line(_edge(origin, Vector2.ONE), _edge(origin, -Vector2.ONE), 72.0, 116.0)
+			_stamp_line(_edge(origin, Vector2(1, -1)), _edge(origin, Vector2(-1, 1)), 72.0, 116.0)
 		Kind.SLAM:
 			_slam = _add_anim(
 				SLAM_SHEET,
 				4,
 				2,
-				{"warn": {"row": 0, "fps": 10.0, "loop": true}, "hot": {"row": 1, "fps": 16.0, "loop": true}},
+				{"warn": {"row": 0, "fps": 15.0, "loop": true}, "hot": {"row": 1, "fps": 20.0, "loop": true}},
 				128.0
 			)
 			if _slam:
@@ -143,11 +143,11 @@ func _build_art() -> void:
 				if i == safe_lane:
 					continue
 				var y := inner_top + lane_h * (float(i) + 0.5)
-				_stamp_line(Vector2(room_rect.position.x, y), Vector2(room_rect.end.x, y), 64.0, 56.0)
+				_stamp_line(Vector2(room_rect.position.x, y), Vector2(room_rect.end.x, y), 80.0, 116.0)
 		Kind.RING:
-			_stamp_ring(ring_inner + 28.0, 18, 34.0)
-			_stamp_ring((ring_inner + ring_outer) * 0.5, 26, 40.0)
-			_stamp_ring(ring_outer - 36.0, 32, 36.0)
+			_stamp_ring(ring_inner + 28.0, 18, 64.0)
+			_stamp_ring((ring_inner + ring_outer) * 0.5, 26, 60.0)
+			_stamp_ring(ring_outer - 36.0, 32, 56.0)
 	_has_art = not _fx.is_empty()
 	_play_warn()
 
@@ -176,7 +176,7 @@ func _stamp_line(a: Vector2, b: Vector2, step: float, tall: float) -> void:
 			BEAM_SHEET,
 			4,
 			2,
-			{"warn": {"row": 0, "fps": 12.0, "loop": true}, "hot": {"row": 1, "fps": 16.0, "loop": true}},
+			{"warn": {"row": 0, "fps": 15.0, "loop": true}, "hot": {"row": 1, "fps": 20.0, "loop": true}},
 			tall
 		)
 		if spr == null:
@@ -192,7 +192,7 @@ func _stamp_ring(radius: float, count: int, tall: float) -> void:
 			WISP_SHEET,
 			4,
 			1,
-			{"burn": {"row": 0, "fps": 14.0, "loop": true}},
+			{"burn": {"row": 0, "fps": 18.0, "loop": true}},
 			tall
 		)
 		if spr == null:
@@ -205,7 +205,7 @@ func _add_anim(path: String, cols: int, rows: int, anims: Dictionary, tall: floa
 	var spr := Sprites.actor(path, cols, rows, anims, tall)
 	if spr == null:
 		return null
-	spr.modulate = Color(1, 1, 1, 0.58)
+	spr.modulate = Color(1, 1, 1, 0.65)
 	Sprites.ping_pong_all(spr)
 	Sprites.stagger(spr)
 	spr.set_meta("base_scale", spr.scale)
@@ -229,7 +229,8 @@ func _play_hot() -> void:
 			var spr := n as AnimatedSprite2D
 			if spr.sprite_frames.has_animation("hot"):
 				spr.play("hot")
-			spr.modulate = Color(1.2, 0.78, 0.55, 1.0)
+			# Keep the sheet's Ember. A warm multiply washes the ring out.
+			spr.modulate = Color(1, 1, 1, 1)
 			Sprites.stagger(spr)
 
 
@@ -240,11 +241,11 @@ func _sync_art(delta: float) -> void:
 			continue
 		var spr := n as AnimatedSprite2D
 		var phase := float(i) * 0.85
-		var pulse := 1.0 + 0.12 * sin(age * 14.0 + phase)
+		var pulse := 1.0 + 0.22 * sin(age * 14.0 + phase)
 		if hot:
 			pulse += 0.10 * sin(age * 22.0 + phase)
 		if spr == _slam:
-			var diam := slam_r * 2.15
+			var diam := slam_r * 2.4
 			spr.scale = Vector2.ONE * (diam / 128.0) * pulse
 			spr.position = to_local(origin)
 			spr.rotation += delta * (1.25 if hot else 0.5)
@@ -256,7 +257,7 @@ func _sync_art(delta: float) -> void:
 			if hot:
 				spr.modulate.a = 0.86 + 0.14 * absf(sin(age * 16.0 + phase))
 			else:
-				spr.modulate.a = 0.48 + 0.14 * absf(sin(age * 9.0 + phase))
+				spr.modulate.a = 0.65 + 0.2 * absf(sin(age * 9.0 + phase))
 		i += 1
 
 

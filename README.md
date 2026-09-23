@@ -33,11 +33,11 @@ rm -rf .godot
 godot --path . --import
 ```
 
-Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine. **F5 binds pixel sheets from the PNG bytes** (`res://` FileAccess + `load_png_from_buffer`). A missing sheet prints `SPRITE_BIND FAIL` and asserts — it does **not** fall back to vector diamonds, robes, or gothic frames. Look cells stay locked: doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64. `--qa-look` / `--qa-proof` print `QA_ASSERT player_sheet= player_body= caim_own= enemy_art= doors= hearts= ok=` so a missing Caim coat or robe cantor is a bind miss (`ok=0`), not a `_draw` mask.
+Stale `.godot/imported/*.ctex` from an older branch will 404 even when the PNGs on disk are fine. **F5 binds pixel sheets from the PNG bytes** (`res://` FileAccess + `load_png_from_buffer`). A missing sheet prints `SPRITE_BIND FAIL` and asserts — it does **not** fall back to vector diamonds, robes, or gothic frames. Look cells stay locked: doors 4×2 of 256×96, hearts 4×1 of 64, shots 4×8 of 64. `--qa-look` / `--qa-proof` print `QA_ASSERT player_sheet= player_body= caim_own= enemy_art= doors= hearts= ok=` so a missing Caim coat or robe cantor is a bind miss (`ok=0`), not a `_draw` mask.
 3. The project is **GL Compatibility** (OpenGL), not Forward+. If the editor ever rewrites `project.godot` to Forward+, the window can go blank on Linux — switch Renderer back to Compatibility, or run `godot --path . --rendering-method gl_compatibility`.
 4. Press **F5** (or Run Project).
 
-Combat rooms are a Void field (`#0B0C10`) plus a faint ritual circle — not tiled `env.png` Isaac dungeon stripes. Doors are `doors.png` (gothic Ash arches, Bone inlay, Ember / cracked seals). **Caim** is a masculine adult body on the Lilith 4×3 idle/walk/attack grid (`player.png`, same layout as `player-female-v2`) — not female, not Bebê, not a pointed Ash hood / void-face Penitent, not the UI diamond. **Lilith** is `player-female-v2` → `player_f.png`. Bebê Chorão is a difficulty **mode**; its sprite is `baby.png` (from `bebe_sprite`). Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, pickups, and shots use `assets/sprites/`. If a gameplay sheet is missing, the load errors — no drawn placeholder. Bind fails if Caim is diamond / female / Bebê / void-hood (`is_caim_own_body`).
+Combat rooms are an Isaac basement: cracked Wound/Ember rock with dark fissures, and Ash-block walls — not a checker, not a star field, not a flat red fill, and not brown brick. Doors are `doors.png` (flush stone frames, Ember flames and lock plate when locked, Wound drips, clear passage when open). **Caim** is a masculine adult body on the Lilith 4×3 idle/walk/attack grid (`player.png`, same layout as `player-female-v2`) — not female, not Bebê, not a pointed Ash hood / void-face Penitent, not the UI diamond. **Lilith** is `player-female-v2` → `player_f.png`. Bebê Chorão is a difficulty **mode**; its sprite is `baby.png` (from `bebe_sprite`). Imps and the boss stay on `assets/characters/`. Cantors, wretches, the Concierge, hearts, pickups, and shots use `assets/sprites/`. If a gameplay sheet is missing, the load errors — no drawn placeholder. Bind fails if Caim is diamond / female / Bebê / void-hood (`is_caim_own_body`).
 
 The main scene is `scenes/floor.tscn`.
 
@@ -66,9 +66,9 @@ At the Threshold, pick **Caim** or **Lilith** (same hearts, speed, and fire rate
 
 The last pair stays highlighted on restart. HUD shows `Caim · Normal` or `Lilith · Normal`, or just **Bebê Chorão**.
 
-Four hearts (vessel drops can raise the cap to six). Hit = a short invuln blink, not a vacation. Trash enemies drop about half the time: brimstone hearts, ember (damage-up), rare vessel (max-heart), or a shot mod (pierce / rapid / heavy / burn). Drops pulse so they read on the ash floor. Only the **current room** draws and collides its door arches; a neighbor never stamps a second frame into the shared opening. Arches are portrait gothic frames (384×512 cells) scaled uniformly to the 200px opening and sat on the 64px wall so the crown faces into the room. The Threshold pit is a Void-deep mouth with a thin Ash lip and a 1px Bone hairline — outside the lip is opaque Void, and a Void underlay covers the full sprite quad so the hole never shows checkerboard. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
+Four hearts (vessel drops can raise the cap to six). Hit = a short invuln blink, not a vacation. Trash enemies drop about half the time: brimstone hearts, ember (damage-up), rare vessel (max-heart), or a shot mod (pierce / rapid / heavy / burn). Drops pulse, with a Bone/Ember aura on boons, so they read on the floor. Only the **current room** draws and collides its door frames; a neighbor never stamps a second frame into the shared opening. Frames are flush Ash doorways (256×96 cells) scaled uniformly onto the 256px opening and sat on the 64px wall so the lip faces into the room. The Threshold pit is a circular Wound well with a stone rim. The sheet outside the circle is clear, so the floor shows around it, and there is no black square under the sprite. Doors stay shut until the room is clear. Die and the floor rewinds. Beat the boss for a short ending, then restart if you want it again.
 
-The Threshold has a **buraco** (Void hole, thin Ash/Bone lip — not a reused floor tile). Step in and you **drop** — teleport to the deep south room. No heart loss on the drop. The boss RING special is a fire-wisp annulus with a safe inner disk and **no pit**.
+The Threshold has a **buraco** (stepped Ash rim around a Void mouth — not a reused floor tile). Step in and you **drop** — teleport to the deep south room. No heart loss on the drop. The boss RING special is a fire-wisp annulus with a safe inner disk and **no pit**.
 
 ## The floor
 
@@ -77,7 +77,7 @@ Nine rooms on a grid:
 | Room | What |
 | --- | --- |
 | **The Threshold** (start) | Open doors, pentagram, Caim/Lilith + difficulty pick, one pit that teleports to Deep |
-| Combat rooms | Ember Imps, Ring Wretches, Ash Cantors — pixel shots are an Ember diamond or a Bone ring |
+| Combat rooms | Ember Imps, Ring Wretches, Ash Cantors — pixel shots are an Ember coal, an Ash tear, or a Bone chip |
 | **The Concierge** | NPC room. Walk up. First visit grants a random item from the drop pool (heart, ember, vessel, or shot mod). Later visits are flavor. No shop. |
 | **The Phase** | Boss. Patterned shots, telegraphed teleports, and a random room-scale special each time it loses 20% HP (CROSS, DIAG, SLAM, LANES, RING). RING has no pit. |
 
@@ -98,10 +98,10 @@ assets/characters/boss Idle / move / fire / lightning frame sheets (not raw GIF 
 assets/env/pit.png     Buraco — distinct pit sprite (not a floor/wall tile)
 assets/sprites/         env, doors, player, player_f, baby, hearts, pickups, skills, cantor, wretch, concierge
 assets/sprites/shots.png        Projectile atlas (player / imp / wretch / cantor / boss / ember / bone / deflect)
-assets/sprites/fx_beam.png      Boss CROSS / DIAG / LANES flame tiles
-assets/sprites/fx_slam.png      Boss SLAM nova frames
+assets/sprites/fx_beam.png      Boss CROSS / DIAG / LANES Ember lightning
+assets/sprites/fx_slam.png      Boss SLAM Ember impact ring
 assets/sprites/fx_ring.png      Ring texture (unused hole — RING stamps fx_wisp)
-assets/sprites/fx_wisp.png      RING fire tongues
+assets/sprites/fx_wisp.png      RING Ember plume
 assets/sprites/fx_tele.png      Boss teleport tell
 assets/audio/floor.ogg Usual floor pulse (original)
 assets/audio/cry.ogg   Bebê Chorão choro loop (original, not a commercial OST)

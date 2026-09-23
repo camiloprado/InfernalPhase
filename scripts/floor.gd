@@ -70,6 +70,9 @@ func _ready() -> void:
 		var pick = _run_pick_script.new()
 		add_child(pick)
 		if look or play:
+			Game.set_locale("pt")
+			if pick.has_method("_refresh"):
+				pick._refresh()
 			if ui:
 				ui.visible = false
 			await get_tree().process_frame
@@ -90,6 +93,13 @@ func _ready() -> void:
 			await get_tree().process_frame
 			await get_tree().create_timer(0.12).timeout
 			_qa_shot("start_baby", true, "start_baby")
+			print("QA_LOCALE card=", Game.locale)
+			if pick.has_method("qa_set_locale"):
+				pick.qa_set_locale("en")
+				await get_tree().process_frame
+				_qa_shot("start_en", true, "start_en")
+				print("QA_LOCALE swapped=", Game.locale)
+				pick.qa_set_locale("pt")
 			var pixel := 1 if pick.has_method("qa_has_pixel_preview") and pick.qa_has_pixel_preview() else 0
 			var nearest := 1 if pick.has_method("qa_preview_nearest") and pick.qa_preview_nearest() else 0
 			print("LOOK_START penitent=0 pixel_preview=", pixel, " nearest=", nearest, " who_walks=1 ember_cta=SWEAR_IN")
@@ -123,10 +133,10 @@ func _ready() -> void:
 		get_tree().quit()
 		return
 	await get_tree().create_timer(0.15).timeout
-	Game.say(Flavor.START[0], 2.8)
+	Game.say(Flavor.start(0), 2.8)
 	await get_tree().create_timer(2.9).timeout
 	if is_inside_tree() and not Game.is_dead:
-		Game.say(Flavor.START[1], 3.2)
+		Game.say(Flavor.start(1), 3.2)
 
 
 func _build_floor() -> void:
@@ -236,10 +246,10 @@ func _enter_room(room: Room, instant: bool) -> void:
 	if room.kind == Room.Kind.BOSS and not entered_boss:
 		entered_boss = true
 		Game.boss_intro.emit()
-		Game.say(Flavor.BOSS[0], 2.6)
+		Game.say(Flavor.boss(0), 2.6)
 		get_tree().create_timer(2.7).timeout.connect(func () -> void:
 			if is_inside_tree() and not Game.is_dead:
-				Game.say(Flavor.BOSS[1], 3.0)
+				Game.say(Flavor.boss(1), 3.0)
 		)
 	if room.cleared:
 		room.unlock_doors()
@@ -306,11 +316,13 @@ func drop_from(kind: Enemy.Kind, at: Vector2) -> void:
 	if Game.rng.randf() >= 0.45:
 		return
 	var table := Game.rng.randf()
-	if table < 0.40:
+	if table < 0.08:
+		spawn_pickup(Pickup.Kind.CURSE, at)
+	elif table < 0.42:
 		spawn_pickup(Pickup.Kind.HEART, at)
-	elif table < 0.65:
+	elif table < 0.66:
 		spawn_pickup(Pickup.Kind.EMBER, at)
-	elif table < 0.85:
+	elif table < 0.86:
 		spawn_pickup(_roll_skill(), at)
 	elif Game.max_hearts < Game.HEART_CAP:
 		spawn_pickup(Pickup.Kind.MAX_HEART, at)
@@ -319,6 +331,8 @@ func drop_from(kind: Enemy.Kind, at: Vector2) -> void:
 
 
 func roll_item() -> Pickup.Kind:
+	if Game.rng.randf() < 0.12:
+		return Pickup.Kind.CURSE
 	var pool: Array[Pickup.Kind] = [Pickup.Kind.EMBER]
 	if Game.hearts < Game.max_hearts:
 		pool.append(Pickup.Kind.HEART)
@@ -385,7 +399,7 @@ func fall_from(src: Room, dest: Room = null) -> void:
 			away = Vector2.UP
 		player.knockback = away * 360.0
 		player.take_hit(src)
-		Game.say("Ash gives. You catch the rim.", 1.5)
+		Game.say(Locale.t("pit.rim"), 1.5)
 		return
 	player.global_position = land.landing_global()
 	player.z_index = 8
@@ -394,7 +408,7 @@ func fall_from(src: Room, dest: Room = null) -> void:
 	player.velocity = Vector2.ZERO
 	player._sync_sheet()
 	Game.shake.emit(9.0)
-	Game.say("The floor gives way.", 1.6)
+	Game.say(Locale.t("pit.fall"), 1.6)
 	_enter_room(land, false)
 
 
@@ -414,7 +428,7 @@ func on_enemy_died(enemy: Enemy) -> void:
 			player.i_timer = 0.28
 		Game.room_cleared.emit()
 		if current.kind != Room.Kind.BOSS:
-			Game.say(Flavor.pick(Flavor.CLEAR), 1.8)
+			Game.say(Flavor.clear_line(), 1.8)
 	ui.set_minimap(rooms, current)
 
 
@@ -437,7 +451,7 @@ func _on_died() -> void:
 func _on_won() -> void:
 	await get_tree().create_timer(1.1).timeout
 	get_tree().paused = true
-	ui.show_end(true, Flavor.WIN[0] + "\n" + Flavor.WIN[1])
+	ui.show_end(true, Flavor.win(0) + "\n" + Flavor.win(1))
 
 
 func _qa_proof() -> void:
@@ -471,6 +485,21 @@ func _qa_proof() -> void:
 	spawn_pickup(Pickup.Kind.MAX_HEART, origin + Vector2(0, 100))
 	spawn_pickup(Pickup.Kind.PIERCE, origin + Vector2(70, 100))
 	spawn_pickup(Pickup.Kind.RAPID, origin + Vector2(140, 100))
+	spawn_pickup(Pickup.Kind.CURSE, origin + Vector2(210, 100))
+	if camera:
+		var zoom_keep := camera.zoom
+		var pos_keep := camera.global_position
+		camera.position_smoothing_enabled = false
+		camera.zoom = Vector2(3.0, 3.0)
+		camera.global_position = origin + Vector2(35, 100)
+		if camera.has_method("reset_smoothing"):
+			camera.reset_smoothing()
+		await get_tree().process_frame
+		_qa_shot("qa_pickup_valence")
+		camera.zoom = zoom_keep
+		camera.global_position = pos_keep
+		if camera.has_method("reset_smoothing"):
+			camera.reset_smoothing()
 	spawn_hazard(Hazard.Kind.CROSS, origin, current)
 	await get_tree().create_timer(0.4).timeout
 	_qa_shot("qa_shots_pickups_cross")
@@ -670,6 +699,29 @@ func _look_dump() -> void:
 		camera.reset_smoothing()
 	await get_tree().process_frame
 	_qa_shot("f5_baby_body", true, "f5_baby_body")
+	if player and player._baby:
+		player.aim = Vector2.RIGHT
+		player.velocity = Vector2.ZERO
+		player._sync_sheet()
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var flip_r := player._baby.flip_h
+		_qa_shot("f5_baby_face_r", true, "f5_baby_face_r")
+		player.aim = Vector2.LEFT
+		player._sync_sheet()
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var flip_l := player._baby.flip_h
+		_qa_shot("f5_baby_face_l", true, "f5_baby_face_l")
+		player._baby.flip_h = false
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		_qa_shot("f5_baby_flip_false", true, "f5_baby_flip_false")
+		player._baby.flip_h = true
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		_qa_shot("f5_baby_flip_true", true, "f5_baby_flip_true")
+		print("QA_BABY_FLIP aim_right=", flip_r, " aim_left=", flip_l)
 	if camera and current:
 		camera.zoom = Vector2.ONE
 		camera.global_position = current.center_global()

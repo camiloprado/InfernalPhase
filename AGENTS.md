@@ -20,7 +20,7 @@ Start-card Penitent diamond is **UI only**, never the floor actor.
 
 ## Floors and pit
 
-Combat rooms (**A BAD ROOM**): Void field `#0B0C10` plus ritual circle, Ash walls. **No** tiled `env.png` Isaac dungeon / striped checker.
+Combat rooms (**A BAD ROOM**): Isaac basement / Sheol. Cracked Wound/Ember rock floor, Ash-block walls (~32px). **No** checker, brown, wood, star-speck Void, or flat `#7A1F1A` fill. Doors are flush stone frames with thick Ember flames. The pit is a circular Wound well on a clear field (no black square pad).
 
 Threshold pit **teleports** to Deep. After landing, the player must still be the Caim `player.png` sheet (shorter than the Ring Wretch, ~64px class), not the red sword imp. `fall_from` rebinds the sheet.
 
@@ -28,7 +28,7 @@ Threshold pit **teleports** to Deep. After landing, the player must still be the
 
 - Disk-first `Sprites.tex` (PNG bytes). Missing sheet = `SPRITE_BIND FAIL`, not a polygon.
 - Gameplay `_draw` fallbacks **OFF** for player, bullets, hearts, doors, pickup icons, enemy/NPC **bodies**. Hazard telegraph FX may stay if the FX sheet missed (documented in `hazard.gd`).
-- Look cells: doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64. Diamonds/rings are shots only.
+- Look cells: doors 4×2 of 256×96, hearts 4×1 of 64, shots 4×8 of 64. Shots are Ember coal, Ash tear, or Bone chip — not diamonds or rings.
 
 Palette: Void `#0B0C10` Ash `#5C5A56` Bone `#E6D9C3` Ember `#E25A1A` Wound `#7A1F1A`. See `VISUAL-BRIEF.md`.
 

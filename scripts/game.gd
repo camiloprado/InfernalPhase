@@ -9,6 +9,7 @@ signal room_cleared
 signal boss_intro
 signal shake(amount: float)
 signal loadout_changed
+signal locale_changed
 
 enum Body { CAIM, LILITH }
 enum Difficulty { NORMAL, BABY }
@@ -49,13 +50,38 @@ var body_picked: bool = false
 var difficulty: Difficulty = Difficulty.NORMAL
 var last_difficulty: Difficulty = Difficulty.NORMAL
 var in_dialogue: bool = false
+var locale: String = "pt"
+
+const LOCALE_FILE := "user://infernal.cfg"
 
 
 func _ready() -> void:
 	rng.randomize()
 	floor_seed = rng.randi()
+	_load_locale()
 	_bind_inputs()
 	reset_run()
+
+
+func _load_locale() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(LOCALE_FILE) != OK:
+		locale = "pt"
+		return
+	var saved := String(cfg.get_value("settings", "locale", "pt"))
+	locale = "en" if saved == "en" else "pt"
+
+
+func set_locale(code: String) -> void:
+	var next := "en" if code == "en" else "pt"
+	if next == locale:
+		return
+	locale = next
+	var cfg := ConfigFile.new()
+	cfg.load(LOCALE_FILE)
+	cfg.set_value("settings", "locale", locale)
+	cfg.save(LOCALE_FILE)
+	locale_changed.emit()
 
 
 func _notification(what: int) -> void:
@@ -102,7 +128,9 @@ func body_name() -> String:
 
 
 func difficulty_name() -> String:
-	return String(DIFF_NAMES.get(difficulty, "Normal"))
+	if difficulty == Difficulty.BABY:
+		return "Bebê Chorão"
+	return Locale.t("menu.normal")
 
 
 func is_baby() -> bool:
@@ -112,7 +140,7 @@ func is_baby() -> bool:
 func walker_label() -> String:
 	if is_baby():
 		return "Bebê Chorão"
-	return "%s  ·  Normal" % body_name()
+	return "%s  ·  %s" % [body_name(), Locale.t("menu.normal")]
 
 
 func bgm(method: String) -> void:

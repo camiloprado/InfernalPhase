@@ -509,6 +509,10 @@ def pit(env: bytearray, ew: int) -> None:
 
 
 def main() -> None:
+    raise SystemExit(
+        "refusing to stamp diamond shots or gothic doors. "
+        "Pacote A sheets: python3 tools/gen_isaac_basement.py"
+    )
     hearts()
     shots()
     ew, eh, env = read_png(SPR / "env.png")

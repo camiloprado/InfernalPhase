@@ -332,15 +332,8 @@ def door_cell(kind: str, locked: bool) -> Image.Image:
 
 
 def write_doors() -> None:
-    cw, ch = DOOR_W, DOOR_H
-    sheet = new(cw * 4, ch * 2)
-    kinds = ["start", "combat", "npc", "boss"]
-    for col, kind in enumerate(kinds):
-        for row, locked in enumerate((False, True)):
-            cell = door_cell(kind, locked)
-            cell = chunky(cell, 8)
-            sheet.paste(cell, (col * cw, row * ch), cell)
-    sheet.save(SPR / "doors.png")
+    from gen_isaac_basement import write_doors as _write
+    _write()
 
 
 def shot_diamond(frame: int) -> Image.Image:
@@ -374,13 +367,8 @@ def shot_ring(frame: int) -> Image.Image:
 
 
 def write_shots() -> None:
-    diamond_rows = {0, 1, 4, 5, 7}
-    sheet = new(256, 512)
-    for row in range(8):
-        for col in range(4):
-            cell = shot_diamond(col) if row in diamond_rows else shot_ring(col)
-            sheet.paste(cell, (col * 64, row * 64), cell)
-    sheet.save(SPR / "shots.png")
+    from gen_isaac_basement import write_shots as _write
+    _write()
 
 
 def write_hearts() -> None:
@@ -417,33 +405,13 @@ def write_hearts() -> None:
 
 
 def write_pit() -> None:
-    """Void hole, thin Ash lip, 1px Bone hairline.
-    Outside the lip is opaque Void (#0B0C10), not alpha 0. A transparent
-    sprite quad punches the editor F5 viewport checkerboard.
-    """
-    n = 1024
-    a = np.zeros((n, n, 4), dtype=np.uint8)
-    a[:, :] = VOID
-    yy, xx = np.ogrid[:n, :n]
-    d2 = (xx - n // 2) ** 2 + (yy - n // 2) ** 2
-    # Radii in px. At 0.30 scale: outer ~114px, lip ~11px, hole ~103px.
-    bone, ash, shade, hole = 380, 377, 360, 348
-    paint_mask(a, d2 <= hole * hole, VOID_DEEP)
-    paint_mask(a, (d2 <= shade * shade) & (d2 > hole * hole), ASH_DARK)
-    paint_mask(a, (d2 <= ash * ash) & (d2 > shade * shade), ASH)
-    paint_mask(a, (d2 <= bone * bone) & (d2 > ash * ash), BONE)
-    # Faint ritual ticks on the lip — still Ash/Bone, not lava.
-    cx = cy = n // 2
-    for i in range(12):
-        ang = math.radians(i * 30.0)
-        x = int(cx + 365 * math.cos(ang))
-        y = int(cy + 365 * math.sin(ang))
-        for ox in range(-1, 2):
-            for oy in range(-1, 2):
-                px, py = x + ox, y + oy
-                if 0 <= px < n and 0 <= py < n and a[py, px, 3] > 0:
-                    a[py, px] = BONE_DIM
-    from_arr(a).resize((128, 128), Image.Resampling.NEAREST).resize((n, n), Image.Resampling.NEAREST).save(ENV / "pit.png")
+    from gen_isaac_basement import write_pit as _write
+    _write()
+
+
+def write_env() -> None:
+    from gen_isaac_basement import write_env as _write
+    _write()
 
 
 def penitent_cell(w: int, h: int, frame_row: int, frame_col: int, lilith: bool) -> Image.Image:
@@ -499,33 +467,6 @@ def write_baby() -> None:
     from_arr(a).save(SPR / "baby.png")
 
 
-def write_env() -> None:
-    fw = fh = 64
-    sheet = new(fw * 3, fh * 5)
-    for row in range(5):
-        for col in range(3):
-            cell = new(fw, fh)
-            a = arr_of(cell)
-            yy, xx = np.ogrid[:fh, :fw]
-            if col == 0:
-                speck = (xx * 13 + yy * 7 + row * 11) % 17 == 0
-                a[:, :] = VOID
-                a[speck] = ASH_DARK
-            elif col == 1:
-                a[:, :] = ASH
-                a[(xx + yy + row) % 9 == 0] = ASH_DARK
-            else:
-                a[:, :] = CLEAR
-                for i in range(6):
-                    x = 8 + (i * 9 + row * 3) % 48
-                    y = 10 + (i * 11) % 44
-                    a[y, x] = BONE_DIM
-                    if x + 1 < fw:
-                        a[y, x + 1] = ASH
-            sheet.paste(from_arr(a), (col * fw, row * fh))
-    sheet.save(SPR / "env.png")
-
-
 def main() -> None:
     import sys
 
@@ -533,12 +474,13 @@ def main() -> None:
     ENV.mkdir(parents=True, exist_ok=True)
     only = set(sys.argv[1:])
     if not only:
-        only = {"doors", "hearts", "pit", "shots"}
-    blocked = {"player", "env", "baby"} & only
-    if blocked or "all" in only:
+        only = {"shots"}
+    blocked = {"player", "baby", "doors", "hearts", "pit", "env", "all"} & only
+    if blocked:
         raise SystemExit(
-            "refusing to overwrite pixel character/env sheets with look-pass "
-            "geometry. Allowed: doors hearts pit shots."
+            "refusing to overwrite locked sheets. "
+            "Caim / Lilith / Bebê stay. Doors, hearts, pit, and env are baked by apply_look_v3.py. "
+            "Allowed: shots."
         )
     if "doors" in only:
         write_doors()
@@ -548,6 +490,8 @@ def main() -> None:
         write_hearts()
     if "pit" in only:
         write_pit()
+    if "env" in only:
+        write_env()
     print("look-pass sheets written:", ", ".join(sorted(only)))
 
 
