@@ -14,7 +14,7 @@ Cada `QA_ITEM` grava um still em `gate/spec/<id>.png`. Look plates extras: `./ru
 * [ ] **Contraste de Fundo vs. Gameplay:** O piso não pode conter ruído visual de alto contraste que compita com a visibilidade de tiros e inimigos pequenos. Projéteis devem ser 100% legíveis sobre qualquer parte do chão.
 * [ ] **Alinhamento de Paredes e Sombras:** As paredes superiores e laterais devem manter perspectiva consistente. Sombras projetadas no chão não podem ter colisores físicos invisíveis que travem o movimento do jogador.
 * [ ] **Repetição Textural (Tiling Fatigue):** Verificar se o chão parece um padrão quadriculado repetitivo e artificial. Variações sutis de tiles devem estar espalhadas sem quebrar a harmonia.
-* [ ] **Env bind (não checker vazio):** Tiles de `env.png` nas linhas 1–3 (64px). Linhas 0 e 4 são vazias e **não** podem ser o tema da sala. Combate = pedra/lava + parede Ash, não ColorRect Void/Ash no lugar da ficha.
+* [ ] **Env bind (não checker vazio):** Tiles de `env.png` nas linhas 1–3 (64px, 8 colunas). Linhas 0 e 4 são campo Void e **não** podem ser o tema da sala. Combate = chão Void com grão Ash/Bone + parede de bloco Ash, não ColorRect no lugar da ficha e não checker.
 
 ### 1.2 Integridade do Pixel Art e Spritesheets
 * [ ] **Modo de Filtragem (Point / Nearest Neighbor):** Todos os assets (cenário, entidades, HUD, partículas) devem estar estritamente configurados com amostragem *Nearest*. Zero interpolação bilinear (proibido texturas embaçadas ou suaves).
@@ -33,7 +33,7 @@ Cada `QA_ITEM` grava um still em `gate/spec/<id>.png`. Look plates extras: `./ru
 * [ ] **Trancamento Imediato:** Ao cruzar a entrada de uma sala hostil, as portas devem fechar e trancar no mesmo frame em que o primeiro monstro surge.
 * [ ] **Anti-Trava no Batente:** Se o jogador tentar recuar no frame exato em que a porta tranca, o colisor deve empurrá-lo para dentro da sala de combate, nunca prensá-lo dentro do colisor da parede ou expulsá-lo para fora com a sala trancada.
 * [ ] **Paredes Herméticas:** Projéteis do jogador e dos monstros não podem atravessar paredes ou portas fechadas para acertar entidades em outras salas.
-* [ ] **Arco visível:** A sala atual desenha `doors.png` (4×2 de 384×512), escala uniforme, posição inteira, coroa para dentro. Vizinha não empilha um segundo arco no mesmo vão.
+* [ ] **Porta visível:** A sala atual desenha `doors.png` (4×2 de 256×96), escala uniforme, posição inteira, lábio para dentro. Vizinha não empilha um segundo caixilho no mesmo vão.
 
 ### 2.2 Desfecho de Sala e Persistência
 * [ ] **Gatilho de Conclusão:** A morte do último inimigo da sala deve disparar:
@@ -169,8 +169,8 @@ Para **cada** ficha abaixo: nearest (ou inherit do default nearest), `scale.x ==
 | PLAY-SHEET-CANTOR | `cantor.png` | ≤ player | ~58 |
 | PLAY-SHEET-BOSS | `boss/idle.png` | ≥ 1.25× player | ~115 |
 | PLAY-SHEET-NPC | `concierge.png` | 4×2 | ~80 |
-| PLAY-SHEET-DOORS | `doors.png` | 4×2 384×512 | escala uniforme, pos `.round()` |
-| PLAY-SHEET-ENV | `env.png` | 3×5 de 64, rows 1–3 | tiles no grid 64 |
+| PLAY-SHEET-DOORS | `doors.png` | 4×2 256×96 | escala uniforme, pos `.round()` |
+| PLAY-SHEET-ENV | `env.png` | 8×5 de 64, rows 1–3 | tiles no grid 64 |
 | PLAY-SHEET-SHOT | `shots.png` | 4×8 de 64 | ~24 |
 | PLAY-SHEET-PICKUP | `pickups.png` / `skills.png` | 3×1 / 4×1 | ~48 |
 | PLAY-SHEET-HEARTS | `hearts.png` | 4×1 de 64 | HUD 40px |

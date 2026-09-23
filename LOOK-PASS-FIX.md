@@ -6,21 +6,23 @@ Aligns the floor to `VISUAL-BRIEF.md`. Gameplay PASS is unchanged: current-room 
 
 | Surface | Old read | Locked read |
 | --- | --- | --- |
-| Doors | Hell pixel skull / lava crests; then a landscape brick house-roof on a gray slab | Portrait gothic Ash **frame** (equilateral lancet), Bone inlay, circular Ember / cracked-Ash seal, transparent outside **and** inside the opening |
-| Shots | Soft round Ember dots / fireball orbs | Ember diamond + Bone ring only, hard edges |
+| Doors | Hell pixel skull / lava crests; then a gothic lancet | Flush rectangular Ash doorway in the wall band. Ember plate locked, Wound-cracked jambs open. No wood, no brown, no arch |
+| Shots | Soft round Ember dots, then Ember diamond / Bone ring | Drawn coal shard, Ash tear, Bone chip. Hard pixels, not geometry |
 | HUD | Horned molten hearts; diamond X-hearts | Circular Bone seals. Full = Bone + Ember glyph. Hit = Wound cracks. Empty = hollow Ash ring |
-| Pit | Lava crater PNG with gray partial-alpha (checkerboard leftover) outside the rim | Void-deep filled mouth, thin Ash lip, 1px Bone hairline, **opaque Void** outside the lip. Node2D floor + Void underlay covering the **full sprite quad** so no texel punches the viewport |
+| Pit | Lava crater PNG with gray partial-alpha (checkerboard leftover) outside the rim | Stepped Ash-block rim, opaque Void `#0B0C10` mouth and field. Node2D floor + Void underlay covering the **full sprite quad** so no texel punches the viewport |
+| Floor | Hell bricks / checker / brown dungeon, then flat specks | Isaac basement: 32px Ash blocks on the wall, Void floor with four grit variants. No checker |
 | Palette | Gold heat `#FFBA08`, brown-black ash | Void / Ash / Bone / Ember / Wound only |
 
 ## What changed (files)
 
-- `assets/sprites/doors.png` — 4×2 of **384×512** gothic frames (same atlas layout as before). Locked row = Ember seal. Open row = cracked Ash/Void, no Ember, no demonic face.
-- `scripts/room.gd` — uniform scale `opening / cell.x` so the portrait arch sits on the 64px wall and rises into the room (~200×267). Floor fill is a Node2D Void rect (not a Control ColorRect). Pit underlay is an opaque Void rect over the full sprite bounds (not only the mouth disk).
-- `assets/env/pit.png` — opaque Void hole, thin Ash/Bone lip, outside-lip pixels opaque Void `#0B0C10` (the hell sheet had gray `216,216,216,105` in the corners; alpha-0 corners punched the F5 checkerboard).
-- `assets/sprites/shots.png` — diamond + ring rows only.
-- `assets/sprites/hearts.png` — circular Bone seals + Ember diamond glyph.
-- `scripts/sprites.gd` — look sheets load from PNG bytes on `res://` (not only an OS absolute path) so a missing `.ctex` cannot blank F5. Doors 4×2 of 384×512, hearts 4×1 of 64, shots 4×8 of 64; wrong cell sizes are rejected after a disk retry. Imps / boss / player / cantor / wretch / concierge go through `Sprites.tex` too. A miss prints `SPRITE_BIND FAIL` and asserts. No gameplay-actor `_draw` geometry.
-- `assets/sprites/player.png`, `player_f.png`, `baby.png`, `env.png` — character / env atlases must stay pixel bodies. Caim is a masculine adult 4×3 body following the Lilith idle/walk/attack grid (`player.png`). Lilith is `player-female-v2` (`player_f.png`). Bebê is `bebe_sprite` (`baby.png`). Bind **FAIL** if Caim is diamond, female, Bebê, or a square 4×4 void-hood Penitent. `gen_look_pass.py` must not overwrite them.
+- `assets/sprites/doors.png` — 4×2 of **256×96** flush Ash frames. Locked row = Ember plate. Open row = clear passage, Wound cracks on the jambs, no Ember.
+- `scripts/room.gd` — uniform scale `opening / cell.x` so the 256×96 frame sits on the 64px wall (~32px lip into the room). Floor fill is a Node2D Void rect (not a Control ColorRect). Pit underlay is an opaque Void rect over the full sprite bounds. Floor stamps cycle four grit columns; walls are cols 4–5.
+- `assets/env/pit.png` — stepped Ash rim, opaque Void `#0B0C10` everywhere outside the blocks (no alpha).
+- `assets/sprites/shots.png` — coal / tear / chip rows. Not diamonds or rings.
+- `assets/sprites/env.png` — 8×5 of 64. Rows 1–3 are Start / Combat / NPC. Void grit, Ash block walls, small sigils.
+- `assets/sprites/hearts.png` — circular Bone seals + Ember glyph. Unchanged this pass.
+- `scripts/sprites.gd` — look sheets load from PNG bytes on `res://` (not only an OS absolute path) so a missing `.ctex` cannot blank F5. Doors 4×2 of 256×96, hearts 4×1 of 64, shots 4×8 of 64; wrong cell sizes are rejected after a disk retry. Imps / boss / player / cantor / wretch / concierge go through `Sprites.tex` too. A miss prints `SPRITE_BIND FAIL` and asserts. No gameplay-actor `_draw` geometry.
+- `assets/sprites/player.png`, `player_f.png`, `baby.png` — character atlases stay pixel bodies. Caim is a masculine adult 4×3 body following the Lilith idle/walk/attack grid (`player.png`). Lilith is `player-female-v2` (`player_f.png`). Bebê is `bebe_sprite` (`baby.png`). Bind **FAIL** if Caim is diamond, female, Bebê, or a square 4×4 void-hood Penitent. `gen_look_pass.py` must not overwrite them. Env is regenerated by `tools/gen_isaac_basement.py`.
 
 ## Not in this pass
 

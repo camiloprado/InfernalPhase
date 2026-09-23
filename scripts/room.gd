@@ -13,9 +13,13 @@ const DIR_VEC := {
 
 const DOOR_SHEET := "res://assets/sprites/doors.png"
 const ENV_SHEET := "res://assets/sprites/env.png"
-## Arch lip past the inner wall face. Fallback art uses WALL + this (100px).
-## Portrait sheet cells (384×512) scale uniformly to the 256px opening (4 tiles).
-const DOOR_REVEAL := 36.0
+## env.png is 8×5 of 64. Rows 0 and 4 are an unused Void field.
+## Rows 1–3 are the room themes. Cols 0–3 floor grit, 4–5 Ash walls, 6–7 sigils.
+const ENV_COLS := 8
+const ENV_ROWS := 5
+## Flush doorway cells are 256×96. Width maps to the 256px opening; depth is 96px
+## so the Ash frame sits on the 64px wall and shows ~32px into the room.
+const DOOR_CELL := Vector2(256, 96)
 
 var room_id: String = ""
 var grid := Vector2i.ZERO
@@ -107,7 +111,7 @@ func door_trigger_global(dir: int) -> Rect2:
 	var inset := 0.0
 	if _door_art.has(dir) and _door_art[dir] is Sprite2D:
 		var spr := _door_art[dir] as Sprite2D
-		var cell := Vector2(384, 512)
+		var cell := DOOR_CELL
 		if spr.texture is AtlasTexture:
 			cell = (spr.texture as AtlasTexture).region.size
 		elif spr.texture:
@@ -189,7 +193,7 @@ func title() -> String:
 
 
 func _theme_row() -> int:
-	# env.png is 3×5 of 64. Rows 0 and 4 are empty; pixel art lives on 1–3.
+	# Rows 1–3 of env.png. Rows 0 and 4 are not a room theme.
 	match kind:
 		Kind.START:
 			return 1
@@ -282,7 +286,7 @@ func _paint_gap(rect: Rect2, dir: int) -> void:
 	while y < rect.end.y - 0.5:
 		var x := rect.position.x
 		while x < rect.end.x - 0.5:
-			_stamp_cell(Vector2(x, y), floor_xy.x, floor_xy.y, -6, minf(t, rect.end.x - x), minf(t, rect.end.y - y))
+			_stamp_cell(Vector2(x, y), _floor_col(x, y), floor_xy.y, -6, minf(t, rect.end.x - x), minf(t, rect.end.y - y))
 			x += t
 		y += t
 	if not _owns_door(dir):
@@ -295,14 +299,31 @@ func _env_xy() -> Vector2i:
 	return Vector2i(0, row)
 
 
+func _floor_col(x: float, y: float) -> int:
+	# Four Void grit variants. The 3-step lattice is not a two-tone checker.
+	var tx := int(x / Game.WALL)
+	var ty := int(y / Game.WALL)
+	return posmod(tx + ty * 3, 4)
+
+
+func _wall_col(x: float, y: float) -> int:
+	var tx := int(x / Game.WALL)
+	var ty := int(y / Game.WALL)
+	# Chipped Ash block on a sparse lattice, not every other tile.
+	if posmod(tx * 2 + ty, 5) == 0:
+		return 5
+	return 4
+
+
 func _wall_xy() -> Vector2i:
 	var row := clampi(theme, 1, 3)
-	return Vector2i(1, row)
+	return Vector2i(4, row)
 
 
 func _sigil_xy() -> Vector2i:
-	# Col 2 is emblems (pentagram / skull). Never stamp wall bricks on the floor.
-	return Vector2i(2, clampi(theme, 1, 3))
+	if kind == Kind.BOSS:
+		return Vector2i(7, 2)
+	return Vector2i(6, clampi(theme, 1, 3))
 
 
 func _stamp_floor() -> void:
@@ -314,7 +335,7 @@ func _stamp_floor() -> void:
 	while y < size.y - inset - 0.5:
 		var x := inset
 		while x < size.x - inset - 0.5:
-			_stamp_cell(Vector2(x, y), base.x, base.y, -8, minf(t, size.x - inset - x), minf(t, size.y - inset - y))
+			_stamp_cell(Vector2(x, y), _floor_col(x, y), base.y, -8, minf(t, size.x - inset - x), minf(t, size.y - inset - y))
 			x += t
 		y += t
 
@@ -326,7 +347,7 @@ func _stamp_sigil() -> void:
 	var xy := _sigil_xy()
 	var spr := Sprite2D.new()
 	spr.name = "Sigil"
-	spr.texture = Sprites.require_cell(ENV_SHEET, 3, 5, xy.x, xy.y)
+	spr.texture = Sprites.require_cell(ENV_SHEET, ENV_COLS, ENV_ROWS, xy.x, xy.y)
 	spr.centered = true
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.position = (size * 0.5).round()
@@ -341,11 +362,11 @@ func _stamp_dais() -> void:
 	var origin := Vector2(size.x * 0.5 - t * 1.5, size.y * 0.5 - t)
 	for iy in 2:
 		for ix in 3:
-			_stamp_cell(origin + Vector2(ix * t, iy * t), 0, 3, -7, t, t)
+			_stamp_cell(origin + Vector2(ix * t, iy * t), 1, 3, -7, t, t)
 
 
 func _stamp_cell(at: Vector2, col: int, row: int, z: int, w: float, h: float) -> void:
-	var atlas := Sprites.require_cell(ENV_SHEET, 3, 5, col, row)
+	var atlas := Sprites.require_cell(ENV_SHEET, ENV_COLS, ENV_ROWS, col, row)
 	if atlas == null:
 		return
 	var spr := Sprite2D.new()
@@ -387,7 +408,7 @@ func _add_wall(rect: Rect2) -> void:
 	while y < rect.end.y - 0.5:
 		var x := rect.position.x
 		while x < rect.end.x - 0.5:
-			_stamp_cell(Vector2(x, y), wall.x, wall.y, 1, minf(t, rect.end.x - x), minf(t, rect.end.y - y))
+			_stamp_cell(Vector2(x, y), _wall_col(x, y), wall.y, 1, minf(t, rect.end.x - x), minf(t, rect.end.y - y))
 			x += t
 		y += t
 
@@ -452,8 +473,7 @@ func _door_col(k: Kind) -> int:
 
 
 func _door_atlas(k: Kind, blocked: bool) -> AtlasTexture:
-	# Full portrait cell (not used-rect crop) so the circular seal stays circular
-	# when scaled uniformly onto the 256px opening.
+	# Full cell, not a used-rect crop, so the rectangular frame keeps its jambs.
 	return Sprites.cell(DOOR_SHEET, 4, 2, _door_col(k), 1 if blocked else 0)
 
 
@@ -498,8 +518,8 @@ func set_active_doors(on: bool) -> void:
 
 
 func _door_rotation(dir: int) -> float:
-	# doors.png: crown = texture top / local -Y. Crown faces into the room so the
-	# gothic point and circular seal sit on the inner wall band, not a hallway.
+	# doors.png: room-side lip = texture top / local -Y. The lip faces into the
+	# room so the Ash frame sits flush in the wall band.
 	match dir:
 		Dir.N:
 			return PI
@@ -519,11 +539,12 @@ func _apply_door_sprite(spr: Sprite2D, atlas: AtlasTexture, dir: int, rect: Rect
 	spr.rotation = _door_rotation(dir)
 	var cell := atlas.region.size
 	var opening := maxf(rect.size.x, rect.size.y)
-	# Uniform scale from cell width → 256px opening (4×64). Portrait 384×512
-	# sits on the wall: outer face flush, crown into the room.
+	# Uniform scale from cell width → 256px opening (4×64). A 256×96 frame
+	# sits flush in the wall band, lip into the room.
 	var along := opening / maxf(cell.x, 1.0)
 	spr.scale = Vector2(along, along)
 	spr.position = rect.position + rect.size * 0.5
+	# 256×96 at scale 1 sits on the 64px wall (32px of frame into the room).
 	var depth := cell.y * along
 	var inset := maxf(depth * 0.5 - Game.WALL * 0.5, 0.0)
 	spr.position += _door_inward(dir) * inset

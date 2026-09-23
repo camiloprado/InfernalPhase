@@ -170,14 +170,11 @@ func _shot_row() -> int:
 
 
 func _configure_motion(row: int) -> void:
-	# Rings spin in place. Diamonds face travel or spin. Never smear into tears.
+	# Coal shards and Ash tears point along travel. Bone chips tumble.
 	match row:
-		2, 3, 6:
+		2, 4, 6:
 			_face_travel = false
-			_spin_rate = 5.6
-		4, 5, 7:
-			_face_travel = false
-			_spin_rate = 4.2
+			_spin_rate = 3.2
 		_:
 			_face_travel = true
 			_spin_rate = 0.0

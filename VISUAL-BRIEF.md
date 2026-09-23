@@ -8,29 +8,34 @@ Designer art direction. Combat numbers, room graph, pit teleport, drops, Concier
 | --- | --- | --- |
 | **Void** | `#0B0C10` | Floor, hole, overlay, type knockout |
 | **Ash** | `#5C5A56` | Wall band, empty seals, card chrome |
-| **Bone** | `#E6D9C3` | Type, inlay, filled seals, diamond body |
-| **Ember** | `#E25A1A` | Accent only — locked door seal, shot diamond, one confirm CTA, 4–6px brand |
+| **Bone** | `#E6D9C3` | Type, inlay, filled seals, bone-chip shots |
+| **Ember** | `#E25A1A` | Accent only — locked door plate, coal shots, one confirm CTA, 4–6px brand |
 | **Wound** | `#7A1F1A` | Heart cracks, damage, boss node |
 
 No gold, no chrome-edge crests, no `#FFBA08` heat, no brown brick on doors.
 
 ## Doors
 
-Gothic arches flush on the Ash wall band. Thin Bone inlay. Center seal **Ember** when locked, **cracked / dark** when open. Transparent outside the arch. No circular portal on a gray rectangle. First Gate (Threshold) uses the same language with heavier ribs and a huge cracked seal.
+Rectangular flush doorways in the Ash wall band (Isaac basement, not a gothic arch). Ash stone frame only — no wood, no brown. Bone inlay on the lip and jambs. **Ember plate** when locked. Open = the passage is clear and the jambs carry Wound cracks. Texture top is the room-side lip. Cells are 4×2 of 256×96 so the frame sits on the 64px wall.
+
+## Room
+
+Isaac basement / Sheol, not Cathedral. Wall band is ~32px Ash blocks (two courses in the 64px wall). Floor is opaque Void `#0B0C10` with four subtle Ash/Bone grit variants. No checker, no brown, no wood, no pebbles. A small Bone or Wound sigil sits on the floor; it is not a tiled dungeon stripe.
 
 ## Shots
 
-Two silhouettes only:
+Drawn pixel projectiles. Not diamonds, rings, or ellipses.
 
-- **Ember diamond** — player, imp, ember, boss, deflect
-- **Bone ring** — wretch, cantor, bone
+- **Ember coal** — player, ember, deflect. Asymmetric shard, wound core, points along travel.
+- **Ash tear** — imp, cantor. Stepped tear with a Wound fissure, points along travel.
+- **Bone chip** — wretch, boss, bone. Irregular flake with a Wound crack; tumbles.
 
-Hard edges, readable at 16–24px+. Animation stays inside those two shapes. No soft round Ember dots or tears.
+Hard pixels, same outline/shading language as Caim / Lilith / Bebê, Infernal ramp only. Readable around 12×12.
 
 ## HUD
 
 - Hearts: circular **Bone** seals. Wound cracks when filled. Empty = Ash.
-- Shot glyph: Ember diamond.
+- Shot glyph on the heart sheet stays the Ember pip. Projectile art is the coal / tear / chip sheet, not that pip.
 - Map: circular nodes. Current room = Bone ring. No Ember on the frame.
 - Combat HUD has no Shop / Inventory / Score / Armor strip.
 - Frame Ash / Bone only.
@@ -47,8 +52,8 @@ Combat actors bind pixel sheets. Do not replace these PNGs with Penitent diamond
 - Bebê Chorão sprite: `assets/sprites/baby.png`
 - Imp / boss: `assets/characters/imp/`, `assets/characters/boss/`
 - Wretch / cantor / concierge: `assets/sprites/wretch.png`, `cantor.png`, `concierge.png`
-- Env tiles: `assets/sprites/env.png`
+- Env tiles: `assets/sprites/env.png` (8×5 of 64; themes on rows 1–3)
 
 ## Pit
 
-Void hole, thin Ash / Bone lip, opaque Void `#0B0C10` outside the lip (never viewport-clear / checkerboard). One clear QA frame.
+Tile-aligned stepped Ash-block rim around an opaque Void mouth `#0B0C10`. Outside the rim is the same opaque Void (never viewport-clear / checkerboard). One or two Wound cracks on the rim. One clear QA frame.
