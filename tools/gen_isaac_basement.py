@@ -609,59 +609,47 @@ def paint_bricks(img: Image.Image, rect: tuple, seed: int = 0) -> None:
             px[x, y] = brick_at(x, y, seed)
 
 
-def _paint_grit(px, ox: int, oy: int, pixels: list, ramp: tuple) -> None:
-    """Filled angular chip. First pixel is the lit corner, the tail is the shadow."""
-    n = len(pixels)
-    for i, (dx, dy) in enumerate(pixels):
+def _ember_mote(px, ox: int, oy: int, shape: list) -> None:
+    """Small ember cluster. Ink edge, two lit steps. Not a single star pixel."""
+    n = len(shape)
+    for i, (dx, dy) in enumerate(shape):
         x, y = ox + dx, oy + dy
         if not (1 <= x < TILE - 1 and 1 <= y < TILE - 1):
             continue
-        if i == 0:
-            col = ramp[-1]
-        elif i < max(2, n // 2):
-            col = ramp[len(ramp) // 2]
+        if i == n - 1:
+            col = INK
+        elif i == 0:
+            col = EMBER_R[5]
         else:
-            col = ramp[0]
+            col = EMBER_R[3]
         px[x, y] = col
 
 
 def floor_cell(variant: int, theme: int) -> Image.Image:
-    """Void field. Shaded grit chips, not flat specks and not pebbles."""
-    cell = new(TILE, TILE, VOID)
+    """Dark Wound field. Four variants differ by 1px Ash grit and two ember motes.
+
+    No Void pores. Those read as a star field.
+    """
+    cell = new(TILE, TILE, WOUND)
     px = cell.load()
-    pores = {
-        0: [(8, 12, VOID_DEEP), (9, 14, VOID_LIFT), (40, 50, VOID_DEEP), (55, 22, VOID_LIFT), (33, 8, VOID_DEEP), (20, 55, VOID_LIFT)],
-        1: [(12, 40, VOID_LIFT), (48, 18, VOID_DEEP), (6, 28, VOID_DEEP), (36, 36, VOID_LIFT), (58, 48, VOID_DEEP), (22, 6, VOID_LIFT)],
-        2: [(18, 18, VOID_DEEP), (50, 40, VOID_LIFT), (44, 8, VOID_DEEP), (8, 48, VOID_LIFT), (30, 58, VOID_DEEP), (60, 30, VOID_LIFT)],
-        3: [(4, 20, VOID_LIFT), (28, 48, VOID_DEEP), (52, 52, VOID_LIFT), (16, 8, VOID_DEEP), (42, 28, VOID_LIFT), (58, 10, VOID_DEEP)],
+    ash = {
+        0: [(12, 18), (13, 40), (27, 9), (28, 51), (41, 22), (44, 47), (55, 14), (19, 58), (36, 33), (8, 29)],
+        1: [(16, 12), (22, 46), (33, 20), (38, 55), (49, 11), (52, 37), (9, 50), (27, 28), (58, 24), (14, 35)],
+        2: [(11, 44), (18, 15), (24, 57), (31, 26), (39, 8), (46, 41), (53, 19), (7, 33), (29, 48), (57, 52)],
+        3: [(10, 22), (17, 51), (23, 8), (30, 38), (37, 16), (43, 56), (50, 27), (56, 44), (20, 33), (34, 48)],
     }
-    for x, y, c in pores[variant]:
-        px[x, y] = c
-    ash = ASH_R[1:6]
-    bone = BONE_R[0:4]
-    chips = {
-        0: [((18, 42), [(0, 0), (1, 0), (2, 0), (3, 1), (2, 1), (1, 1), (0, 1), (1, 2), (2, 2), (4, 1), (3, 2)], ash),
-            ((46, 16), [(0, 0), (1, 0), (2, 1), (1, 1), (0, 2), (2, 2), (-1, 1)], ash)],
-        1: [((22, 28), [(0, 0), (1, 0), (2, 0), (3, 0), (1, 1), (2, 1), (0, 1), (2, 2), (1, 2)], bone),
-            ((48, 46), [(0, 0), (1, 0), (1, 1), (2, 1), (0, 1), (2, 2), (3, 1)], ash)],
-        2: [((14, 36), [(0, 0), (1, 0), (2, 0), (3, 1), (2, 1), (1, 1), (0, 2), (1, 2), (4, 1), (3, 0)], ash),
-            ((50, 18), [(0, 0), (1, 0), (0, 1), (1, 1), (2, 1), (1, 2)], ash)],
-        3: [((36, 44), [(0, 0), (1, 0), (2, 0), (3, 1), (1, 1), (2, 1), (0, 1), (1, -1), (2, 2)], bone),
-            ((12, 18), [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1), (3, 1), (0, 1)], ash)],
+    for x, y in ash[variant]:
+        px[x, y] = ASH
+    # Theme only nudges the second mote so rows are not a copy, still Wound.
+    nudge = (theme % 3) - 1
+    motes = {
+        0: [((20, 24), [(0, 0), (1, 0), (0, 1), (1, 1), (2, 0)]), ((48, 40), [(0, 0), (1, 0), (0, 1), (-1, 0)])],
+        1: [((18, 36), [(0, 0), (1, 0), (1, 1), (0, 1)]), ((46, 18), [(0, 0), (1, 0), (2, 1), (1, 1), (0, 1)])],
+        2: [((26, 14), [(0, 0), (1, 0), (0, 1), (1, 1)]), ((42, 46), [(0, 0), (-1, 0), (0, 1), (1, 1), (0, 2)])],
+        3: [((15, 28), [(0, 0), (1, 0), (2, 0), (1, 1)]), ((50, 34), [(0, 0), (1, 0), (0, 1), (1, 1)])],
     }
-    for (ox, oy), pixels, ramp in chips[variant]:
-        _paint_grit(px, ox, oy, pixels, ramp)
-    if theme == 2 and variant == 2:
-        px[34, 22] = WOUND_R[2]
-        px[35, 23] = WOUND_R[1]
-        px[35, 22] = WOUND_R[0]
-    if theme == 3 and variant == 1:
-        px[52, 30] = BONE_R[2]
-        px[53, 30] = BONE_R[1]
-        px[51, 30] = BONE_R[0]
-    if theme == 1 and variant == 0:
-        px[30, 16] = ASH_R[3]
-        px[31, 16] = ASH_R[1]
+    for i, ((ox, oy), shape) in enumerate(motes[variant]):
+        _ember_mote(px, ox + (nudge if i else 0), oy, shape)
     return cell
 
 
@@ -685,20 +673,27 @@ def write_env() -> None:
 
 
 def _reject_checker(sheet: Image.Image) -> None:
-    """Floor variants must stay Void. A light/dark alternation is the old checker FAIL."""
+    """Floor is a Wound field. Variants may not checker, and Void pores are a star field."""
     a = np.array(sheet)
+    wound = np.array(WOUND[:3], dtype=np.uint8)
     means = []
     for col in range(4):
         for row in (1, 2, 3):
             cell = a[row * TILE:(row + 1) * TILE, col * TILE:(col + 1) * TILE]
-            means.append(float(cell[:, :, :3].mean()))
-            colors = {tuple(p) for p in cell.reshape(-1, 4) if p[3] > 0}
-            if len(colors) < 6:
-                raise SystemExit(f"floor r{row}c{col} too flat ({len(colors)} colors)")
+            rgb = cell[:, :, :3]
+            means.append(float(rgb.mean()))
+            wound_frac = float(np.all(rgb == wound, axis=2).mean())
+            if wound_frac < 0.97:
+                raise SystemExit(f"floor r{row}c{col} is not a Wound field ({wound_frac:.3f})")
+            # Blue-gray specks (Void lift) are the banned galaxy.
+            stars = (rgb[:, :, 2] > rgb[:, :, 0] + 4) & (rgb[:, :, 2] > 16)
+            if int(stars.sum()) > 0:
+                raise SystemExit(f"floor r{row}c{col} has star specks")
+            ash_n = int(np.all(rgb == np.array(ASH[:3], dtype=np.uint8), axis=2).sum())
+            if not 6 <= ash_n <= 16:
+                raise SystemExit(f"floor r{row}c{col} ash grit {ash_n} (want a few 1px marks)")
     if max(means) - min(means) > 8:
         raise SystemExit(f"floor variants diverge like a checker: {means}")
-    if max(means) > 28:
-        raise SystemExit(f"floor too bright (want Void grit): {max(means)}")
     wall = a[TILE:TILE * 2, 4 * TILE:5 * TILE]
     if wall[:, :, :3].mean() < 50:
         raise SystemExit("wall tile does not read as Ash block")
@@ -790,6 +785,55 @@ def _ember_plate(img: Image.Image, cx: int, cy: int, pw: int, ph: int) -> None:
                 px[px_x, py] = col
 
 
+def _fire_tongues(px, cx: int, cy: int, pw: int, ph: int) -> None:
+    """2–4px Ember tongues sitting on the top edge of the plate."""
+    x0 = cx - pw // 2
+    y_top = cy - ph // 2
+    slots = (pw // 5, pw * 2 // 5, pw * 3 // 5, pw * 4 // 5)
+    heights = (3, 4, 2, 3)
+    for i, sx in enumerate(slots):
+        height = heights[i]
+        tip = x0 + sx
+        for dy in range(height):
+            yy = y_top - 1 - dy
+            half = 1 if dy < height - 1 else 0
+            for dx in range(-half, half + 1):
+                xx = tip + dx
+                if not (0 <= xx < DOOR_W and 0 <= yy < DOOR_H):
+                    continue
+                if px[xx, yy][3] == 0:
+                    continue
+                if abs(dx) == half and half > 0:
+                    col = INK
+                elif dy == height - 1:
+                    col = EMBER_R[6]
+                elif dy == 0:
+                    col = EMBER_R[4]
+                else:
+                    col = EMBER_R[5]
+                px[xx, yy] = col
+
+
+def _blood_veins(px, jamb: int) -> None:
+    """Wound veins and drips down the inner jambs. Stay on the stone."""
+    for inward, x in ((1, jamb - 7), (-1, DOOR_W - jamb + 5)):
+        for y in range(14, DOOR_H - 14):
+            wob = (0, 0, inward, 0, -inward, 0, inward)[(y // 3) % 7]
+            xx = x + wob
+            if not (0 <= xx < DOOR_W) or px[xx, y][3] == 0:
+                continue
+            px[xx, y] = WOUND_R[3] if y % 2 == 0 else WOUND_R[2]
+            nx = xx - inward
+            if 0 <= nx < DOOR_W and px[nx, y][3] == 255 and px[nx, y] not in WOUND_R:
+                px[nx, y] = WOUND_R[0]
+            if y % 16 == 8:
+                for dy in range(3):
+                    for dx in range(-1, 2):
+                        bx, by = xx + dx * inward, y + dy
+                        if 0 <= bx < DOOR_W and 0 <= by < DOOR_H and px[bx, by][3] == 255:
+                            px[bx, by] = WOUND_R[4] if dy == 2 and dx == 0 else WOUND_R[2]
+
+
 def _bone_inlay(px, x0: int, y0: int, length: int, vertical: bool, gap: int) -> None:
     """3px Bone inlay, broken so it is not a selection rectangle."""
     for i in range(length):
@@ -824,10 +868,12 @@ def door_cell(kind: str, locked: bool) -> Image.Image:
     _bone_inlay(px, 8, DOOR_H - 10, DOOR_W - 16, False, 5)
     _bone_inlay(px, jamb - 3, 8, DOOR_H - 16, True, 4)
     _bone_inlay(px, DOOR_W - jamb, 8, DOOR_H - 16, True, 4)
+    _blood_veins(px, jamb)
     if locked:
         paint_bricks(cell, (jamb, 10, DOOR_W - jamb, DOOR_H - 10), seed + 7)
         pw, ph = {"start": (64, 34), "combat": (48, 26), "npc": (40, 22), "boss": (58, 32)}[kind]
         _ember_plate(cell, DOOR_W // 2, DOOR_H // 2 + 2, pw, ph)
+        _fire_tongues(px, DOOR_W // 2, DOOR_H // 2 + 2, pw, ph)
         if kind == "boss":
             _wound_crack(cell, jamb + 8, 18, 1, 1, 14)
             _wound_crack(cell, DOOR_W - jamb - 10, DOOR_H - 22, -1, -1, 12)
@@ -865,85 +911,255 @@ def write_doors() -> None:
     ember = (la[:, :, 0] > 180) & (la[:, :, 1] < 140) & (la[:, :, 3] == 255)
     if ember.sum() < 200:
         raise SystemExit("locked door missing Ember plate")
+    open_ember = (oa[:, :, 0] > 180) & (oa[:, :, 1] < 140) & (oa[:, :, 3] == 255)
+    if open_ember.sum() > 40:
+        raise SystemExit("open door still has an Ember plate")
+    wound = (oa[:, :, 0] > 90) & (oa[:, :, 1] < 60) & (oa[:, :, 2] < 50) & (oa[:, :, 3] == 255)
+    if wound.sum() < 20:
+        raise SystemExit("open door missing Wound on the jambs")
     sheet.save(SPR / "doors.png")
 
 
 
 
 def write_pit() -> None:
-    # Colors locked to the sheet Designer already passed. Do not retint the pit.
+    """Round Void mouth, stepped Ash rim, Bone fillet on the inner lip. Fully opaque."""
     VOID = (0x0B, 0x0C, 0x10, 255)
     ASH = (0x5C, 0x5A, 0x56, 255)
     ASH_HI = (0x8A, 0x88, 0x84, 255)
     ASH_MID = (0x45, 0x43, 0x40, 255)
     ASH_LO = (0x32, 0x31, 0x2E, 255)
     ASH_MORT = (0x1A, 0x19, 0x18, 255)
+    BONE = (0xE6, 0xD9, 0xC3, 255)
     BONE_DIM = (0xB4, 0xA8, 0x96, 255)
     BONE_SHADE = (0x7A, 0x72, 0x64, 255)
     WOUND = (0x7A, 0x1F, 0x1A, 255)
     WOUND_LO = (0x4A, 0x12, 0x10, 255)
     pit_ok = {
-        VOID, ASH, ASH_HI, ASH_MID, ASH_LO, ASH_MORT, BONE_DIM, BONE_SHADE, WOUND, WOUND_LO,
+        VOID, ASH, ASH_HI, ASH_MID, ASH_LO, ASH_MORT,
+        BONE, BONE_DIM, BONE_SHADE, WOUND, WOUND_LO,
     }
     n = 1024
     a = np.zeros((n, n, 4), dtype=np.uint8)
     a[:, :] = VOID
-    # 16px blocks. At the 0.25 room scale that is a 4px screen step.
-    bs = 16
-    hole_m, rim_m = 20, 26
     cx = cy = n // 2
-    for y in range(n):
-        by = (y - cy) // bs
-        ly = (y - cy) - by * bs
-        if y < cy and ly != 0:
-            # floor-div toward -inf already; local offset inside the block
-            pass
-        ly = y - (cy + by * bs)
-        for x in range(n):
-            bx = (x - cx) // bs
-            lx = x - (cx + bx * bs)
-            ax, ay = abs(int(bx)), abs(int(by))
-            m = max(ax, ay, (ax + ay + 1) // 2)
-            if m > rim_m or m < hole_m:
-                continue
-            # Outer bone hairline, inner shadow step, body is an Ash block.
-            if m == rim_m:
-                col = BONE_DIM if (lx < 3 or ly < 3) else BONE_SHADE
-            elif m == hole_m:
-                col = ASH_LO
-            elif lx >= bs - 2 or ly >= bs - 2:
-                col = ASH_MORT
-            elif lx < 2 or ly < 2:
-                col = ASH_HI
-            elif (bx * 3 + by * 5) % 17 == 0 and lx > 6 and ly > 6:
-                col = ASH_MID
-            else:
-                col = ASH
-            a[y, x] = col
-    # Two Wound cracks on the rim, stepped so they follow the blocks.
-    def crack(x: int, y: int, dx: int, dy: int, length: int) -> None:
-        for i in range(length):
-            xx = x + dx * i + (1 if i % 5 == 0 else 0)
-            yy = y + dy * i + (1 if i % 7 == 0 else 0)
-            for ox, oy in ((0, 0), (1, 0), (0, 1)):
-                px, py = xx + ox, yy + oy
-                if 0 <= px < n and 0 <= py < n and not (a[py, px, 0] == VOID[0] and a[py, px, 1] == VOID[1]):
-                    a[py, px] = WOUND if i % 2 == 0 else WOUND_LO
-
-    crack(cx + 18 * bs, cy - 8 * bs, 2, 3, 28)
-    crack(cx - 16 * bs, cy + 10 * bs, 3, -2, 24)
-    # Hole and the field outside the rim are exactly Void, fully opaque.
+    # 336px radius → ~84px on screen at scale 0.25, matching the pit trigger.
+    hole_r = 336.0
+    rim_r = 456.0
+    bs = 16
+    yy, xx = np.ogrid[:n, :n]
+    dx = xx - cx
+    dy = yy - cy
+    r = np.sqrt(dx.astype(np.float32) ** 2 + dy.astype(np.float32) ** 2)
+    bx = np.floor(dx / bs).astype(np.int32)
+    by = np.floor(dy / bs).astype(np.int32)
+    lx = dx - bx * bs
+    ly = dy - by * bs
+    bcx = bx * bs + bs // 2
+    bcy = by * bs + bs // 2
+    br = np.sqrt(bcx.astype(np.float32) ** 2 + bcy.astype(np.float32) ** 2)
+    in_block = (br >= hole_r + bs * 0.35) & (br <= rim_r)
+    stone = in_block & (r >= hole_r)
+    fillet = stone & (r < hole_r + 14.0)
+    body = stone & ~fillet
+    a[body] = ASH
+    mort = body & ((lx >= bs - 2) | (ly >= bs - 2))
+    a[mort] = ASH_MORT
+    hi = body & ((lx < 2) | (ly < 2)) & ~mort
+    a[hi] = ASH_HI
+    chip = body & (((bx * 3 + by * 5) % 17) == 0) & (lx > 6) & (ly > 6) & ~mort & ~hi
+    a[chip] = ASH_MID
+    shade = body & (lx > 10) & (ly > 10) & ~mort & ~hi & ~chip
+    a[shade] = ASH_LO
+    a[fillet] = BONE_DIM
+    a[fillet & ((lx < 4) | (ly < 4))] = BONE
+    a[fillet & ((lx >= 10) | (ly >= 10))] = BONE_SHADE
+    # Two wound cracks along the rim, following the circle.
+    ang = np.arctan2(dy, dx)
+    crack_a = (np.abs(((ang - 0.6 + np.pi) % (2 * np.pi)) - np.pi) < 0.18) & stone & (r > hole_r + 20) & (r < hole_r + 70)
+    crack_b = (np.abs(((ang + 2.2 + np.pi) % (2 * np.pi)) - np.pi) < 0.14) & stone & (r > hole_r + 24) & (r < hole_r + 80)
+    a[crack_a] = WOUND
+    a[crack_b] = WOUND_LO
     if int((a[:, :, 3] == 0).sum()) != 0:
         raise SystemExit("pit has transparent pixels")
     void_px = (a[:, :, 0] == VOID[0]) & (a[:, :, 1] == VOID[1]) & (a[:, :, 2] == VOID[2])
+    hole = r < hole_r
+    if not np.all(void_px[hole]):
+        raise SystemExit("pit mouth is not opaque Void")
     if void_px.sum() < n * n * 0.5:
-        raise SystemExit("pit mouth is not a Void field")
+        raise SystemExit("pit field is not a Void field")
+    # Round mouth: bbox fill near pi/4. A square mouth fills the box.
+    ys, xs = np.where(hole)
+    bw = int(xs.max() - xs.min()) + 1
+    bh = int(ys.max() - ys.min()) + 1
+    fill = float(hole.sum()) / float(bw * bh)
+    if abs(bw - bh) > 4 or not (0.74 <= fill <= 0.82):
+        raise SystemExit(f"pit mouth is not round (fill={fill:.3f} {bw}x{bh})")
     img = Image.fromarray(a, "RGBA")
     colors = img.getcolors(max(img.size[0] * img.size[1], 1))
-    bad = [c for _n, c in colors if c not in pit_ok]
+    bad = [c for _count, c in colors if c not in pit_ok]
     if bad:
         raise SystemExit(f"pit: off locked palette {bad[:6]}")
     img.save(ENV / "pit.png")
+
+
+def _ink_stamp(px, x: int, y: int, col, w: int, h: int) -> None:
+    if 0 <= x < w and 0 <= y < h:
+        px[x, y] = col
+
+
+def _stroke(px, pts: list, ramp: tuple, thick: int, w: int, h: int) -> None:
+    """Hard polyline. Outer pixels are ink, the core walks the ramp."""
+    for i in range(len(pts) - 1):
+        x0, y0 = pts[i]
+        x1, y1 = pts[i + 1]
+        steps = max(abs(x1 - x0), abs(y1 - y0), 1)
+        for s in range(steps + 1):
+            x = int(round(x0 + (x1 - x0) * s / steps))
+            y = int(round(y0 + (y1 - y0) * s / steps))
+            for oy in range(-thick, thick + 1):
+                for ox in range(-thick, thick + 1):
+                    d = max(abs(ox), abs(oy))
+                    if d > thick:
+                        continue
+                    if d == thick:
+                        col = INK
+                    elif d == thick - 1:
+                        col = INK2
+                    else:
+                        col = ramp[min(len(ramp) - 1, 2 + (thick - d))]
+                    _ink_stamp(px, x + ox, y + oy, col, w, h)
+
+
+def _bolt_cell(frame: int, hot: bool) -> Image.Image:
+    """Vertical jagged Ember bolt. Hazard rotates it onto the beam."""
+    cell = new(80, 80)
+    px = cell.load()
+    ramp = EMBER_R[3:] if hot else EMBER_R[1:5]
+    x = 40 + (4 if frame % 2 else -3)
+    pts = [(x, 6)]
+    y = 6
+    jags = (0, 11, -13, 8, -9, 12, -6, 7)
+    while y < 72:
+        y += 8
+        jag = jags[((y // 8) + frame) % len(jags)]
+        pts.append((40 + jag, min(y, 74)))
+    _stroke(px, pts, ramp, 3 if hot else 2, 80, 80)
+    # Brand fork near the tail, still a bolt, not a coal blob.
+    tail = pts[len(pts) // 2]
+    _stroke(px, [tail, (tail[0] + 10, tail[1] + 8), (tail[0] + 6, tail[1] + 16)], ramp, 2, 80, 80)
+    return cell
+
+
+def _ring_cell(frame: int, hot: bool) -> Image.Image:
+    """Bone ring, Wound cracks on the outer edge. Center stays clear."""
+    cell = new(128, 128)
+    px = cell.load()
+    cx = cy = 64
+    outer = 52
+    inner = 38
+    for y in range(128):
+        for x in range(128):
+            d = math.hypot(x - cx, y - cy)
+            if d < inner or d > outer:
+                continue
+            ang = math.atan2(y - cy, x - cx)
+            crack = abs(((ang + frame * 0.4) % (math.pi / 3)) - 0.15) < 0.05 and d > outer - 6
+            if crack:
+                px[x, y] = WOUND_R[3] if hot else WOUND_R[1]
+            elif d > outer - 3:
+                px[x, y] = INK
+            elif d < inner + 2:
+                px[x, y] = INK2
+            elif d > outer - 7:
+                px[x, y] = WOUND_R[2] if ((x + y + frame) % 5 == 0) else BONE_R[2]
+            else:
+                lit = 1.0 - (d - inner) / (outer - inner)
+                idx = 4 if hot else 3
+                idx += 1 if lit > 0.65 else 0
+                idx -= 1 if lit < 0.3 else 0
+                if (x * 3 + y + frame) % 9 == 0:
+                    idx -= 1
+                px[x, y] = BONE_R[max(1, min(5, idx))]
+    return cell
+
+
+def _plume_cell(frame: int) -> Image.Image:
+    """Asymmetric Ember plume. Filled, ink contour, three shade steps."""
+    cell = new(64, 64)
+    px = cell.load()
+    shift = frame % 2
+    for y in range(8, 58):
+        if y < 20:
+            x0 = 34 + shift
+            x1 = 50 - (20 - y) // 3
+        elif y < 36:
+            x0 = 16 + (36 - y) // 5
+            x1 = 48 - shift
+        else:
+            x0 = 12 + shift
+            x1 = 40 - (y - 36) // 3
+        if x1 - x0 < 4:
+            continue
+        for x in range(x0, x1):
+            edge = x < x0 + 2 or x >= x1 - 2 or y < 10 or y > 55
+            if edge:
+                col = INK
+            elif y < 22:
+                col = EMBER_R[6] if (x + frame) % 3 else EMBER_R[5]
+            elif y < 40:
+                col = EMBER_R[4] if (x + y) % 5 else EMBER_R[3]
+            else:
+                col = EMBER_R[2]
+            if 0 <= x < 64:
+                px[x, y] = col
+    # Side tongue, attached, leaning up-left so the burst is not a teardrop.
+    _stroke(
+        px,
+        [(22 + shift, 40), (16, 30), (12, 20), (10, 14)],
+        EMBER_R[3:],
+        2,
+        64,
+        64,
+    )
+    return cell
+
+
+def write_fx() -> None:
+    """Boss telegraphs. New silhouettes — not the coal / tear / chip sheet."""
+    beam = new(320, 160)
+    for row, hot in ((0, False), (1, True)):
+        for col in range(4):
+            cell = _bolt_cell(col, hot)
+            beam.paste(cell, (col * 80, row * 80), cell)
+    assert_palette(beam, "fx_beam")
+    beam.save(SPR / "fx_beam.png")
+
+    slam = new(512, 256)
+    for row, hot in ((0, False), (1, True)):
+        for col in range(4):
+            cell = _ring_cell(col, hot)
+            slam.paste(cell, (col * 128, row * 128), cell)
+    assert_palette(slam, "fx_slam")
+    # A filled blob would be a shot. The center of the ring stays clear.
+    mid = np.array(slam.crop((0, 128, 128, 256)))
+    if int((mid[48:80, 48:80, 3] == 0).sum()) < 400:
+        raise SystemExit("fx_slam is a filled disk, not a ring")
+    bone = (mid[:, :, 0] > 160) & (mid[:, :, 1] > 140) & (mid[:, :, 2] > 110)
+    if int(bone.sum()) < 200:
+        raise SystemExit("fx_slam missing Bone ring")
+    slam.save(SPR / "fx_slam.png")
+
+    wisp = new(256, 64)
+    for col in range(4):
+        cell = _plume_cell(col)
+        wisp.paste(cell, (col * 64, 0), cell)
+    assert_palette(wisp, "fx_wisp")
+    ember = np.array(wisp.crop((0, 0, 64, 64)))
+    hot = (ember[:, :, 0] > 180) & (ember[:, :, 1] < 150) & (ember[:, :, 3] == 255)
+    if int(hot.sum()) < 40:
+        raise SystemExit("fx_wisp missing Ember plume")
+    wisp.save(SPR / "fx_wisp.png")
 
 
 def write_all() -> None:
@@ -953,12 +1169,16 @@ def write_all() -> None:
     write_doors()
     write_env()
     write_pit()
+    write_fx()
     print(
         "isaac basement sheets:",
         "shots", (SPR / "shots.png").stat().st_size,
         "doors", (SPR / "doors.png").stat().st_size,
         "env", (SPR / "env.png").stat().st_size,
         "pit", (ENV / "pit.png").stat().st_size,
+        "fx_beam", (SPR / "fx_beam.png").stat().st_size,
+        "fx_slam", (SPR / "fx_slam.png").stat().st_size,
+        "fx_wisp", (SPR / "fx_wisp.png").stat().st_size,
     )
 
 

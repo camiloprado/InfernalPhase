@@ -11,7 +11,7 @@ Lilith stays `player_f.png` (female-v2). Bebê stays `baby.png`. Never copy thos
 
 Forbidden in-world Caim: void-hood Penitent, look-pass diamond, female sheet, baby sheet. `bc3b5f5` is FAIL-closed.
 
-Combat floors: Isaac basement / Sheol. Void floor with Ash/Bone grit, Ash-block walls. No checker, no brown, no wood.
+Combat floors: Isaac basement / Sheol. Wound field `#7A1F1A` with sparse Ember and 1px Ash grit, Ash-block walls. No checker, no brown, no wood, no star-speck Void. Pit mouth is round opaque Void.
 
 Pit teleport must rebind Caim’s sheet. After the drop the walker is still male Caim, not the sword imp.
 

@@ -20,7 +20,7 @@ Start-card Penitent diamond is **UI only**, never the floor actor.
 
 ## Floors and pit
 
-Combat rooms (**A BAD ROOM**): Isaac basement / Sheol. Void floor `#0B0C10` with subtle Ash/Bone grit, Ash-block walls (~32px). **No** checker, brown, or wood. Doors are flush Ash frames, not gothic arches.
+Combat rooms (**A BAD ROOM**): Isaac basement / Sheol. Wound floor `#7A1F1A` with sparse Ember motes and 1px Ash grit, Ash-block walls (~32px). **No** checker, brown, wood, or star-speck Void. Doors are flush Ash frames, not gothic arches. Pit mouth is a circle of opaque Void.
 
 Threshold pit **teleports** to Deep. After landing, the player must still be the Caim `player.png` sheet (shorter than the Ring Wretch, ~64px class), not the red sword imp. `fall_from` rebinds the sheet.
 

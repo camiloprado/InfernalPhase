@@ -211,7 +211,7 @@ func _theme_row() -> int:
 
 
 func _floor_color() -> Color:
-	return Palette.VOID
+	return Palette.WOUND
 
 
 func _wall_color() -> Color:
@@ -226,7 +226,7 @@ func _owns_door(dir: int) -> bool:
 
 
 func _build_geometry() -> void:
-	# Void underlay so transparent env texels never punch the F5 checker.
+	# Wound underlay so a missed floor texel cannot show the viewport checker.
 	var floor_n := Node2D.new()
 	floor_n.name = "FloorFill"
 	floor_n.z_index = -9
@@ -301,7 +301,7 @@ func _env_xy() -> Vector2i:
 
 
 func _floor_col(x: float, y: float) -> int:
-	# Four Void grit variants. The 3-step lattice is not a two-tone checker.
+	# Four Wound-field variants. The 3-step lattice is not a two-tone checker.
 	var tx := int(x / Game.WALL)
 	var ty := int(y / Game.WALL)
 	return posmod(tx + ty * 3, 4)

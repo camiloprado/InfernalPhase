@@ -2,8 +2,8 @@ class_name Hazard
 extends Node2D
 ## Telegraphed area attack used by The Infernal Phase.
 ##
-## FX-only: if fx_beam / fx_slam / fx_wisp miss, `_draw` paints telegraph
-## bars / nova / ring. That is hazard FX, not a gameplay-actor fallback.
+## FX sheets: fx_beam lightning, fx_slam Bone ring, fx_wisp Ember plume.
+## If one misses, `_draw` paints the telegraph. That is hazard FX, not an actor fallback.
 
 enum Kind { CROSS, DIAG, SLAM, LANES, RING }
 
@@ -229,7 +229,8 @@ func _play_hot() -> void:
 			var spr := n as AnimatedSprite2D
 			if spr.sprite_frames.has_animation("hot"):
 				spr.play("hot")
-			spr.modulate = Color(1.2, 0.78, 0.55, 1.0)
+			# Keep the sheet's Bone / Ember. A warm multiply washes the ring out.
+			spr.modulate = Color(1, 1, 1, 1)
 			Sprites.stagger(spr)
 
 
